@@ -1,6 +1,6 @@
 # nonoun-skills
 
-A home for **general-purpose Claude Code skills** — domain-agnostic authoring aids that aren't tied to any one plugin's job. Versioned, validated, and installable as a marketplace, kept separate from the product plugins (which live in [`claude-plugins`](https://github.com/kimgranlund/claude-plugins)) so the skills don't bloat a plugin's standing context or stretch its scope.
+A home for **general-purpose Claude Code skills** — domain-agnostic authoring aids that aren't tied to any one plugin's job. Versioned, validated, and installable as a marketplace, kept separate from the product plugins (which live in [`nonoun-plugins`](https://github.com/kimgranlund/nonoun-plugins)) so the skills don't bloat a plugin's standing context or stretch its scope.
 
 The marketplace `name` is `nonoun-skills`; the repo is `nonoun-skills`. Skills are distributed as cohesive **skill-bundle plugins** (a plugin that bundles only skills — no commands, agents, or MCP).
 
