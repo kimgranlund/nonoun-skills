@@ -1,0 +1,43 @@
+name: ci
+
+# Validates every bundled skill (structure + bin selftests + the mermaid render-check), self-contained and
+# clean-checkout-true. The static keyword gate runs stdlib-only; the full mmdc render gate fires because CI
+# installs the mermaid CLI.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: skills gate (structure + bin selftests + render-check dogfood)
+        run: python3 bin/check-skills.py
+
+      - name: mermaid render-check selftest (static keyword gate, no engine)
+        run: python3 ui-decomposers/skills/ui-mermaid-decomposer/bin/mermaid-render-check.py selftest
+
+      # The full mmdc render gate is ADVISORY (continue-on-error): the mermaid CLI bundles whatever mermaid version
+      # is current, which can differ from the 11.15.0 the reference targets, and the newest -beta types can have
+      # renderer edge cases. It surfaces render failures as a signal without failing the build on an engine-version
+      # mismatch the static keyword gate (blocking, above) already can't be wrong about. Promote to blocking once a
+      # version-pinned mmdc render is proven stable across all example types.
+      - name: install mermaid CLI (lights up the full M3 render gate)
+        continue-on-error: true
+        run: npm install -g @mermaid-js/mermaid-cli
+
+      - name: mermaid render gate — every example block actually renders (mmdc, exit-status verdict) [advisory]
+        continue-on-error: true
+        run: |
+          for d in ui-decomposers/skills/*/references; do
+            echo "» $d"
+            python3 ui-decomposers/skills/ui-mermaid-decomposer/bin/mermaid-render-check.py "$d"
+          done

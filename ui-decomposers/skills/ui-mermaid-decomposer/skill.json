@@ -1,0 +1,17 @@
+{
+  "name": "ui-mermaid-decomposer",
+  "version": "0.1.0",
+  "status": "draft",
+  "target": "both",
+  "description": "Create, decompose, and grade advanced Mermaid diagrams with the two-axis technique — INTENT (relationship → type → skeleton → elements → labels) and RENDER (keyword → syntax → strict-safety → legibility) — backed by a gated M1–M6 rubric and a verbatim syntax catalog for the 11 advanced types (journey, gantt, erDiagram, sankey-beta, kanban, architecture-beta, treeView-beta, venn-beta, ishikawa-beta, wardley-beta, eventmodeling).",
+  "keywords": ["mermaid", "diagram", "diagramming", "sankey", "gantt", "erd", "architecture-diagram", "flowchart", "wardley", "decomposition", "diagram-rubric", "mermaid-syntax", "intent", "render"],
+  "files": [
+    "SKILL.md",
+    "references/decomposition-method.md",
+    "references/advanced-mermaid-reference.md",
+    "references/mermaid-rubric.md",
+    "bin/mermaid-render-check.py",
+    "CHANGELOG.md",
+    "ROADMAP.md"
+  ]
+}
