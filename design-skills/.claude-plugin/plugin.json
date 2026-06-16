@@ -1,7 +1,7 @@
 {
   "name": "design-skills",
   "version": "0.2.0",
-  "description": "Design-domain skills, four of them: ui-layout-decomposer (read, grade, and design any UI layout on the OUTSIDE-IN x INSIDE-OUT axes, with a four-archetype ASCII-wireframe library) and ui-mermaid-decomposer (create, decompose, and grade advanced Mermaid diagrams on the INTENT x RENDER axes, with a verbatim 11-type syntax catalog, a gated M1-M6 rubric, and a mechanized render-check) — the two crossing-axis 'decomposers' — plus color-science (perceptual color: spaces, gamut math, contrast/APCA, harmony, CVD, pigment mixing, with a TypeScript color library + 54 interactive demos) and typography-lettering (type anatomy, classification, metrics, world scripts, and the modern CSS text surface). Skills only — no commands, agents, or MCP. Self-contained.",
+  "description": "Design-domain skills, four of them: layout-decomposer (read, grade, and design any UI layout on the OUTSIDE-IN x INSIDE-OUT axes, with a four-archetype ASCII-wireframe library) and mermaid-decomposer (create, decompose, and grade advanced Mermaid diagrams on the INTENT x RENDER axes, with a verbatim 11-type syntax catalog, a gated M1-M6 rubric, and a mechanized render-check) — the two crossing-axis 'decomposers' — plus color-science (perceptual color: spaces, gamut math, contrast/APCA, harmony, CVD, pigment mixing, with a TypeScript color library + 54 interactive demos) and typography-lettering (type anatomy, classification, metrics, world scripts, and the modern CSS text surface). Skills only — no commands, agents, or MCP. Self-contained.",
   "author": {
     "name": "Kim",
     "email": "kim.granlund@gmail.com"

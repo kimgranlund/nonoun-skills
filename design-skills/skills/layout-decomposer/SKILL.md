@@ -1,5 +1,5 @@
 ---
-name: ui-layout-decomposer
+name: layout-decomposer
 description: >
   Decompose, evaluate, and design any UI layout with the two-axis technique — OUTSIDE-IN (macro-layout →
   micro-layout: frame → regions → groups → atoms) and INSIDE-OUT (feature-actions → feature-surfaces: verbs →
@@ -11,7 +11,7 @@ description: >
   (brand-forge), production CSS/component code, or copywriting — this is structure + interaction layout only.
 ---
 
-# ui-layout-decomposer — read a UI on two crossing axes
+# layout-decomposer — read a UI on two crossing axes
 
 A layout is **correct on two independent axes that walk the same hierarchy in opposite directions** — the same
 PRD↔SPEC seam, applied to space:

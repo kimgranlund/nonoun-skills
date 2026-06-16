@@ -1,5 +1,5 @@
 ---
-name: ui-mermaid-decomposer
+name: mermaid-decomposer
 description: >
   Create, decompose, and grade advanced Mermaid diagrams with the two-axis technique — INTENT (relationship → type
   → skeleton → elements → labels: "is it the right diagram?") and RENDER (keyword → syntax → strict-safety →
@@ -13,9 +13,9 @@ description: >
   syntax + renderability only.
 ---
 
-# ui-mermaid-decomposer — author a diagram on two crossing axes
+# mermaid-decomposer — author a diagram on two crossing axes
 
-A Mermaid diagram is **correct on two independent axes that walk the same hierarchy in opposite directions** — the same outside-in / inside-out seam the [ui-layout-decomposer](../ui-layout-decomposer/SKILL.md) applies to space, here applied to a diagram:
+A Mermaid diagram is **correct on two independent axes that walk the same hierarchy in opposite directions** — the same outside-in / inside-out seam the [layout-decomposer](../layout-decomposer/SKILL.md) applies to space, here applied to a diagram:
 
 - **Intent · whole → atom** grades the **meaning the diagram claims**: the relationship → the type that expresses it → its skeleton → its elements → its labels.
 - **Render · atom → whole** grades the **picture that actually draws**: the exact keyword → the syntax that parses → strict-mode renderability → the legible whole.

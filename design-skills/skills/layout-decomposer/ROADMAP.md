@@ -1,4 +1,4 @@
-# Roadmap — ui-layout-decomposer
+# Roadmap — layout-decomposer
 
 ## Now (0.1.0)
 The method + the four archetype wireframe libraries, usable for DECOMPOSE / DESIGN / GRADE.

@@ -1,4 +1,4 @@
-# Changelog — ui-layout-decomposer
+# Changelog — layout-decomposer
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Versioning: [SemVer](https://semver.org/).
 

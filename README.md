@@ -12,8 +12,8 @@ Four skills. Two are paired **"decomposers"** on the same technique (two indepen
 
 | Skill | What it does | Carries |
 | --- | --- | --- |
-| **ui-layout-decomposer** | read / grade / design a UI on OUTSIDE-IN (frame → regions → cards → atoms) × INSIDE-OUT (actions → bindings → feedback → coherence) | a gated rubric + a four-archetype ASCII-wireframe library (productivity-shell · saas-dashboard · marketing-site · mobile-app) |
-| **ui-mermaid-decomposer** | create / grade advanced Mermaid diagrams on INTENT (relationship → type → skeleton → labels) × RENDER (keyword → syntax → strict-safety → legibility) | a verbatim 11-type syntax catalog, a gated M1–M6 rubric, and a **mechanized render-check** (`bin/mermaid-render-check.py`) |
+| **layout-decomposer** | read / grade / design a UI on OUTSIDE-IN (frame → regions → cards → atoms) × INSIDE-OUT (actions → bindings → feedback → coherence) | a gated rubric + a four-archetype ASCII-wireframe library (productivity-shell · saas-dashboard · marketing-site · mobile-app) |
+| **mermaid-decomposer** | create / grade advanced Mermaid diagrams on INTENT (relationship → type → skeleton → labels) × RENDER (keyword → syntax → strict-safety → legibility) | a verbatim 11-type syntax catalog, a gated M1–M6 rubric, and a **mechanized render-check** (`bin/mermaid-render-check.py`) |
 | **color-science** | answer perceptual-color questions — spaces, gamut math, contrast/APCA, harmony, CVD, pigment mixing, color naming | a TypeScript color library (`src/`, 24 spaces) + 54 interactive `examples/` demos + a deep references corpus (historical · contemporary · techniques) |
 | **typography-lettering** | answer typography questions — anatomy, classification, metrics, world scripts, accessibility, and the modern CSS text surface | a tiered references corpus by axis (history · classification · metrics · scripts · techniques · science) |
 
@@ -39,8 +39,8 @@ Skills are markdown + (optionally) stdlib Python. The repo is **self-contained a
 
 ```sh
 python3 bin/check-skills.py                                    # validate every skill + run bin selftests + dogfood the render-check
-python3 design-skills/skills/ui-mermaid-decomposer/bin/mermaid-render-check.py selftest    # the static keyword gate
-python3 design-skills/skills/ui-mermaid-decomposer/bin/mermaid-render-check.py <file|dir>  # check a doc's ```mermaid blocks (mmdc renders when installed)
+python3 design-skills/skills/mermaid-decomposer/bin/mermaid-render-check.py selftest    # the static keyword gate
+python3 design-skills/skills/mermaid-decomposer/bin/mermaid-render-check.py <file|dir>  # check a doc's ```mermaid blocks (mmdc renders when installed)
 ```
 
 `bin/check-skills.py` asserts, per skill (FAIL): `skill.json` parses and its `name` matches the dir; the SKILL.md `description` is ≤ 1024 chars; every `files[]` path exists; relative `.md` links resolve. It then runs each skill's `bin/*.py selftest` and dogfoods the Mermaid render-check over the reference docs. The skills-studio structural floor (`## Quick Start` · `§SelfAudit` · `## Verify Target`) is **advisory** (a WARN, not a FAIL) — the two `decomposer` skills carry it; the `ref-*`-derived reference skills use `## Invocation` + domain sections instead. CI (`.github/workflows/ci.yml`) runs the gate on every push/PR.
@@ -55,8 +55,8 @@ nonoun-skills/
   design-skills/
     .claude-plugin/plugin.json
     skills/
-      ui-layout-decomposer/            # SKILL.md · skill.json · CHANGELOG · ROADMAP · references/
-      ui-mermaid-decomposer/           # … + bin/mermaid-render-check.py
+      layout-decomposer/            # SKILL.md · skill.json · CHANGELOG · ROADMAP · references/
+      mermaid-decomposer/           # … + bin/mermaid-render-check.py
       color-science/                   # SKILL.md · references/ · src/ (TS color lib) · examples/ (54 demos)
       typography-lettering/            # SKILL.md · references/ (tiered by axis)
   bin/check-skills.py                  # the self-contained CI gate

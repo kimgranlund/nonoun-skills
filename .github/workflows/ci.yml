@@ -23,7 +23,7 @@ jobs:
         run: python3 bin/check-skills.py
 
       - name: mermaid render-check selftest (static keyword gate, no engine)
-        run: python3 design-skills/skills/ui-mermaid-decomposer/bin/mermaid-render-check.py selftest
+        run: python3 design-skills/skills/mermaid-decomposer/bin/mermaid-render-check.py selftest
 
       # The full mmdc render gate is ADVISORY (continue-on-error): the mermaid CLI bundles whatever mermaid version
       # is current, which can differ from the 11.15.0 the reference targets, and the newest -beta types can have
@@ -39,5 +39,5 @@ jobs:
         run: |
           for d in design-skills/skills/*/references; do
             echo "» $d"
-            python3 design-skills/skills/ui-mermaid-decomposer/bin/mermaid-render-check.py "$d"
+            python3 design-skills/skills/mermaid-decomposer/bin/mermaid-render-check.py "$d"
           done

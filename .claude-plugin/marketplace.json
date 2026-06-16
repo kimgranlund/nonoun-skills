@@ -11,7 +11,7 @@
     {
       "name": "design-skills",
       "source": "./design-skills",
-      "description": "Design-domain skills: ui-layout-decomposer (read/grade/design a UI on OUTSIDE-IN x INSIDE-OUT axes + a four-archetype ASCII-wireframe library), ui-mermaid-decomposer (create/grade advanced Mermaid diagrams on INTENT x RENDER axes + a gated M1-M6 rubric + a mechanized render-check), color-science (perceptual color — spaces, gamut, contrast/APCA, harmony, CVD — with a TypeScript color library + 54 interactive demos), and typography-lettering (type anatomy, classification, metrics, scripts, and the modern CSS text surface).",
+      "description": "Design-domain skills: layout-decomposer (read/grade/design a UI on OUTSIDE-IN x INSIDE-OUT axes + a four-archetype ASCII-wireframe library), mermaid-decomposer (create/grade advanced Mermaid diagrams on INTENT x RENDER axes + a gated M1-M6 rubric + a mechanized render-check), color-science (perceptual color — spaces, gamut, contrast/APCA, harmony, CVD — with a TypeScript color library + 54 interactive demos), and typography-lettering (type anatomy, classification, metrics, scripts, and the modern CSS text surface).",
       "category": "design",
       "tags": ["skills", "ui", "layout", "wireframe", "mermaid", "diagrams", "color", "color-science", "typography", "decomposition", "rubric", "design"]
     }

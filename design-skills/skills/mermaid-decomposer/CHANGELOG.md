@@ -1,10 +1,10 @@
-# Changelog — ui-mermaid-decomposer
+# Changelog — mermaid-decomposer
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Versioning: [SemVer](https://semver.org/).
 
 ## [0.1.0] — 2026-06-16
 
-Initial cut. The two-axis diagram technique, modeled on [[ui-layout-decomposer]] and built on the advanced-Mermaid reference + rubric authored for the catalog corpus-reader (`mermaid@11.15.0`, `securityLevel:"strict"`).
+Initial cut. The two-axis diagram technique, modeled on [[layout-decomposer]] and built on the advanced-Mermaid reference + rubric authored for the catalog corpus-reader (`mermaid@11.15.0`, `securityLevel:"strict"`).
 
 ### Added
 - **The two-axis method** (`references/decomposition-method.md`) — INTENT (whole→atom: relationship → type →
