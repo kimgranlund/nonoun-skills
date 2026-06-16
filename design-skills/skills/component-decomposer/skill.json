@@ -1,0 +1,21 @@
+{
+  "name": "component-decomposer",
+  "version": "0.1.0",
+  "status": "draft",
+  "target": "both",
+  "description": "Decompose, design, and grade zero-dependency web components (Custom Elements, signals, FACE, no native form elements) on two crossing axes — COMPOSE (layer → anatomy → API → composition) and REALIZE (geometry → element → semantics → interaction → fidelity) — scored separately, backed by a gated rubric, a deterministic geometry engine (the (height-glyph)/2 padding law + the XS–2XL ramp), a contract-card linter, and family recipes for controls and overlays.",
+  "keywords": ["web-components", "custom-elements", "design-system", "component-library", "geometry", "button", "face", "element-internals", "anchor-positioning", "popover", "ssr", "decomposition", "component-rubric", "compose", "realize"],
+  "files": [
+    "SKILL.md",
+    "references/decomposition-method.md",
+    "references/geometry-system.md",
+    "references/platform-baseline.md",
+    "references/api-policy.md",
+    "references/family-controls.md",
+    "references/family-overlays.md",
+    "bin/geometry-check.py",
+    "bin/component-contract-check.py",
+    "CHANGELOG.md",
+    "ROADMAP.md"
+  ]
+}

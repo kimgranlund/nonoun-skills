@@ -1,12 +1,12 @@
 {
   "name": "design-skills",
-  "version": "0.2.0",
-  "description": "Design-domain skills, four of them: layout-decomposer (read, grade, and design any UI layout on the OUTSIDE-IN x INSIDE-OUT axes, with a four-archetype ASCII-wireframe library) and mermaid-decomposer (create, decompose, and grade advanced Mermaid diagrams on the INTENT x RENDER axes, with a verbatim 11-type syntax catalog, a gated M1-M6 rubric, and a mechanized render-check) — the two crossing-axis 'decomposers' — plus color-science (perceptual color: spaces, gamut math, contrast/APCA, harmony, CVD, pigment mixing, with a TypeScript color library + 54 interactive demos) and typography-lettering (type anatomy, classification, metrics, world scripts, and the modern CSS text surface). Skills only — no commands, agents, or MCP. Self-contained.",
+  "version": "0.3.0",
+  "description": "Design-domain skills, five of them: layout-decomposer (read, grade, and design any UI layout on the OUTSIDE-IN x INSIDE-OUT axes, with a four-archetype ASCII-wireframe library), mermaid-decomposer (create, decompose, and grade advanced Mermaid diagrams on the INTENT x RENDER axes, with a verbatim 11-type syntax catalog, a gated M1-M6 rubric, and a mechanized render-check), and component-decomposer (decompose, design, and grade zero-dependency web components on the COMPOSE x REALIZE axes, with a deterministic geometry engine — the (height-glyph)/2 law + XS–2XL ramp — a contract-card linter, and controls/overlays recipes) — the three crossing-axis 'decomposers' — plus color-science (perceptual color: spaces, gamut math, contrast/APCA, harmony, CVD, pigment mixing, with a TypeScript color library + 54 interactive demos) and typography-lettering (type anatomy, classification, metrics, world scripts, and the modern CSS text surface). Skills only — no commands, agents, or MCP. Self-contained.",
   "author": {
     "name": "Kim",
     "email": "kim.granlund@gmail.com"
   },
   "homepage": "https://github.com/kimgranlund/nonoun-skills",
   "license": "MIT",
-  "keywords": ["skills", "ui", "layout", "wireframe", "mermaid", "diagrams", "sankey", "color", "color-science", "typography", "lettering", "decomposition", "design-rubric"]
+  "keywords": ["skills", "ui", "layout", "wireframe", "mermaid", "diagrams", "sankey", "color", "color-science", "typography", "lettering", "web-components", "custom-elements", "component-library", "geometry", "decomposition", "design-rubric"]
 }
