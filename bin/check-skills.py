@@ -45,7 +45,7 @@ def _frontmatter_description(skill_md):
     return inline.group(1).strip() if inline else None
 
 
-def _check_skill(d, fails):
+def _check_skill(d, fails, warns):
     name = os.path.basename(d)
     rel = os.path.relpath(d, ROOT)
     try:
@@ -67,12 +67,16 @@ def _check_skill(d, fails):
     for f in man.get("files", []):
         if not os.path.isfile(os.path.join(d, f)):
             fails.append(f"{rel}: skill.json files[] lists {f} — not on disk")
-    # the skills-studio structural floor
+    # the skills-studio structural floor — ADVISORY (a quality convention, not all skill vintages follow it;
+    # `ref-*` reference skills use `## Invocation` + domain sections instead). Warn, don't fail.
     body = open(skill_md, encoding="utf-8").read()
     for needle, label in (("## Quick Start", "Quick Start"), ("SelfAudit", "§SelfAudit"), ("## Verify Target", "Verify Target")):
         if needle not in body:
-            fails.append(f"{rel}: SKILL.md missing `{label}`")
-    # relative .md links resolve (SKILL.md + every references/*.md)
+            warns.append(f"{rel}: SKILL.md has no `{label}` (skills-studio floor — advisory)")
+    # relative .md links: a broken link INSIDE the skill dir is a real internal bug (FAIL); a link that escapes the
+    # skill dir is a CROSS-SKILL reference to a sibling that may or may not be installed — out of this skill's
+    # control, so advisory (WARN). The gate validates each skill's own integrity, not its ecosystem assumptions.
+    dabs = os.path.abspath(d)
     md_files = [skill_md] + [os.path.join(dp, fn) for dp, _, fns in os.walk(d) for fn in fns if fn.endswith(".md")]
     for mf in md_files:
         base = os.path.dirname(mf)
@@ -80,8 +84,11 @@ def _check_skill(d, fails):
             if link.startswith(("http", "#")):
                 continue
             target = os.path.normpath(os.path.join(base, link.split("#")[0]))
-            if not os.path.isfile(target):
-                fails.append(f"{os.path.relpath(mf, ROOT)}: broken link -> {link}")
+            if os.path.isfile(target):
+                continue
+            inside = os.path.commonpath([os.path.abspath(target), dabs]) == dabs
+            where = f"{os.path.relpath(mf, ROOT)}: broken link -> {link}"
+            (fails if inside else warns).append(where + ("" if inside else " (cross-skill ref — advisory)"))
 
 
 def _run_bin_selftests(d, fails):
@@ -108,10 +115,10 @@ def main(argv):
     if not skills:
         sys.stderr.write("no skills found under */skills/*/\n")
         return 1
-    fails, selftests = [], []
+    fails, warns, selftests = [], [], []
     render_check = None
     for d in skills:
-        _check_skill(d, fails)
+        _check_skill(d, fails, warns)
         selftests += _run_bin_selftests(d, fails)
         rc = os.path.join(d, "bin", "mermaid-render-check.py")
         if os.path.isfile(rc):
@@ -132,6 +139,10 @@ def main(argv):
     print(f"check-skills: OK — {len(skills)} skill(s) valid, {len(selftests)} bin selftest(s) passed, render-check dogfooded")
     for d in skills:
         print(f"    ✓ {os.path.relpath(d, ROOT)}")
+    if warns:
+        print(f"  {len(warns)} advisory warning(s):")
+        for w in warns:
+            print(f"    ⚠ {w}")
     return 0
 
 
