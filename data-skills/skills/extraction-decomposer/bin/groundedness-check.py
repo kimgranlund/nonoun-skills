@@ -29,6 +29,22 @@ above; it does NOT catch a value that grounds against the WRONG span (see the fa
 references/groundedness.md). This tool catches the invented value deterministically; the wrong-span /
 over-normalized cases route to the adversarial verifier.
 
+WRONG-SPAN, AND WHY THIS TOOL ONLY APPROXIMATES IT
+--------------------------------------------------
+Grounding proves a value is PRESENT in the source; it cannot prove the value plays the CLAIMED ROLE.
+"Acme" extracted as `buyer` grounds cleanly even when the source has Acme as the `seller` — a
+*wrong-span* defect. A deterministic checker cannot confirm role; that needs a fresh-context
+ADVERSARIAL-VERIFY step (the verifier prompt lives in references/fidelity-axis.md). What a stdlib
+checker CAN do is APPROXIMATE proximity: an OPTIONAL per-field "context cue" signal. If the spec gives
+a field one or more cue strings (e.g. buyer -> ["buyer","bill to","purchaser"]), then for a grounded
+scalar we check whether its nearest source occurrence falls within a token window (default ~12,
+configurable) of a cue occurrence. Grounded but NO cue near ANY occurrence -> a WEAK_CONTEXT ADVISORY
+("in the source but not near any '<field>' cue — possible wrong-span; verify the role"). This is a
+HEURISTIC, not an oracle: it is opt-in (no cues -> no WEAK_CONTEXT, never a false positive on cue-less
+specs), and it is ADVISORY — it does NOT affect exit code. Framing: gate PRESENCE (code), gauge
+PROXIMITY (code, opt-in heuristic), confirm ROLE (adversarial verify). Do not read a clean proximity
+result as a role confirmation.
+
 Booleans are NOT grounded by this check: `true`/`false` rarely appear as literal source tokens (they
 encode a judgment about the source), so flagging them would be all false positives. They are a
 `[review]` item, not a gate — the adversarial verifier judges them. An empty / whitespace-only string
@@ -36,9 +52,15 @@ is reported as a distinct EMPTY finding (it asserts nothing, but an empty value 
 content is usually a B4 "had to put something" defect, not silently grounded).
 
   python3 bin/groundedness-check.py selftest
-  python3 bin/groundedness-check.py <extraction.json> <source.txt>   # nonzero exit on any ungrounded scalar
+  python3 bin/groundedness-check.py <extraction.json> <source.txt>             # nonzero exit on any ungrounded scalar
+  python3 bin/groundedness-check.py <extraction.json> <source.txt> [cues.json] [--window N]
+                                                                               # opt-in proximity (WEAK_CONTEXT advisory)
 
-Python 3.8+.
+`cues.json` (optional) is a JSON object mapping a field's LEAF NAME to a list of cue strings, e.g.
+`{"buyer": ["buyer","bill to","purchaser"], "seller": ["seller","sold by","vendor"]}`. Only fields
+present in this map get the proximity check; everything else behaves exactly as before. --window sets
+the cue token window (default 12). WEAK_CONTEXT is ADVISORY: it is printed but does NOT change the exit
+code (presence/grounding failures still do). Python 3.8+.
 """
 import json
 import re
@@ -89,6 +111,70 @@ def _contiguous_sublist(needle, haystack):
     for i in range(h - n + 1):
         if haystack[i] == first and haystack[i:i + n] == needle:
             return True
+    return False
+
+
+def _occurrence_spans(needle, haystack):
+    """All (start, end) token-index spans where `needle` appears as a contiguous run in `haystack`.
+
+    Indices are into `haystack`'s token list; `end` is exclusive. Empty list if no occurrence."""
+    spans = []
+    if not needle:
+        return spans
+    n, h = len(needle), len(haystack)
+    if n > h:
+        return spans
+    first = needle[0]
+    for i in range(h - n + 1):
+        if haystack[i] == first and haystack[i:i + n] == needle:
+            spans.append((i, i + n))
+    return spans
+
+
+# --- proximity / context-cue heuristic (OPT-IN; approximates wrong-span, never confirms role) -------
+DEFAULT_CUE_WINDOW = 12  # tokens of gap allowed between a value occurrence and the nearest cue
+
+
+def _leaf_field(path):
+    """The trailing field name of a JSON path: '$.contact.buyer' -> 'buyer', '$.items[2]' -> 'items'.
+
+    Cues are keyed by leaf field name, so a value at any depth/position under that field is checked."""
+    last = path.rsplit(".", 1)[-1]
+    return last.split("[", 1)[0]
+
+
+def _gap(span_a, span_b):
+    """Token gap between two [start, end) spans: 0 if they touch/overlap, else the tokens between."""
+    a0, a1 = span_a
+    b0, b1 = span_b
+    if a1 <= b0:
+        return b0 - a1
+    if b1 <= a0:
+        return a0 - b1
+    return 0
+
+
+def near_a_cue(value, cues_for_field, source_norm_tokens, window):
+    """True iff a NORMALIZED occurrence of `value` sits within `window` tokens of a cue occurrence.
+
+    Both the value and every cue are matched as contiguous whole-token runs in the case-folded source
+    (the same word-boundary discipline grounding uses), so a fragment can never satisfy proximity.
+    Returns True if EITHER the value has no locatable occurrence (the proximity question is moot — a
+    truly absent value is an UNGROUNDED matter, not a WEAK_CONTEXT one) OR no cue is configured."""
+    if not cues_for_field:
+        return True  # opt-in: no cue for this field -> never a WEAK_CONTEXT finding
+    val_spans = _occurrence_spans(tokens(value), source_norm_tokens)
+    if not val_spans:
+        return True  # not locatable here -> grounding/UNGROUNDED owns this, not proximity
+    cue_spans = []
+    for cue in cues_for_field:
+        cue_spans += _occurrence_spans(tokens(cue), source_norm_tokens)
+    if not cue_spans:
+        return True  # the cue itself never appears in the source -> cannot judge proximity; stay quiet
+    for vs in val_spans:
+        for cs in cue_spans:
+            if _gap(vs, cs) <= window:
+                return True
     return False
 
 
@@ -185,6 +271,12 @@ def scalar_values(obj, path="$"):
 # A grounding kind ('EXACT'|'NORMALIZED'|'NUMERIC'|'DATE') is a PASS; these are not.
 _FAIL_KINDS = ("UNGROUNDED", "WEAK_GROUNDING", "EMPTY")
 
+# WEAK_CONTEXT is the opt-in proximity advisory. A value can be GROUNDED (it passed a rung above) yet
+# sit nowhere near its field's cue — a possible wrong-span. It is reported but does NOT change the exit
+# code (it is a heuristic that only APPROXIMATES role; true role confirmation is the adversarial verify
+# step). So it is deliberately NOT in _FAIL_KINDS.
+WEAK_CONTEXT = "WEAK_CONTEXT"
+
 
 def is_grounded(value, source, source_tokens, source_norm_tokens, source_nums, source_dates):
     """Return the outcome kind for a scalar value.
@@ -235,8 +327,15 @@ def is_grounded(value, source, source_tokens, source_norm_tokens, source_nums, s
     return "UNGROUNDED"
 
 
-def check(extraction, source):
-    """Return (findings, n_scalars). A finding is (path, value, kind) for a non-grounding outcome."""
+def check(extraction, source, cues=None, window=DEFAULT_CUE_WINDOW):
+    """Return (findings, n_scalars). A finding is (path, value, kind) for a non-grounding outcome.
+
+    `cues` (optional) maps a field's LEAF NAME to a list of cue strings. When provided for a field, a
+    GROUNDED scalar whose nearest source occurrence is not within `window` tokens of any cue occurrence
+    yields a WEAK_CONTEXT advisory (possible wrong-span). Fields absent from `cues` are unaffected — the
+    signal is strictly opt-in, so a cue-less call behaves exactly as before. WEAK_CONTEXT is advisory
+    and does NOT enter the exit-affecting _FAIL_KINDS set."""
+    cues = cues or {}
     source_tokens = tokens(source, fold=False)   # case-sensitive, for the EXACT rung
     source_norm_tokens = tokens(source)           # case-folded, for the NORMALIZED rung
     source_nums = _source_num_keys(source)
@@ -247,6 +346,12 @@ def check(extraction, source):
         kind = is_grounded(value, source, source_tokens, source_norm_tokens, source_nums, source_dates)
         if kind in _FAIL_KINDS:
             findings.append((path, value, kind))
+            continue
+        # the value is GROUNDED (a PASS rung). Only now does proximity apply, and only if the field has
+        # cues. A grounded value far from every cue occurrence is a possible wrong-span -> WEAK_CONTEXT.
+        cues_for_field = cues.get(_leaf_field(path))
+        if cues_for_field and not near_a_cue(value, cues_for_field, source_norm_tokens, window):
+            findings.append((path, value, WEAK_CONTEXT))
     return findings, n
 
 
@@ -305,6 +410,29 @@ NUM_LEADING_INVENTED = {
     "addr": "12 Nonexistent Street",   # leads with grounded "12" but is an invented address — FLAG
     "id": "12-FAKE-ID-9999",           # leads with grounded "12" but is an invented id        — FLAG
 }
+
+# --- proximity fixtures: WEAK_CONTEXT (wrong-span APPROXIMATION via opt-in cues) -------------------
+# Acme is the SELLER in this source; a buyer field carrying "Acme" is a wrong-span defect that grounds
+# cleanly (Acme is present) — only proximity to a "buyer" cue can hint at it. The buyer ("Globex") and
+# the seller ("Acme") each sit next to their own cue word; cross-attribute them and they sit far away.
+ROLE_SOURCE = (
+    "Purchase Order. Bill to: Globex Industries, 5 Market St. "
+    "A long stretch of boilerplate terms and conditions follows here for many tokens so that the two "
+    "parties are well separated in the document and a token window cannot bridge them by accident. "
+    "Sold by: Acme Robotics, the supplier of record for this order."
+)
+ROLE_CUES = {
+    "buyer": ["buyer", "bill to", "purchaser"],
+    "seller": ["seller", "sold by", "vendor", "supplier"],
+}
+# (a) WRONG-SPAN with cues: buyer="Acme Robotics" is GROUNDED (Acme is in the source) but far from any
+#     buyer cue (it sits by "Sold by") -> WEAK_CONTEXT. seller="Acme Robotics" sits next to "Sold by"
+#     -> NOT flagged. This is the discriminating pair.
+ROLE_WRONG = {"buyer": "Acme Robotics", "seller": "Acme Robotics"}
+# (b) RIGHT roles with the SAME values+cues: each value is near its own cue -> NEITHER flagged.
+ROLE_RIGHT = {"buyer": "Globex Industries", "seller": "Acme Robotics"}
+# (c) cue-less spec: the SAME wrong-span extraction with NO cues passed -> NO WEAK_CONTEXT at all
+#     (the existing behavior is untouched — opt-in means silent when unused).
 
 
 def selftest():
@@ -371,6 +499,49 @@ def selftest():
         if kinds.get(p) != "EMPTY":
             errs.append("empty value at %s should report EMPTY, got %r" % (p, kinds.get(p)))
 
+    # 2f. WEAK_CONTEXT (a) — wrong-span WITH cues: buyer="Acme Robotics" is grounded but far from any
+    #     buyer cue -> flagged WEAK_CONTEXT; the same value as seller sits by "Sold by" -> NOT flagged.
+    finds, _ = check(ROLE_WRONG, ROLE_SOURCE, cues=ROLE_CUES)
+    wc = {p for p, _, k in finds if k == WEAK_CONTEXT}
+    if "$.buyer" not in wc:
+        errs.append("(a) wrong-span buyer='Acme Robotics' (grounded, far from a buyer cue) should be "
+                    "WEAK_CONTEXT, got findings %s" % sorted(finds))
+    if "$.seller" in wc:
+        errs.append("(a) seller='Acme Robotics' sits next to its 'Sold by' cue — must NOT be WEAK_CONTEXT")
+    # and WEAK_CONTEXT must never enter the exit-affecting set
+    if any(k in _FAIL_KINDS for _, _, k in finds):
+        errs.append("(a) WEAK_CONTEXT leaked into a FAIL kind — it must stay advisory")
+
+    # 2g. WEAK_CONTEXT (b) — same values+cues but the RIGHT roles: each value is near its own cue, so
+    #     NEITHER is flagged. Proves a nearby cue suppresses the advisory (no false positive on good data).
+    finds, _ = check(ROLE_RIGHT, ROLE_SOURCE, cues=ROLE_CUES)
+    wc = {p for p, _, k in finds if k == WEAK_CONTEXT}
+    if wc:
+        errs.append("(b) correctly-attributed values each near their own cue should NOT be WEAK_CONTEXT, "
+                    "got %s" % sorted(wc))
+
+    # 2h. WEAK_CONTEXT (c) — the SAME wrong-span extraction but NO cues passed: opt-in means the signal
+    #     is silent. NO WEAK_CONTEXT at all (no regression / no false positive on a cue-less spec).
+    finds, _ = check(ROLE_WRONG, ROLE_SOURCE)            # cues omitted
+    if any(k == WEAK_CONTEXT for _, _, k in finds):
+        errs.append("(c) cue-less spec must emit NO WEAK_CONTEXT (opt-in), got %s" % sorted(finds))
+    # belt-and-suspenders: an empty cue map is also cue-less for every field
+    finds, _ = check(ROLE_WRONG, ROLE_SOURCE, cues={})
+    if any(k == WEAK_CONTEXT for _, _, k in finds):
+        errs.append("(c) empty cue map must emit NO WEAK_CONTEXT, got %s" % sorted(finds))
+
+    # 2i. proximity must not perturb existing grounding outcomes: the faithful extraction stays clean
+    #     even when irrelevant cues are supplied for fields whose values ARE near them.
+    finds, _ = check(FAITHFUL, SOURCE, cues={"vendor": ["bill to"]})
+    if finds:
+        errs.append("(opt-in) faithful extraction with a satisfiable cue should stay clean, got %s"
+                    % sorted(finds))
+    # and a wider window relaxes the heuristic: with a window spanning the whole doc, even the wrong-span
+    # buyer is "near" the buyer cue, so the advisory is suppressed (tunable, as documented).
+    finds, _ = check(ROLE_WRONG, ROLE_SOURCE, cues=ROLE_CUES, window=1000)
+    if any(k == WEAK_CONTEXT for _, _, k in finds):
+        errs.append("window tunable: a huge window should suppress WEAK_CONTEXT, got %s" % sorted(finds))
+
     # 3. the normalization ladder — each rung grounds where exact-match would miss.
     src = "Total: $1,234.50 on 2026-01-02 for ACME  Corp."
     cases = [
@@ -408,34 +579,85 @@ def main(argv):
                 sys.stderr.write("  - %s\n" % e)
             return 1
         print("groundedness-check: OK — faithful extraction clean, invented values flagged, "
-              "normalize/numeric/date ladder verified")
+              "normalize/numeric/date ladder verified, proximity cues opt-in (WEAK_CONTEXT advisory)")
         return 0
-    if len(argv) < 2:
-        sys.stderr.write("usage: groundedness-check.py <extraction.json> <source.txt>\n")
+
+    # parse args: <extraction.json> <source.txt> [cues.json] [--window N], order-flexible for the flag.
+    window = DEFAULT_CUE_WINDOW
+    positional = []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--window":
+            i += 1
+            if i >= len(argv) or not argv[i].lstrip("-").isdigit():
+                sys.stderr.write("--window needs an integer\n")
+                return 2
+            window = int(argv[i])
+        elif a.startswith("--window="):
+            v = a.split("=", 1)[1]
+            if not v.lstrip("-").isdigit():
+                sys.stderr.write("--window needs an integer\n")
+                return 2
+            window = int(v)
+        else:
+            positional.append(a)
+        i += 1
+
+    if len(positional) < 2:
+        sys.stderr.write("usage: groundedness-check.py <extraction.json> <source.txt> "
+                         "[cues.json] [--window N]\n")
         return 2
     try:
-        extraction = json.load(open(argv[0], encoding="utf-8"))
+        extraction = json.load(open(positional[0], encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as e:
         sys.stderr.write("cannot read extraction: %s\n" % e)
         return 2
     try:
-        source = open(argv[1], encoding="utf-8").read()
+        source = open(positional[1], encoding="utf-8").read()
     except OSError as e:
         sys.stderr.write("cannot read source: %s\n" % e)
         return 2
-    findings, n = check(extraction, source)
+    cues = None
+    if len(positional) >= 3:
+        try:
+            cues = json.load(open(positional[2], encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as e:
+            sys.stderr.write("cannot read cues: %s\n" % e)
+            return 2
+        if not isinstance(cues, dict):
+            sys.stderr.write("cues.json must be an object: {\"field\": [\"cue\", ...], ...}\n")
+            return 2
+
+    findings, n = check(extraction, source, cues=cues, window=window)
     for path, value, kind in findings:
         v = repr(value)
         note = {"UNGROUNDED": "", "WEAK_GROUNDING": "  (short match — verify manually)",
-                "EMPTY": "  (empty value)"}.get(kind, "")
+                "EMPTY": "  (empty value)",
+                WEAK_CONTEXT: "  (grounded but not near a '%s' cue — possible wrong-span; verify the "
+                              "role via adversarial cross-check)" % _leaf_field(path)}.get(kind, "")
         print("  %-14s %-28s %s%s" % (kind, path, v if len(v) <= 50 else v[:47] + "...", note))
-    if findings:
+
+    # WEAK_CONTEXT is ADVISORY: it does NOT affect the exit code (it only APPROXIMATES wrong-span; role
+    # is confirmed by the adversarial verifier, not this gate). The exit is driven by _FAIL_KINDS only.
+    fails = [f for f in findings if f[2] in _FAIL_KINDS]
+    advisories = [f for f in findings if f[2] == WEAK_CONTEXT]
+    if fails:
         # honest wording (m1): some of these are FALSE POSITIVES (a locale/scientific-notation value,
         # an over-normalization that nonetheless preserves meaning). Say "verify", do not assert.
+        extra = (" (+%d WEAK_CONTEXT advisory — possible wrong-span, does not affect exit)"
+                 % len(advisories)) if advisories else ""
         sys.stderr.write("groundedness-check: FAIL — %d of %d scalar(s) not cleanly grounded in the "
                          "source — verify each against the source before shipping (an ungrounded "
-                         "scalar is a LIKELY but not certain hallucination)\n" % (len(findings), n))
+                         "scalar is a LIKELY but not certain hallucination)%s\n"
+                         % (len(fails), n, extra))
         return 1
+    if advisories:
+        # grounded, but proximity is suspicious — pass the gate, but say so clearly.
+        print("groundedness-check: OK — all %d scalar value(s) grounded in the source; %d WEAK_CONTEXT "
+              "advisory (grounded but not near its field cue — possible wrong-span; confirm the role "
+              "with the adversarial verifier, see references/fidelity-axis.md)" % (n, len(advisories)))
+        return 0
     print("groundedness-check: OK — all %d scalar value(s) grounded in the source" % n)
     return 0
 

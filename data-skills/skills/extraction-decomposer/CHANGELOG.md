@@ -18,6 +18,21 @@ Closes concrete false-negative defects in both `bin/` gates (each with adversari
   when the *entire* trimmed string is one number token; a string that merely *starts* with a grounded
   digit (`"12 Nonexistent Street"`, `"12-FAKE-ID-9999"`) no longer grounds via the leading number. New
   must-FLAG fixture.
+- **groundedness-check.py — opt-in proximity / wrong-span APPROXIMATION (`WEAK_CONTEXT`).** A new,
+  optional per-field **context-cue** signal: pass `cues.json` (a map of a field's leaf name → cue
+  strings, e.g. `buyer → ["buyer","bill to","purchaser"]`) and an optional `--window N` (default 12
+  tokens). For a *grounded* scalar whose field has cues, if its nearest source occurrence is not within
+  the window of any cue occurrence, the tool emits a `WEAK_CONTEXT` advisory — a *possible* wrong-span
+  (e.g. `"Acme"` extracted as `buyer` when the source has Acme as `seller`). **Honest by design:** the
+  signal is **opt-in** (no cues → no `WEAK_CONTEXT`, never a false positive on cue-less specs and never
+  a regression to token-boundary grounding + the weak floor) and **advisory** (printed but does **not**
+  affect the exit code — an ungrounded scalar still fails). It only *approximates* role; true role
+  confirmation is a fresh-context **adversarial verify** step, **not** a claimed deterministic
+  wrong-span oracle. New selftest fixtures: (a) wrong-span with cues → flagged, (b) same value near its
+  cue → not flagged, (c) cue-less spec → no `WEAK_CONTEXT`, plus window-tunability and no-perturbation
+  of grounding outcomes. Docs add a **"Wrong-span — the role the value plays"** subsection
+  (`groundedness.md`) framing *gate presence (code) · gauge proximity (code, opt-in) · confirm role
+  (adversarial verify)*, and a **role-confirmation adversarial prompt** (`fidelity-axis.md`).
 - **schema-check.py — unknown/unsupported keywords no longer silently ignored.** A schema-author typo
   (`requried`, `minimun`) or an unsupported keyword (`additionalProperties`) was a silent no-op → false
   green. Each now emits `WARN: unknown/unsupported keyword 'X' — not enforced` and the run exits

@@ -119,13 +119,15 @@ needs **validity** work the schema check finds for you. Report the cell, not an 
 | Gate | Tool | What it proves |
 |---|---|---|
 | **Validity (B1/B2/B3)** | `bin/schema-check.py <doc> <schema>` | well-formed JSON, conforms to types/`required`/`enum`, satisfies range/pattern/length. The cheap axis — trust the tool. |
-| **Faithfulness (A2)** | `bin/groundedness-check.py <extraction> <source>` | every scalar is grounded — **token-boundary** exact / normalized, or numeric-key / date-reformat match. Flags any **ungrounded** scalar (likely hallucination), surfaces a short token-match as **WEAK_GROUNDING**, and an empty value as **EMPTY**. |
+| **Faithfulness (A2)** | `bin/groundedness-check.py <extraction> <source> [cues.json] [--window N]` | every scalar is grounded — **token-boundary** exact / normalized, or numeric-key / date-reformat match. Flags any **ungrounded** scalar (likely hallucination), surfaces a short token-match as **WEAK_GROUNDING**, an empty value as **EMPTY**, and — with **opt-in per-field cues** — a grounded-but-far value as **WEAK_CONTEXT** (advisory, no exit effect). |
 
 `schema-check.py` is necessary but **cannot see hallucination**; `groundedness-check.py` catches the
 *invented* (absent) value **and the substring-fragment class** (`"Fran"` from "Francisco" — token-
-boundary matching + a weak-grounding floor), but **cannot see a wrong-span** value that is a faithful
-span copied into the wrong field — that's the adversarial verifier's job. Full grounding ladder +
-failure taxonomy in `references/groundedness.md`.
+boundary matching + a weak-grounding floor), but proves **presence, not role** — it **cannot confirm a
+wrong-span** value (a faithful span copied into the wrong field). The opt-in proximity cue
+(`WEAK_CONTEXT`) only *approximates* role; confirming it is the adversarial verifier's job. **Gate
+presence (code), gauge proximity (code, opt-in), confirm role (adversarial verify).** Full grounding
+ladder + the wrong-span subsection + failure taxonomy in `references/groundedness.md`.
 
 ## §SelfAudit
 
@@ -135,11 +137,15 @@ failure taxonomy in `references/groundedness.md`.
 - **No invented values, ever.** Every extracted value must be grounded in the source. An ungrounded
   scalar is a likely hallucination — the corrective is to *delete it and null the field*, never to
   invent a different plausible value.
-- **Groundedness is necessary, not sufficient.** It catches the value that appears nowhere **and** the
+- **Groundedness proves presence, not role.** It catches the value that appears nowhere **and** the
   substring-fragment class (`"Fran"` from "Francisco" — mitigated by token-boundary matching + a
-  weak-grounding floor); it **cannot** catch a *wrong-span* value that is a faithful span copied into
-  the wrong field. That residual gap is the adversarial verifier's reason to exist — run it in a fresh
-  context, not the author's. A green run means "locatable as whole tokens," not "correct."
+  weak-grounding floor). It **cannot** confirm a value plays its *claimed role*: `"Acme"` as `buyer`
+  grounds cleanly when the source has Acme as the `seller` (a *wrong-span* defect). The check only
+  *approximates* role — with an **opt-in proximity cue** it flags grounded-but-far values as
+  `WEAK_CONTEXT` (advisory, no exit effect); true role confirmation is the **adversarial verify** step
+  in a fresh context, not the author's. **Gate presence (code), gauge proximity (code, opt-in), confirm
+  role (adversarial verify).** A green run means "locatable as whole tokens" (and, with cues, "near its
+  cue"), not "correct."
 - **`required` tempts hallucination.** A `required` field the source omits, filled with a guess, is
   *valid* (B2) and *unfaithful* (A2) at once. The fix is structural: make it nullable, relax
   `required` — **allow null over hallucinate**.
@@ -171,8 +177,8 @@ was invented to satisfy the schema; or one blended score is reported.
 | `references/decomposition-method.md` | **always, first** — the two-axis method (Fidelity × Validity), the leveled walk with gates, the quadrant, the **gate-vs-adversarial-verify inversion doctrine**, and the SPECIFY / DECOMPOSE / GRADE workflows |
 | `references/fidelity-axis.md` | **the Fidelity axis** — completeness, the **no-invented-values discipline**, normalization-without-distortion, disambiguation, provenance, and the **adversarial source cross-check** prompt |
 | `references/validity-axis.md` | **the Validity axis** — the schema ladder (well-formed → schema → constraints), **null-vs-invented**, and how `required` fields tempt hallucination; mechanized by `bin/schema-check.py` |
-| `references/groundedness.md` | **any "is this value real?" question** — the centerpiece: the grounding ladder (**token-boundary** exact / normalized / numeric / date), what counts as "supported by the source", the **substring-fragment false-negative class** it now mitigates, and the failure taxonomy (invented · wrong-span · over-normalized · coerced-to-satisfy-required); mechanized by `bin/groundedness-check.py` |
+| `references/groundedness.md` | **any "is this value real?" question** — the centerpiece: the grounding ladder (**token-boundary** exact / normalized / numeric / date), what counts as "supported by the source", the **substring-fragment false-negative class** it now mitigates, the **wrong-span subsection** (presence vs role; the opt-in proximity-cue heuristic + `WEAK_CONTEXT`; the adversarial-verify role-confirmation prompt), and the failure taxonomy (invented · wrong-span · over-normalized · coerced-to-satisfy-required); mechanized by `bin/groundedness-check.py` |
 | `references/schema-design.md` | **SPECIFY / designing an extraction schema** — required vs optional, nullable type-lists, enums as a closed-vocabulary gate, constraints-as-fidelity-guards, provenance-in-schema, and the **allow-null-over-hallucinate** rule |
 | `references/policy.md` | **definition-of-done / handoff** — the 10-point DoD, the extraction-report card (`{schema_verdict, groundedness_findings[], adversarial_verdict}`), and the seams to `query-decomposer`, `code-decomposer`, and `plan-prd` |
 | `bin/schema-check.py` | **mechanizes B1–B3** — a minimal JSON-Schema-subset validator (type/required/properties/items/enum/minimum/maximum/minLength/maxLength/pattern); `<doc.json> <schema.json>` · `selftest` |
-| `bin/groundedness-check.py` | **mechanizes A2** — asserts every scalar is grounded in the source (exact/normalized/numeric/date); flags ungrounded scalars as likely hallucinations; `<extraction.json> <source.txt>` · `selftest` |
+| `bin/groundedness-check.py` | **mechanizes A2** — asserts every scalar is grounded in the source (exact/normalized/numeric/date); flags ungrounded scalars as likely hallucinations; with **opt-in per-field cues** adds a proximity heuristic that flags a grounded-but-far value as `WEAK_CONTEXT` (advisory, approximates wrong-span — role confirmed by the adversarial verifier); `<extraction.json> <source.txt> [cues.json] [--window N]` · `selftest` |

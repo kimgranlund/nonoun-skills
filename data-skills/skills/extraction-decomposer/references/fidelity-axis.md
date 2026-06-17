@@ -38,14 +38,21 @@ The discipline, in order:
    `groundedness.md` for the full ladder and the failure taxonomy). Any **ungrounded** scalar is a
    likely invented value and a gate failure until explained; a short token-match surfaces as
    `WEAK_GROUNDING` (verify manually) and an empty value as `EMPTY`.
-2. **Groundedness is necessary, not sufficient.** It catches the value that appears *nowhere* in the
+2. **Groundedness proves presence, not role.** It catches the value that appears *nowhere* in the
    source **and** the substring-fragment class (an invented `"Fran"` that is only a fragment of
    "Francisco" — token-boundary matching closes that, where a naive raw-substring check would have
-   passed it). It **cannot**, by construction, catch a **wrong-span** value — one that *is* a faithful
-   span of the source but was attached to the wrong field (extracting the *ship-to* city into
-   `bill_to.city`). That residual gap is what the adversarial verifier is for. Treat a green run as
-   "every scalar is locatable as whole tokens," not "every value is correct."
-3. **Run the adversarial verifier** (below) for what groundedness can't see.
+   passed it). It **cannot**, by construction, confirm a value plays its *claimed role* — a
+   **wrong-span** value that *is* a faithful span of the source but was attached to the wrong field
+   (extracting the *ship-to* city into `bill_to.city`; placing the seller's name in `buyer`).
+   Optionally, with **per-field context cues** supplied to `groundedness-check.py` (e.g.
+   `buyer → ["buyer","bill to","purchaser"]`), the tool adds a *proximity heuristic*: a grounded value
+   sitting far from any cue is flagged `WEAK_CONTEXT` (advisory — it does **not** fail the gate). This
+   only **approximates** role; it raises suspects, it does not confirm. Treat a green run — even with
+   cues — as "every scalar is locatable as whole tokens (and, with cues, near its cue)," **not** "every
+   value plays its role." **Gate presence (code), gauge proximity (code, opt-in), confirm role
+   (adversarial verify).**
+3. **Run the adversarial verifier** (below) for what groundedness can't see — it is the *only* real
+   role confirmation.
 
 A faithfulness failure is corrected by **deleting the invented value and representing the field as
 `null`** (see B4 and `validity-axis.md`) — never by inventing a *different* plausible value.
@@ -97,12 +104,27 @@ The dangerous defects — *invented value* and *wrong-span / mis-resolved entity
 gateable by groundedness. Verify them the way `deep-research` verifies claims: **in a fresh context,
 adversarially, with the source in hand.**
 
-Prompt a **separate** verifier (a fresh agent — not the one that produced or approved the extraction):
+Prompt a **separate** verifier (a fresh agent — not the one that produced or approved the extraction).
+Two angles, run both:
+
+**Support** (does the source support the value at all?):
 
 > *"Here is a source document and a structured extraction claimed to be drawn from it. For EACH
 > extracted value, find the exact span of the source that supports it. Flag every value you cannot
 > locate, every value attached to the wrong field, and every entity resolved to the wrong referent.
 > Default to 'this value is unsupported' and try to prove support — do not assume good faith."*
+
+**Role** (does the value play *that* role? — the wrong-span confirmation `groundedness-check.py` and
+even its proximity heuristic cannot make):
+
+> *"For each extracted field, confirm the value plays THAT role in the source, not a different one.
+> Name any field whose value is real (it appears in the source) but **mis-attributed** — e.g. a
+> seller's name placed in `buyer`, a ship-to city placed in `bill_to.city`, a pronoun resolved to the
+> wrong antecedent. For each, quote the span that establishes the value's actual role. Default to 'this
+> attribution is wrong' and try to prove the role; do not assume good faith."*
+
+Run the role angle especially on any field the proximity heuristic flagged `WEAK_CONTEXT` — that is the
+deterministic pre-filter pointing the skeptic at the likely wrong-span fields first.
 
 - A verifier sharing the author's context inherits its blind spots and rubber-stamps the
   hallucination. **Separation is the point.**

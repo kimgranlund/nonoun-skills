@@ -49,6 +49,13 @@ Two outcomes are **findings, not silent passes**:
 
 Anything that survives none of the four rungs is **UNGROUNDED** and flagged as a likely hallucination.
 
+One more outcome is an **advisory, not a gate failure** — it only fires when you opt in (see below):
+
+- **WEAK_CONTEXT** — a value that *is* grounded (it passed a rung) but, given an opt-in per-field
+  context cue, sits **far from any cue occurrence** in the source — a *possible* wrong-span. It is
+  printed but does **not** change the exit code, because it only *approximates* role; role is confirmed
+  by the adversarial verifier, never by this check.
+
 ### Why booleans and nulls are skipped
 
 `true`/`false` and `null` are **judgments about the source, not copied tokens**. A `"paid": false`
@@ -70,6 +77,78 @@ not an alignment test. That gap is exactly why A2 also carries the **adversarial
   values and fragment hits. Its green is a floor, not a ceiling.
 - **the adversarial cross-check** — judgment, fresh context; catches *wrong-span* and *mis-resolved*
   values that ground against the wrong part of the source.
+
+## Wrong-span — the role the value plays
+
+This is the gap the grounding rungs **cannot close**, and the honest center of this skill's design.
+
+> Grounding proves a value is **PRESENT** in the source. It does **not** prove the value plays the
+> **CLAIMED ROLE**. `"Acme"` extracted as `buyer` grounds cleanly even when the source has Acme as the
+> `seller`. Presence is a containment fact; role is an *alignment* fact — and alignment is not
+> decidable by token matching.
+
+A deterministic stdlib checker **cannot** be a wrong-span oracle, and this tool does not pretend to be
+one. What it offers instead is split into three honestly-named layers:
+
+| Layer | Mechanism | Proves | Confidence |
+|---|---|---|---|
+| **Presence** | the four grounding rungs (code) | the value's tokens are *in* the source | deterministic |
+| **Proximity** | the opt-in context-cue heuristic (code) | the value sits *near a field cue* in the source | heuristic — an *approximation* of role |
+| **Role** | the **adversarial verify** step (fresh context) | the value plays *that* role, not a different one | judgment — the only real confirmation |
+
+**Frame it this way: gate presence (code), gauge proximity (code, opt-in heuristic), confirm role
+(adversarial verify).** Never read a clean proximity result as a confirmed role.
+
+### The proximity heuristic (opt-in context cues)
+
+If — and only if — the spec supplies a field one or more **context cues** (the field name and its
+synonyms, e.g. `buyer → ["buyer","bill to","purchaser"]`), the check adds a proximity test for that
+field:
+
+- for a **grounded** scalar, find its nearest occurrence in the source and check whether it falls
+  within a **token window** (default **~12 tokens**, configurable with `--window N`) of any cue
+  occurrence;
+- grounded but **no cue near any occurrence** → a **WEAK_CONTEXT** advisory: *"value is in the source
+  but not near any '<field>' cue — possible wrong-span; verify the role."*
+
+Crucial properties that keep it honest:
+
+- **Opt-in, never a false positive on cue-less specs.** A field with no cues gets **no** proximity
+  check and can never emit `WEAK_CONTEXT`. Existing behavior (token-boundary grounding + the
+  weak-grounding floor) is **unchanged** when no cues are supplied.
+- **Advisory, not a gate.** `WEAK_CONTEXT` is **printed but does not affect the exit code**. An
+  ungrounded scalar still fails the gate (exit 1); a grounded-but-far value is *surfaced for a human or
+  the adversarial verifier*, not blocked. It is a softer signal than `UNGROUNDED` by construction.
+- **It approximates, it does not decide.** Proximity is a proxy for role: a value can sit next to its
+  cue and still be the wrong entity (two "Acme"s), or sit far from its cue and be right (a table whose
+  header is 40 tokens up). A near result is *reassuring*, not *proof*; a far result is *suspicious*,
+  not a *verdict*. The real verdict comes only from the adversarial verifier below.
+
+Cue format (CLI): a JSON object mapping each field's **leaf name** to a list of cue strings, passed as
+an optional third argument:
+
+```sh
+python3 bin/groundedness-check.py extraction.json source.txt cues.json [--window N]
+# cues.json: {"buyer": ["buyer","bill to","purchaser"], "seller": ["seller","sold by","vendor"]}
+```
+
+### The adversarial-verify step is what actually confirms role
+
+Because proximity only approximates, **role confirmation is a separate, fresh-context adversarial
+step** — never this gate, and never the agent that produced the extraction. Run a *skeptic* with the
+source and the extraction in hand and ask it to attack the role of every value:
+
+> *"Here is a source document and a structured extraction drawn from it. For EACH extracted field,
+> confirm the value plays THAT role in the source, not a different one. Name any field whose value is
+> real (it appears in the source) but **mis-attributed** — e.g. a seller's name placed in `buyer`, a
+> ship-to city placed in `bill_to.city`, a pronoun resolved to the wrong antecedent. For each, quote
+> the span that establishes the value's actual role. Default to 'this attribution is wrong' and try to
+> prove the role; do not assume good faith."*
+
+Feed any flagged field back as an **A2 faithfulness / A4 disambiguation** failure (re-extract from the
+correct span; record the span as A5 provenance). This is the half of fidelity code cannot reach — the
+proximity heuristic is a cheap pre-filter that *raises* the suspicious ones; the adversarial verifier
+is the verdict on role.
 
 ### The substring-fragment false negative (now mitigated, worth naming)
 
@@ -93,7 +172,7 @@ When grounding fails — or when the adversarial check fires — classify it; th
 | Failure | What it looks like | How it's caught | The fix |
 |---|---|---|---|
 | **Invented value** | a name/number/date in the extraction the source never states — absent entirely, **or** a mere fragment of a real source word (`"Fran"` from "Francisco") | `groundedness-check.py` flags it (UNGROUNDED; a short fragment that token-matches → WEAK_GROUNDING) | delete it; represent the field as `null` |
-| **Wrong-span** | a value that *is* in the source but copied from the wrong place (ship-to city into `bill_to.city`) | adversarial verifier (groundedness passes it) | re-extract from the correct span |
+| **Wrong-span** | a value that *is* in the source but copied from the wrong place (ship-to city into `bill_to.city`; a seller's name in `buyer`) | **adversarial verifier** confirms it; the opt-in **proximity heuristic** can *pre-flag* it as `WEAK_CONTEXT` when cues are supplied (groundedness alone passes it) | re-extract from the correct span |
 | **Over-normalized** | a transform that distorted the fact — `13,020 → 13,000`, `"~50" → 50`, currency dropped | `groundedness-check.py` flags it if the distorted value no longer matches; else the adversarial verifier | re-normalize without distorting; keep the qualifier |
 | **Coerced-to-satisfy-required** | a `required` field the source omits, filled with a plausible guess | `groundedness-check.py` flags it (UNGROUNDED) **and** it's a B4 robustness defect | null the field; relax `required` in the schema (see `schema-design.md`) |
 
@@ -105,18 +184,24 @@ must be scored separately.
 ## Running it
 
 ```sh
-python3 bin/groundedness-check.py selftest                      # prove the ladder + the invented-value catch
-python3 bin/groundedness-check.py extraction.json source.txt    # nonzero exit on any ungrounded scalar
+python3 bin/groundedness-check.py selftest                                 # prove the ladder + the invented-value catch
+python3 bin/groundedness-check.py extraction.json source.txt               # nonzero exit on any ungrounded scalar
+python3 bin/groundedness-check.py extraction.json source.txt cues.json [--window N]
+                                                                           # + opt-in proximity (WEAK_CONTEXT advisory)
 ```
 
 The output lists every finding with its kind, JSON path, and value: `UNGROUNDED` (no rung matched —
-a likely hallucination), `WEAK_GROUNDING` (a short value that token-matched — verify manually), and
-`EMPTY` (an empty/whitespace value). Read it honestly: an ungrounded scalar is a **likely**, not
-certain, hallucination — a locale or scientific-notation number can also be a false positive — so
-verify each against the source before shipping, and classify it by the taxonomy above. A green run
-means every scalar is *locatable as whole tokens* in the source; it does **not** mean every value is
-*correct*, nor that a wrong-span value was caught (run the adversarial cross-check for that). These
-findings populate the report card's `groundedness_findings[]` (see `policy.md`).
+a likely hallucination), `WEAK_GROUNDING` (a short value that token-matched — verify manually),
+`EMPTY` (an empty/whitespace value), and — only when cues are supplied — `WEAK_CONTEXT` (grounded but
+not near its field cue — a *possible* wrong-span). The first three **fail the gate** (exit 1);
+`WEAK_CONTEXT` is **advisory** and does **not** affect the exit code. Read it honestly: an ungrounded
+scalar is a **likely**, not certain, hallucination — a locale or scientific-notation number can also be
+a false positive — so verify each against the source before shipping, and classify it by the taxonomy
+above. A green run means every scalar is *locatable as whole tokens* in the source; it does **not** mean
+every value is *correct*, nor that a wrong-span value was caught — a clean run (even with cues) is a
+*presence* (and, with cues, *proximity*) result, not a *role* confirmation; run the adversarial
+cross-check for that. These findings populate the report card's `groundedness_findings[]` (see
+`policy.md`).
 
 ## What a faithful extraction looks like
 

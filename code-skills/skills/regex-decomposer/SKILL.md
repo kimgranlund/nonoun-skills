@@ -109,11 +109,13 @@ The non-obvious core, and the reason it earns a skill:
   invisible to the example set by construction. Hunt the forbidden-but-accepted string in a fresh
   context; the author's examples inherit the author's blind spots.
 - **Nested quantifiers and overlapping alternation are ReDoS until proven safe.** `(\w+)+`, `(a|a)*`,
-  `(.*a){10}`, `.*.*` are catastrophic-backtracking smells. `bin/regex-check.py` flags them
-  statically — but that scan is a **lossy pre-filter** (necessary, not sufficient: it can miss deeper
-  nesting and over-flag), so clear a flag with a **manual** adversarial-input timing test (the tool
-  does not run one — it is on the ROADMAP) or a rewrite (atomic groups / possessive / RE2), never by
-  ignoring it.
+  `(.*a){10}`, `.*.*` are catastrophic-backtracking smells. `bin/regex-check.py` flags them by
+  **walking the regex's real parse tree** (stdlib `sre_parse`): star height ≥ 2, a prefix-overlapping
+  alternation under a quantifier, twin unbounded repeats — precise structural detection, not a
+  regex-on-regex heuristic. It is still a **pre-filter** (necessary, not sufficient for exotic
+  blow-ups outside those families), so clear a flag with a **manual** adversarial-input timing test
+  (the tool does not run one — it is on the ROADMAP) or a rewrite (atomic groups / possessive / RE2),
+  never by ignoring it.
 - **Gates before reviews, always.** Don't grade groups or readability for a pattern that won't
   compile, or classes for one whose target-set is wrong. Stop each axis at its first failed gate.
 - **Two scores, never one — and design/grade only, don't write the surrounding code.** *Wrong
@@ -145,4 +147,4 @@ or one blended score is reported.
 | `references/redos-and-safety.md` | **any "will it ReDoS?" / safety question** — the centerpiece: the catastrophic-backtracking taxonomy (nested quantifiers, overlapping alternation, quadratic `.*`), why it blows up, and how the example + adversarial sets *prove* safety; the atomic-group / possessive / RE2 fixes |
 | `references/dialects.md` | **any portability / engine question** — PCRE · JS · Python · RE2 · Go differences, what's portable and what isn't (lookbehind, backrefs, named groups, Unicode), and which engine kills ReDoS by construction |
 | `references/policy.md` | **definition-of-done / handoff** — the pattern-spec card shape `{pattern, flags, engine, positives[], negatives[]}`, the 9-point DoD, and the seams to `code-decomposer`, `query-decomposer`, and `/verify` |
-| `bin/regex-check.py` | **mechanizes B1–B3** — reads a pattern-spec card, compiles the pattern (Python `re`), asserts every positive matches and every negative does NOT under the `full`/`partial` mode, and runs a static ReDoS-smell scan (nested quantifier · overlapping alternation · quadratic wildcard). That scan is a **lossy pre-filter** — necessary, not sufficient; it can miss deeper nesting and over-flag, and it does **not** run a timing test (that step is manual). `<spec.json>` · `selftest` |
+| `bin/regex-check.py` | **mechanizes B1–B3** — reads a pattern-spec card, compiles the pattern (Python `re`), asserts every positive matches and every negative does NOT under the `full`/`partial` mode, and runs an **AST-based** ReDoS scan over the regex's parse tree (stdlib `sre_parse`): star-height-≥2 nested quantifier · prefix-overlapping alternation · twin-unbounded-repeat quadratic. That detection is **precise** for those families (not a regex-on-regex heuristic) but still a **pre-filter** — necessary, not sufficient for exotic blow-ups — and it does **not** run a timing test (that step is manual). An unparseable pattern is a B1 finding, not a ReDoS verdict. `<spec.json>` · `selftest` |
