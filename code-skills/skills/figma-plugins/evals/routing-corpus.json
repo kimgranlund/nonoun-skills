@@ -1,0 +1,26 @@
+{
+  "skill": "figma-plugins",
+  "_note": "Scored at author time: 12 triggers route here, 6 adversarials route elsewhere. F1 baseline 1.0 (no false negatives on triggers, no false positives on adversarials). Re-score on description edits.",
+  "triggers": [
+    { "phrase": "scaffold a Figma plugin that writes variables", "route": "figma-plugins" },
+    { "phrase": "build a Figma plugin with a UI", "route": "figma-plugins" },
+    { "phrase": "how do I wire my plugin's UI to code.js", "route": "figma-plugins" },
+    { "phrase": "my Figma plugin works in the browser but the UI is blank in Figma", "route": "figma-plugins" },
+    { "phrase": "create a variable collection with Light and Dark modes from a plugin", "route": "figma-plugins" },
+    { "phrase": "how do I alias semantic variables to raw ones in Figma", "route": "figma-plugins" },
+    { "phrase": "figma plugin postMessage isn't reaching code.js", "route": "figma-plugins" },
+    { "phrase": "why can't I use fetch in my Figma plugin code.js", "route": "figma-plugins" },
+    { "phrase": "what goes in a Figma plugin manifest.json", "route": "figma-plugins" },
+    { "phrase": "test a Figma plugin without opening Figma", "route": "figma-plugins" },
+    { "phrase": "set a Figma variable color value from a plugin", "route": "figma-plugins" },
+    { "phrase": "review this Figma plugin for the offline/networkAccess requirement", "route": "figma-plugins" }
+  ],
+  "adversarial": [
+    { "phrase": "fetch a file's nodes from the Figma REST API", "route": "design-tokens-converter-or-rest", "why": "server-side REST API, not a plugin" },
+    { "phrase": "convert these CSS custom properties to DTCG JSON", "route": "design-tokens-converter", "why": "token format conversion, not plugin building" },
+    { "phrase": "publish my plugin to the Figma Community and add payments", "route": "none", "why": "marketplace/monetization is out of scope" },
+    { "phrase": "build a FigJam widget with state", "route": "none", "why": "widget API, not the plugin UI/sandbox model" },
+    { "phrase": "design a brand color palette", "route": "brand-or-color", "why": "color/brand design, not plugin engineering" },
+    { "phrase": "audit my design system's token naming for drift", "route": "maintain-tokens", "why": "token archaeology, not Figma plugin code" }
+  ]
+}
