@@ -13,8 +13,11 @@ cards, the dialect playbooks). Everything below is additive.
       (the silent `INNER` demotion), the dominant A3 defect. *Shipped 0.2.1 as `OUTER_JOIN_DEMOTED`:
       a plain `WHERE` predicate (`=,<,>,<=,>=,<>,LIKE,IN`, never `IS [NOT] NULL`) on a `LEFT`/`RIGHT`-
       joined table/alias ⇒ flag; the `IS NULL` anti-join is excluded.*
-- [ ] **Non-sargable predicate** — flag a function wrapping a likely-indexed column in `WHERE`
-      (`WHERE DATE(created) = ...`), the A5/B4 smell.
+- [x] **Non-sargable predicate** — flag a function wrapping a likely-indexed column in `WHERE`
+      (`WHERE DATE(created) = ...`), the A5/B4 smell. *Shipped 0.2.2 as `NON_SARGABLE`: a `WHERE`/
+      `JOIN ... ON` predicate wrapping a column in a function or arithmetic, or a leading-wildcard
+      `LIKE '%x'` ⇒ advisory flag. A fn/arith on the literal side, an anchored `LIKE 'x%'`, a bare
+      `col = 'lit'`, and `HAVING` aggregates are out of scope and don't flag.*
 - [ ] Emit a machine-readable report (JSON) so GRADE can fold smell signals into the plan report card.
 
 ## `bin/query-harness.py`

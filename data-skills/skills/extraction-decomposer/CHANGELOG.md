@@ -3,6 +3,30 @@
 Versioned independently of the `data-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.2 — beta
+
+**Locale dates & non-ASCII digits grounded.** The follow-on to 0.2.1, in the same additive,
+source-side style — the tuned `_num_key`/date canonicalizers' existing output is untouched.
+
+- **DD.MM.YYYY-dominant dates.** A slashed *or dotted* numeric date is ambiguous, so the source keys
+  under **both** the D/M/Y and M/D/Y readings: a European `02.01.2026` now grounds an extraction
+  normalized to `2026-01-02` (D/M/Y), while a US `02/01/2026` still grounds `2026-02-01` (M/D/Y) —
+  accepting either is correct for a fidelity *aid*. A new `_valid_ymd` range guard drops impossible
+  readings, so an unambiguous `25/12/2026` (day > 12) emits only the D/M/Y key, never a phantom
+  month-25 M/D/Y one. Additive: an impossible key could never match a real extraction, so no existing
+  grounding is lost. Locked with must-GROUND (`2026-01-02`←`02.01.2026`, `2026-12-25`←`25/12/2026`,
+  `2026-02-01`←`02/01/2026`), the impossible-key guard, and a must-NOT-ground fixture (`2026-07-04`
+  against a source with no such date).
+- **Non-ASCII digit scripts.** Arabic-Indic (`٠١٢…`), Eastern-Arabic/Persian (`۰۱۲…`), Devanagari
+  (`०१२…`), and fullwidth (`０１２…`) digits are folded to ASCII (via `unicodedata.digit`, stdlib)
+  **before** numeric/date key extraction, on both the source and the value. So a source `المبلغ ١٢٣٤`
+  grounds `1234`, `２０２６` grounds `2026`, and `٢٠٢٦-٠١-٠٢` grounds the date `2026-01-02`. Additive: an
+  all-ASCII string takes a fast path and is byte-identical, so no existing grounding moves. Guarded
+  against over-match with a must-NOT-ground fixture (`5678` stays ungrounded against `١٢٣٤`).
+
+All existing M1 (numeric back-door) and 0.2.1 EU/scientific fixtures still pass; the repo gate
+(`bin/check-skills.py`) is green.
+
 ## 0.2.1 — beta
 
 **Locale-aware numeric grounding.** A faithful value normalized from an EU-format source number
@@ -11,7 +35,7 @@ flagged as a value to verify. The fix is **additive and source-side only** — e
 EU/scientific source tokens, leaving the adversarially-tuned `_num_key` and its M1 (numeric back-door)
 fixtures untouched. The EU pattern requires a `,\d+` decimal tail, so a bare `1.234` stays US-format
 (no new false groundings). Locked with selftest fixtures (EU + scientific ground; an invented value
-still does not). DD.MM.YYYY-dominant dates and non-ASCII digits remain deferred.
+still does not). The 0.2.2 follow-on closes the then-deferred DD.MM.YYYY dates and non-ASCII digits.
 
 ## 0.2.0 — beta
 

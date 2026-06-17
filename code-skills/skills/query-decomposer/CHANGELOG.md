@@ -3,6 +3,25 @@
 Versioned independently of the `code-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.2 — beta
+
+Deepened `bin/sql-lint.py` with the last ROADMAP-tracked smell, locked with must-flag **and**
+must-not-flag selftest fixtures (`selftest` still exits 0; all prior smells + their FP guards intact):
+
+- **NON_SARGABLE** (A5/B4) — a `WHERE` or `JOIN ... ON` predicate that wraps a likely-indexed column
+  in a **function** (`DATE(created_at)='...'`, `UPPER(name)='X'`, `COALESCE(status,'')='x'`), in
+  **arithmetic** (`price*1.2>100`, `col+0=5`), or uses a **leading-wildcard `LIKE`** (`name LIKE
+  '%foo'`) defeats an index on the raw column. Advisory; the fix is to move the transform to the
+  literal side or store a computed column.
+
+False-positive guards (must NOT flag): a function/arithmetic on the **literal** side only
+(`created_at = DATE('...')`, `ts >= NOW() - INTERVAL '7 days'` — the column stays bare); an anchored
+`LIKE 'foo%'` (sargable — only a *leading* `%` flags); a bare `col = 'lit'`; and `HAVING` aggregates
+(`COUNT(*) > 5`) — NON_SARGABLE is scoped to `WHERE`/`JOIN-ON` predicates, not `HAVING` or bare
+`SELECT` items. It reuses the length-preserving `normalize()` (a function name inside a string literal
+or comment can't trip it), and reads the original un-blanked text only to test the leading-`%` of a
+`LIKE`. `references/grain-and-joins.md` gains it in the smell table; the ROADMAP item is marked done.
+
 ## 0.2.1 — beta
 
 Deepened the SEMANTICS gate in `bin/sql-lint.py` with the two highest-value grain smells the

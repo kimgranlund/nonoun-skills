@@ -76,6 +76,7 @@ an unsafe query:
 | **MISSING_WHERE_DML** | `UPDATE`/`DELETE` with no `WHERE` ⇒ rewrites the whole table (the catastrophic B5 defect) |
 | **LIMIT_NO_ORDER** | `LIMIT` with no `ORDER BY` ⇒ a nondeterministic page (B5) |
 | **GROUP_BY_INCOMPLETE** | a heuristic flag: more distinct columns selected than grouped ⇒ likely a `GROUP BY` gap (A4) |
+| **NON_SARGABLE** | a `WHERE`/`JOIN ... ON` predicate wraps a likely-indexed column in a **function** (`WHERE DATE(created_at)='...'`, `UPPER(name)='X'`, `COALESCE(status,'')='x'`), in **arithmetic** (`WHERE price*1.2>100`, `col+0=5`), or uses a **leading-wildcard `LIKE`** (`name LIKE '%foo'`) ⇒ the planner can't use an index on the raw column (a performance/perf-correctness smell, A5/B4). Move the transform to the literal side (`created_at = DATE('...')`) or store a computed/indexed column. A function on the **literal** side (`WHERE created_at = DATE('...')`, `ts >= NOW() - INTERVAL '7 days'`), an anchored `LIKE 'foo%'`, a bare `col = 'lit'`, and a `HAVING COUNT(*)>5` aggregate are all sargable / out-of-scope and do **not** flag |
 
 Run it: `python3 bin/sql-lint.py <file|dir>`. Findings are *signals*, not proof — they point the live
 grain check at the weak spots. A clean lint does **not** mean the grain is right; only the

@@ -12,7 +12,14 @@ text. A value is grounded when the source supports it under one of four widening
   EXACT        the value's TOKEN SEQUENCE appears contiguously in the source token stream
   NORMALIZED   the same token-sequence match after case-folding + edge-punctuation trim
   NUMERIC      a number appears digits-and-sign equal (12,000 / $12000 / 12000.0 all match "12000")
-  DATE         a date appears in a common reformat (2026-06-16 <-> 06/16/2026 <-> June 16, 2026)
+  DATE         a date appears in a common reformat (2026-06-16 <-> 06/16/2026 <-> June 16, 2026; an
+               ambiguous slashed/dotted date keys both D/M/Y and M/D/Y, so a European 02.01.2026
+               grounds 2026-01-02 too — but an unambiguous day>12 drops the impossible reading)
+
+Non-ASCII digit scripts (Arabic-Indic ٠١٢…, Eastern-Arabic/Persian ۰۱۲…, Devanagari ०१२…, fullwidth
+０１２…) are folded to ASCII before numeric/date key extraction, on both the source and the value, so a
+number or date written in a non-ASCII script grounds an ASCII extraction. An all-ASCII source/value is
+unchanged.
 
 The string tests are TOKEN/WORD-BOUNDARY matches, NOT raw substring tests. A raw-substring test is a
 known false-negative trap: short invented values ground wholesale because each is a fragment of a real
@@ -65,6 +72,30 @@ code (presence/grounding failures still do). Python 3.8+.
 import json
 import re
 import sys
+import unicodedata
+
+# --- non-ASCII digit folding (ADDITIVE; ASCII text is untouched) -------------------------------
+# Numeric and date grounding read ASCII digits. A source that writes a number or date in a non-ASCII
+# digit script — Arabic-Indic (٠١٢…), Eastern-Arabic/Persian (۰۱۲…), Devanagari (०१२…), fullwidth
+# (０１２…) — would key under those code points and never match an extraction normalized to ASCII
+# (`١٢٣٤` keyed as "١٢٣٤" ≠ "1234"). `_ascii_digits` rewrites any character carrying a Unicode digit
+# value to its ASCII equivalent BEFORE key extraction, on BOTH the source and the value side. It is
+# strictly additive: a character with no digit value (every ASCII letter/digit/punct) is left as-is,
+# so an all-ASCII source is byte-for-byte unchanged and no existing grounding moves.
+def _ascii_digits(s):
+    """Map any Unicode-digit character to its ASCII 0-9; leave everything else untouched."""
+    s = str(s)
+    if s.isascii():
+        return s  # fast path: nothing to fold, behaviour identical to before
+    out = []
+    for ch in s:
+        if ch.isascii():
+            out.append(ch)
+            continue
+        d = unicodedata.digit(ch, None)
+        out.append(str(d) if d is not None else ch)
+    return "".join(out)
+
 
 # --- normalization -----------------------------------------------------------------------------
 _WS = re.compile(r"\s+")
@@ -226,6 +257,8 @@ def _locale_num_keys(source):
 
 
 def _source_num_keys(source):
+    source = _ascii_digits(source)  # ADDITIVE: fold non-ASCII digits so a source written in
+    # Arabic-Indic/Devanagari/fullwidth digits keys under ASCII; an all-ASCII source is unchanged.
     return ({_num_key(t) for t in _NUM_TOKEN.findall(source)} | _locale_num_keys(source)) - {None}
 
 
@@ -255,21 +288,39 @@ _NAMED = re.compile(r"\b([A-Za-z]{3,9})\.?\s+(\d{1,2})(?:st|nd|rd|th)?,?\s+(\d{4
 _NAMED2 = re.compile(r"\b(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]{3,9})\.?,?\s+(\d{4})\b")
 
 
+def _valid_ymd(y, m, d):
+    """True iff (y, m, d) is a month/day-plausible key (1-12 / 1-31). Guards the ambiguous-date
+    reading: a slashed `25/12/2026` is unambiguously D/M/Y (day 25 > 12), so the M/D/Y reading would
+    be month 25 — an IMPOSSIBLE key. Dropping it is purely additive: an impossible key can never match
+    a real extraction, so no existing grounding is lost, and a clearly-unambiguous date no longer emits
+    a phantom reading. Day range is the loose 1-31 (we are matching keys, not validating calendars)."""
+    return 1 <= m <= 12 and 1 <= d <= 31
+
+
 def _date_keys(text):
-    """All (year, month, day) keys a string yields — both M/D and D/M readings of a slashed date."""
+    """All (year, month, day) keys a string yields — both M/D and D/M readings of a slashed date.
+
+    Slashed/dotted dates are ambiguous, so BOTH the M/D/Y and D/M/Y readings are emitted (accepting
+    either is correct for a fidelity AID): `02.01.2026` grounds `2026-01-02` (D/M/Y) and `02/01/2026`
+    still grounds `2026-02-01` (M/D/Y). Impossible readings (month/day out of range) are filtered by
+    `_valid_ymd`, so `25/12/2026` yields only the D/M/Y key, not an impossible month-25 M/D/Y one."""
+    text = _ascii_digits(text)  # ADDITIVE: a date written in a non-ASCII digit script keys under ASCII
     keys = set()
     for y, m, d in _ISO.findall(text):
-        keys.add((int(y), int(m), int(d)))
+        if _valid_ymd(int(y), int(m), int(d)):
+            keys.add((int(y), int(m), int(d)))
     for a, b, y in _SLASH.findall(text):
-        keys.add((int(y), int(a), int(b)))   # M/D/Y
-        keys.add((int(y), int(b), int(a)))   # D/M/Y
+        if _valid_ymd(int(y), int(a), int(b)):
+            keys.add((int(y), int(a), int(b)))   # M/D/Y
+        if _valid_ymd(int(y), int(b), int(a)):
+            keys.add((int(y), int(b), int(a)))   # D/M/Y
     for mon, d, y in _NAMED.findall(text):
         mi = _MONTHS.get(mon.casefold())
-        if mi:
+        if mi and _valid_ymd(int(y), mi, int(d)):
             keys.add((int(y), mi, int(d)))
     for d, mon, y in _NAMED2.findall(text):
         mi = _MONTHS.get(mon.casefold())
-        if mi:
+        if mi and _valid_ymd(int(y), mi, int(d)):
             keys.add((int(y), mi, int(d)))
     return keys
 
@@ -316,16 +367,22 @@ def is_grounded(value, source, source_tokens, source_norm_tokens, source_nums, s
         return "EMPTY"  # empty string asserts nothing; an empty value where the source has content
         # is usually a B4 "had to put something" defect, so surface it rather than pass it silently.
 
+    # ADDITIVE: fold non-ASCII digits in the value for the NUMERIC paths only (a value written
+    # "١٢٣٤" must key as "1234"). The token-match paths below keep the ORIGINAL sval — folding a name
+    # is unnecessary (names have no digit chars) and the source side is already ASCII-folded, so an
+    # all-ASCII value is byte-identical and no existing grounding moves.
+    nval = _ascii_digits(sval)
+
     # numbers: compare on the canonical numeric key, so 12,000 / $12000 / 12000.0 all ground "12000"
     if isinstance(value, (int, float)) and not isinstance(value, bool):
-        if _num_key(sval) in source_nums:
+        if _num_key(nval) in source_nums:
             return "NUMERIC"
         return "UNGROUNDED"
 
     # a STRING that is WHOLLY a number takes the numeric path (M1: a string that merely STARTS with a
     # digit must NOT — "12 Nonexistent Street" / "12-FAKE-ID-9999" fall through to the token test).
-    if _is_whole_number_string(sval):
-        if _num_key(sval) in source_nums:
+    if _is_whole_number_string(nval):
+        if _num_key(nval) in source_nums:
             return "NUMERIC"
         return "UNGROUNDED"
 
@@ -593,6 +650,55 @@ def selftest():
             errs.append("locale grounding %r: got grounded=%s want %s (kind=%r)"
                         % (val, got, want_grounded, _kind(val, locale_src)))
 
+    # 3c. DD.MM.YYYY-dominant dates (0.2.2): an ambiguous slashed/dotted source date keys under BOTH
+    # the D/M/Y and M/D/Y readings, so a European source grounds an ISO extraction either way — while
+    # an unambiguous date (day > 12) emits ONLY the valid reading (no impossible month-25 phantom key),
+    # and an absent date stays ungrounded.
+    #   must-GROUND
+    if _kind("2026-01-02", "Fällig am 02.01.2026") != "DATE":            # D/M/Y: 2 Jan 2026
+        errs.append("DD.MM date: '2026-01-02' should ground DATE against 'Fällig am 02.01.2026', got %r"
+                    % _kind("2026-01-02", "Fällig am 02.01.2026"))
+    if _kind("2026-12-25", "Lieferung 25/12/2026") != "DATE":           # day 25 > 12 -> D/M/Y only
+        errs.append("DD/MM date: '2026-12-25' should ground DATE against '25/12/2026', got %r"
+                    % _kind("2026-12-25", "Lieferung 25/12/2026"))
+    if _kind("2026-02-01", "Dated 02/01/2026") != "DATE":               # M/D/Y reading still accepted
+        errs.append("MDY still accepted: '2026-02-01' should ground DATE against '02/01/2026', got %r"
+                    % _kind("2026-02-01", "Dated 02/01/2026"))
+    #   guard: the unambiguous date must NOT emit the impossible month-25 (M/D/Y) key
+    if (2026, 25, 12) in _date_keys("25/12/2026"):
+        errs.append("date guard: '25/12/2026' must NOT emit the impossible month-25 M/D/Y key")
+    #   must-NOT-GROUND: an absent date stays ungrounded
+    if _kind("2026-07-04", "Fällig am 02.01.2026") == "DATE":
+        errs.append("absent date '2026-07-04' must NOT ground against a source with no such date")
+
+    # 3d. non-ASCII digits (0.2.2): Arabic-Indic / Eastern-Arabic / Devanagari / fullwidth digits in
+    # the SOURCE (or the value) are folded to ASCII before numeric/date key extraction, so a number or
+    # date written in a non-ASCII script grounds an ASCII extraction. Folding must NOT over-match (a
+    # different number stays ungrounded).
+    #   must-GROUND: number in a non-ASCII source; fullwidth source; non-ASCII date
+    if _kind(1234, "Total ١٢٣٤") != "NUMERIC":                          # Arabic-Indic 1234
+        errs.append("non-ASCII digit: 1234 should ground NUMERIC against 'Total ١٢٣٤', got %r"
+                    % _kind(1234, "Total ١٢٣٤"))
+    if _kind(2026, "２０２６") != "NUMERIC":                               # fullwidth 2026
+        errs.append("fullwidth digit: 2026 should ground NUMERIC against '２０２６', got %r"
+                    % _kind(2026, "２０２６"))
+    if _kind("2026-01-02", "٢٠٢٦-٠١-٠٢") != "DATE":                      # Arabic-Indic ISO date
+        errs.append("non-ASCII date: '2026-01-02' should ground DATE against '٢٠٢٦-٠١-٠٢', got %r"
+                    % _kind("2026-01-02", "٢٠٢٦-٠١-٠٢"))
+    if _kind(123, "रकम १२३") != "NUMERIC":                              # Devanagari 123
+        errs.append("devanagari digit: 123 should ground NUMERIC against 'रकम १२३', got %r"
+                    % _kind(123, "रकम १२३"))
+    #   a value written in non-ASCII digits also folds for grounding against an ASCII source
+    if _kind("١٢٣٤", "Total 1234") != "NUMERIC":
+        errs.append("non-ASCII value: '١٢٣٤' should ground NUMERIC against 'Total 1234', got %r"
+                    % _kind("١٢٣٤", "Total 1234"))
+    #   must-NOT-GROUND (FP guard): a DIFFERENT number must not over-match through folding
+    if _kind(5678, "Total ١٢٣٤") == "NUMERIC":
+        errs.append("digit-normalize over-match: 5678 must NOT ground against 'Total ١٢٣٤'")
+    #   and an all-ASCII source/value is byte-identical (no perturbation of existing behaviour)
+    if _ascii_digits("Plain ASCII 1234.") != "Plain ASCII 1234.":
+        errs.append("_ascii_digits perturbed an all-ASCII string")
+
     # 4. booleans/null are skipped by the scalar walk (never grounded, never flagged).
     paths = {p for p, _ in scalar_values({"a": True, "b": None, "c": "x"})}
     if paths != {"$.c"}:
@@ -614,7 +720,8 @@ def main(argv):
                 sys.stderr.write("  - %s\n" % e)
             return 1
         print("groundedness-check: OK — faithful extraction clean, invented values flagged, "
-              "normalize/numeric/date ladder verified, proximity cues opt-in (WEAK_CONTEXT advisory)")
+              "normalize/numeric/date ladder verified (EU/sci + DD.MM dates + non-ASCII digits), "
+              "proximity cues opt-in (WEAK_CONTEXT advisory)")
         return 0
 
     # parse args: <extraction.json> <source.txt> [cues.json] [--window N], order-flexible for the flag.

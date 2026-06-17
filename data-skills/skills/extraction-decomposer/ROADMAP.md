@@ -20,9 +20,14 @@ extraction-report card, the inversion doctrine). Everything below is additive.
       EU-format source (`1.234,56`) or scientific notation (`1.5e3`) now grounds, via additive
       source-side keys (the EU pattern requires a `,\d+` decimal, so a bare `1.234` stays US — no new
       false groundings). Locked behind selftest fixtures.
-- [ ] **Deferred — date locales / non-ASCII digits:** `DD.MM.YYYY`-dominant dates and non-ASCII digit
-      scripts can still produce false positives; the FAIL message says "verify" rather than asserting
-      hallucination, but native handling (each behind its own fixtures) is still future work.
+- [x] **DD.MM.YYYY-dominant dates & non-ASCII digits** (0.2.2) — a slashed/dotted numeric date now
+      keys under **both** D/M/Y and M/D/Y, so a European `02.01.2026` grounds `2026-01-02` while a US
+      `02/01/2026` still grounds `2026-02-01`; an unambiguous `25/12/2026` (day > 12) emits only the
+      valid reading (a `_valid_ymd` guard drops the impossible month-25 M/D/Y key). Non-ASCII digit
+      scripts (Arabic-Indic, Eastern-Arabic/Persian, Devanagari, fullwidth) are folded to ASCII via
+      `unicodedata.digit` before numeric/date key extraction, on both the source and the value. Both
+      are additive (all-ASCII text is byte-identical; an impossible date key never matched anything).
+      Locked with must-GROUND + must-NOT-ground (FP-guard) selftest fixtures.
 - [ ] **Configurable weak-grounding floor** — `MIN_TOKENS`/`MIN_CHARS` are currently constants; expose
       them so a high-recall corpus can tighten or loosen the WEAK_GROUNDING band.
 - [ ] **Fuzzy / derivable grounding** — a configurable similarity threshold for near-verbatim spans
@@ -32,8 +37,9 @@ extraction-report card, the inversion doctrine). Everything below is additive.
       so a green run also produces A5 provenance instead of only a pass/fail.
 - [ ] **Wrong-span detection (partial)** — when a value grounds at multiple spans, surface the
       ambiguity for the adversarial verifier instead of silently passing the first match.
-- [ ] More date/number locales (DD.MM.YYYY-dominant regions, non-ASCII digits, scientific notation),
-      each behind its own fixtures.
+- [x] More date/number locales — DD.MM.YYYY-dominant regions (0.2.2), non-ASCII digits (0.2.2), and
+      scientific notation (0.2.1), each behind its own fixtures. (Further locales — e.g. RTL date
+      ordering, two-digit years, locale-specific month names — remain future work.)
 - [ ] A machine-readable (`--json`) report so GRADE can fold `groundedness_findings[]` into the card.
 
 ## `bin/schema-check.py`

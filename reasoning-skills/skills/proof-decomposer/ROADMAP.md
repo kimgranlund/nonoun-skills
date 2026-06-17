@@ -24,8 +24,18 @@ skeleton card, the proof-method playbooks). Everything below is additive.
       `WALLCLOCK_BUDGET_S` backstop across the loop. POW_BOMB fixture must be REJECTED. Primality is
       explicitly OUT OF SCOPE (no primality predicate); a false-algebraic-identity fixture replaced the
       misleading "Euler prime" one — number-theory/primality claims route to a proof assistant.
-- [ ] **Rationals & wider domains** — exact rationals (`fractions`), a real-sampling mode (grid +
-      random) with a tolerance, and modular arithmetic for number-theory claims.
+- [x] **Modular / divisibility / primality predicate claims** (landed, 0.2.1) — a second claim
+      shape beside the boolean `expr`: a single-var `f(n)` asserted to satisfy a number-theory
+      predicate (`is prime`, `k | f(n)` / `divisible by k`, `≡ r (mod m)`), accepted as JSON or a
+      natural-language sentence. `f(n)` reuses the SAME safe AST evaluator (all `**` magnitude/exponent
+      guards + wall-clock backstop inherited); the only additions are a bounded trial-division
+      primality test (capped at ~10¹², a larger `|f(n)|` rejected not hung) and a per-n predicate. The
+      Euler polynomial `n²−n+41` is now a real fixture: COUNTEREXAMPLE at n=41 with the **modular
+      witness** `f(41)=1681 ≡ 0 (mod 41) = 41²` (the constant term divides it). Fixtures lock a true
+      bounded Euler window (no false-positive), true/false divisibility + congruence, and a primality
+      DoS rejection.
+- [ ] **Rationals & wider domains** — exact rationals (`fractions`), and a real-sampling mode (grid +
+      random) with a tolerance.
 - [ ] **Randomized / smart sampling** — beyond the dense Cartesian product: random sampling for wide
       multi-var ranges, and boundary-biased sampling (always test lo, hi, 0, ±1) so the cheap edges
       that break induction base cases are never missed.

@@ -29,7 +29,7 @@ ladder goes from strictest to most lenient; a value passes if **any** rung match
 | **EXACT** | the value's **token sequence** appears as a contiguous run of whole source tokens (case-sensitive) | `Acme Robotics Inc.` → `"Acme Robotics Inc."` |
 | **NORMALIZED** | the same **token-sequence** match after case-fold + edge-punctuation trim | `"  ACME  Corp. "` → `"Acme Corp."` |
 | **NUMERIC** | a source number is digits-and-sign equal (commas, currency, trailing zeros ignored) | `$12,000.00` → `12000` |
-| **DATE** | a source date appears in a common reformat (ISO ↔ slashed ↔ month-name, M/D and D/M both) | `June 16, 2026` → `"2026-06-16"` |
+| **DATE** | a source date appears in a common reformat (ISO ↔ slashed/dotted ↔ month-name, M/D **and** D/M both) | `June 16, 2026` → `"2026-06-16"`; `02.01.2026` → `"2026-01-02"` |
 
 The string rungs (EXACT/NORMALIZED) are **token / word-boundary** matches, **not raw substring** tests.
 This is deliberate, and it is the fix for a real false-negative class (below): a raw-substring test
@@ -55,6 +55,33 @@ One more outcome is an **advisory, not a gate failure** — it only fires when y
   context cue, sits **far from any cue occurrence** in the source — a *possible* wrong-span. It is
   printed but does **not** change the exit code, because it only *approximates* role; role is confirmed
   by the adversarial verifier, never by this check.
+
+### Locale-tolerant numbers and dates (all additive)
+
+The NUMERIC and DATE rungs are locale-tolerant, so a faithful value normalized to a plain ASCII form
+still grounds against a source that wrote it differently. Every one of these is **additive** — extra
+source-side (and value-side) keys, never a change to the tuned `_num_key` canonicalizer or to any
+existing grounding:
+
+- **EU-format & scientific numbers** (0.2.1) — an EU thousands/decimal number (`1.234,56`) or scientific
+  notation (`1.5e3`) in the source grounds an extraction normalized to `1234.56` / `1500`. The EU
+  pattern **requires** a `,\d+` decimal tail, so a bare `1.234` stays US-format (no spurious EU read).
+- **DD.MM.YYYY-dominant dates** (0.2.2) — a slashed *or dotted* numeric date is **ambiguous**, so the
+  source keys under **both** the D/M/Y and M/D/Y readings: a European `02.01.2026` grounds `2026-01-02`
+  (D/M/Y) and a US `02/01/2026` still grounds `2026-02-01` (M/D/Y). Accepting either is correct for a
+  fidelity *aid*. A **clearly-unambiguous** date (day > 12, e.g. `25.12.2026`) has only the D/M/Y
+  reading — the impossible month-25 M/D/Y key is **dropped** (a `_valid_ymd` range guard), so it can
+  never produce a phantom match. Dropping an impossible key is purely additive: it removes a key that
+  could never match a real extraction, never a valid one.
+- **Non-ASCII digits** (0.2.2) — Arabic-Indic (`٠١٢…`), Eastern-Arabic/Persian (`۰۱۲…`), Devanagari
+  (`०१२…`), and fullwidth (`０１２…`) digits are folded to ASCII (via `unicodedata.digit`) **before**
+  numeric/date key extraction, on **both** the source and the value. So a source `المبلغ ١٢٣٤` grounds
+  `1234`, and `٢٠٢٦-٠١-٠٢` grounds the date `2026-01-02`. An all-ASCII source/value is byte-identical
+  (a fast path returns it unchanged), so nothing existing moves — and folding does **not** over-match
+  (`5678` stays ungrounded against `١٢٣٤`).
+
+These widen what counts as "the same value written differently"; they never weaken the invented-value
+catch — an absent number or date is still `UNGROUNDED`.
 
 ### Why booleans and nulls are skipped
 

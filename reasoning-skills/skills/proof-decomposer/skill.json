@@ -1,6 +1,6 @@
 {
   "name": "proof-decomposer",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "status": "beta",
   "target": "both",
   "description": "Decompose, design, and grade a mathematical proof or deductive argument on two crossing axes — ARGUMENT (claim → strategy → steps → coverage → rigor) and VERIFICATION (well-formed → acyclic → checks → robustness → reproducibility) — scored separately, with VERIFICATION routed to a self-tested structure check (dangling-citation, circular-reasoning/DAG, goal-reachability) and a safe counterexample search, and the 'proves a different statement' failure routed to a fresh-context adversarial claim probe. Backed by a gated rubric, a proof-skeleton card, and proof-method playbooks. Use when planning a proof, checking whether an argument is valid, or grading one — it only ever grades a GIVEN argument, never invents one. NOT for a function or unit of code against its spec (→ code-decomposer). NOT a theorem prover: does not search for or produce a proof, nor discover one for an open conjecture.",

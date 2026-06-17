@@ -86,12 +86,44 @@ exponent alone is not enough; a wall-clock budget is the backstop. The asymmetry
   how to *catch* a false claim cheaply, but ∀ over an infinite domain is never settled by a finite
   sample. Report it as "survived N samples", never as "verified".
 
-**Out of scope — primality.** This tool evaluates only `+ - * // % **`, comparisons, and boolean
-connectives; it has **no primality predicate** and cannot express "n is prime". The famous Euler
-polynomial `n² − n + 41` (prime for n=0…40, composite at n=41) is *motivation* for "a quantified
-claim that reads right can die at one integer", not something this tool can check — do not write a
-fixture that pretends to. A primality or number-theory claim is a **SKIP** here; route it to a proof
-assistant (Lean / Coq / Isabelle) or to the planned modular-arithmetic mode in `ROADMAP.md`.
+### Modular / divisibility / primality claims (the predicate shape)
+
+Number-theory `∀n` claims are the *purest* case of "reads right, dies at one integer", so the tool
+takes a **second claim shape** beside the boolean `expr`: a single-variable function `f(n)` asserted
+to satisfy a **predicate** — `is prime`, `k | f(n)` / `divisible by k`, or `≡ r (mod m)` — over a
+bounded range. It accepts either a JSON object or a natural-language sentence (the `^` caret is
+normalised to `**`, the var defaults to `n`):
+
+```json
+{"f": "n^2 - n + 41", "predicate": "prime", "range": [0, 100]}
+{"f": "n^3 - n", "predicate": "divisible", "k": 6, "range": [0, 200]}
+{"f": "2*n", "predicate": "congruent", "m": 2, "r": 0, "range": [0, 100]}
+```
+
+```sh
+python3 bin/numeric-spotcheck.py "n^2 - n + 41 is prime for all n >= 0"   # COUNTEREXAMPLE at n=41
+python3 bin/numeric-spotcheck.py "n^3 - n is divisible by 6 for all n >= 0"   # no counterexample
+```
+
+`f(n)` is evaluated by the **same safe AST evaluator** as the boolean form — no `eval`, and every
+existing guard (the `**` exponent + result-magnitude caps, the wall-clock backstop) is inherited
+unchanged. The only additions are a **bounded trial-division primality test** (capped at ~10¹²; a
+larger `|f(n)|` is *rejected*, never hung on) and a per-n predicate; the search returns the
+**smallest** counterexample.
+
+The canonical case is the Euler polynomial `n² − n + 41` — **prime for n = 0…40, composite at
+n = 41**, where the tool reports the **modular witness**: `f(41) = 1681 ≡ 0 (mod 41) = 41²`. The
+insight worth internalising: the constant term **41 divides f(41)**, because `f(41) = 41² − 41 + 41 =
+41·41` — substituting `n = 41` makes every term a multiple of 41. A claim "prime for all n" with a
+constant term `c > 1` is *always* false at `n = c` for exactly this reason; the tool names the
+witnessing factor so the failure is a modular fact, not just "not prime".
+
+A **bounded** version of the same family (`n² + n + 41 is prime for 0 ≤ n ≤ 39`) is *true in its
+window* and must **not** false-positive — the range pin is load-bearing, and "no counterexample in
+range" stays corroboration, never a proof. Where the predicate doesn't apply (reals, sets, topology),
+or where a claim needs a real number-theory engine, B3 is still a **SKIP** / route to a proof
+assistant (Lean / Coq / Isabelle) — the trial-division test is a cheap spot-check, not a number
+theorist.
 
 Where the claim is **not** arithmetic over integers (a topological statement, a claim about reals or
 sets), the numeric check doesn't apply — fall to a **proof assistant** (Lean / Coq / Isabelle /

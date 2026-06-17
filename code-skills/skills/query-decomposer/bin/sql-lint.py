@@ -13,6 +13,8 @@ SQL with regex + simple bracket/quote stripping (best-effort, not a full parser)
   GROUP_BY_INCOMPLETE  heuristic: more non-aggregated SELECT columns than GROUP BY keys (likely gap)
   JOIN_FANOUT          ≥2 joined tables with no GROUP BY/DISTINCT/aggregate — row grain may multiply
   OUTER_JOIN_DEMOTED   a WHERE predicate on a LEFT/RIGHT-JOIN'd table silently demotes it to INNER
+  NON_SARGABLE         a WHERE/JOIN-ON predicate wraps a column in a function/arithmetic, or a
+                       leading-wildcard LIKE — defeats an index on that column (A5/B4)
 
 Findings are advisory signals for the SEMANTICS axis (A3/A4) and EXECUTION B5 — pair with the live
 grain check (COUNT(*) vs COUNT(DISTINCT key)) and an EXPLAIN read for proof.
@@ -115,6 +117,33 @@ _OUTER_JOIN = re.compile(
     r"([A-Za-z_][A-Za-z0-9_$]*))?"                                       # 2: optional alias
 )
 
+# NON_SARGABLE — a predicate that wraps a likely-indexed COLUMN in a function or arithmetic (or a
+# leading-wildcard LIKE) defeats an index on the raw column. Detect on WHERE/JOIN-ON predicates only.
+_BARE_COL = r"[A-Za-z_][A-Za-z0-9_$]*(?:\.[A-Za-z_][A-Za-z0-9_$]*)*"     # ident, optionally qualified
+_CMP = r"(?:<=|>=|<>|!=|=|<|>)"                                          # plain comparison operators
+# 1: a FUNCTION wrapping a column on a comparison side — `FN(col ...) <cmp>` or `<cmp> FN(col ...)`.
+#    The first arg must be a bare column (not a literal/another call); a leading `(` arg-list rules out
+#    nested calls like `LOWER(TRIM(x))` matching `x` directly, but the OUTER fn still flags the column.
+_FN_OF_COL = (r"([A-Za-z_][A-Za-z0-9_$]*)\s*\(\s*"                       # 1: function name
+              r"(%s)" % _BARE_COL +                                     # 2: the wrapped column (first arg)
+              r"(?:\s*,[^()]*)?\s*\)")                                  # optional further args, no nested ()
+_NON_SARG_FN_LEFT = re.compile(r"(?i)%s\s*%s" % (_FN_OF_COL, _CMP))     # FN(col...) <cmp>
+_NON_SARG_FN_RIGHT = re.compile(r"(?i)%s\s*%s" % (_CMP, _FN_OF_COL))    # <cmp> FN(col...)
+# 2: ARITHMETIC on a column on a comparison side — `col <+-*/> <number>` then a comparison, or the
+#    mirror. Require a numeric operand so a join `a.x = b.y` (no arithmetic) never matches.
+_ARITH = r"[-+*/]"
+_NON_SARG_ARITH_LEFT = re.compile(
+    r"(?i)(%s)\s*%s\s*[-+]?\d+(?:\.\d+)?\s*%s" % (_BARE_COL, _ARITH, _CMP))    # col*1.2 > ...
+_NON_SARG_ARITH_RIGHT = re.compile(
+    r"(?i)%s\s*[-+]?\d+(?:\.\d+)?\s*%s\s*(%s)" % (_CMP, _ARITH, _BARE_COL))    # ... < col+0   (mirror)
+# 3: a LEADING-wildcard LIKE — `col LIKE '%...'`. After normalize() a string literal is '<spaces>', so
+#    the leading wildcard survives as the first inner char being '%' only if the ORIGINAL started '%'.
+#    normalize blanks the inside to spaces, so we test the ORIGINAL literal, not the normalized one.
+_LIKE_COL = re.compile(r"(?i)(%s)\s+(?:not\s+)?like\s+'" % _BARE_COL)
+# function names that are NOT a column transform when they wrap something — pure aggregates belong to
+# HAVING/SELECT, not a WHERE column-index smell; we additionally scope by clause, but guard the name too.
+_SARG_FN_SKIP = {"now", "current_date", "current_timestamp", "current_time"}
+
 
 def analyze_sql(sql):
     """Yield (kind, line, detail) findings for a SQL string (possibly multiple statements)."""
@@ -128,12 +157,17 @@ def analyze_sql(sql):
             offset += len(raw) + 1
             continue
         line = sql.count("\n", 0, offset + (len(raw) - len(raw.lstrip()))) + 1
-        finds += _analyze_one(raw, line)
+        # normalize() is LENGTH-PRESERVING, so this original slice aligns 1:1 with `raw` (offsets map),
+        # letting the leading-`%` LIKE check read the un-blanked literal that `raw` blanked to spaces.
+        orig = sql[offset:offset + len(raw)]
+        finds += _analyze_one(raw, line, orig)
         offset += len(raw) + 1
     return finds
 
 
-def _analyze_one(stmt, line):
+def _analyze_one(stmt, line, orig=None):
+    if orig is None:
+        orig = stmt
     finds = []
     low = stmt.lower()
     top = _strip_parens(stmt)            # top-level clauses only (subqueries excluded from clause scans)
@@ -216,6 +250,22 @@ def _analyze_one(stmt, line):
                 finds.append(("OUTER_JOIN_DEMOTED", line,
                               "WHERE predicate on the outer-joined '%s' demotes the LEFT JOIN to "
                               "INNER — move it to the ON clause or use IS NULL" % ref))
+
+    # NON_SARGABLE — a WHERE or JOIN-ON predicate that wraps a likely-indexed COLUMN in a function or
+    # arithmetic (or uses a leading-wildcard LIKE) defeats an index on the raw column. Scoped to
+    # WHERE/JOIN-ON predicate regions ONLY — NOT HAVING (its aggregates are not a column-index smell)
+    # and NOT bare SELECT items. Each region carries the offset into `stmt` so the leading-`%` LIKE
+    # check can read the un-blanked literal from `orig` (length-preserving normalize ⇒ offsets align).
+    seen = set()                                         # de-dupe identical (col, kind) within a stmt
+    for region, base in _sargable_regions(stmt, top):
+        for col, why in _non_sargable_hits(region, orig, base):
+            key = (col.lower(), why)
+            if key in seen:
+                continue
+            seen.add(key)
+            finds.append(("NON_SARGABLE", line,
+                          "predicate wraps column '%s' in %s — defeats an index on it; move the "
+                          "transform to the literal side or store a computed column" % (col, why)))
     return finds
 
 
@@ -257,6 +307,97 @@ def _outer_demoting_predicate(where_clause, ref):
         if re.match(r"(?i)(?:<=|>=|<>|!=|=|<|>|like\b|in\b|between\b)", tail):
             return True
     return False
+
+
+# clause keywords that END a WHERE region (the next top-level clause), and an ON region (the next
+# JOIN/structural keyword). Used to bound the predicate text NON_SARGABLE scans.
+_WHERE_REGION_ENDS = r"(?i)\b(?:group\s+by|having|order\s+by|limit|qualify|window|union|except|intersect)\b"
+_ON_REGION_ENDS = (r"(?i)\b(?:where|group\s+by|having|order\s+by|limit|qualify|window|union|"
+                   r"join|left|right|inner|outer|cross|full)\b")
+
+
+def _sargable_regions(stmt, top):
+    """Yield (text, base_offset) for each predicate region NON_SARGABLE should scan: the WHERE clause
+    and every JOIN ... ON clause — WITH parens intact (so `FN(col)` survives) and with the offset into
+    `stmt` (so a hit's position maps back onto `orig` for the leading-`%` LIKE check). HAVING and bare
+    SELECT items are deliberately excluded — a HAVING aggregate is not a column-index smell."""
+    regions = []
+    # the WHERE clause (parens intact). Find the top-level WHERE, then bound it by the next clause kw.
+    wm = re.search(r"(?i)\bwhere\b", top)                # use `top` to find a TOP-LEVEL where
+    if wm:
+        # re-locate the same WHERE in `stmt` (parens intact). The first WHERE in `top` corresponds to
+        # the first top-level WHERE in `stmt`; subquery WHEREs are inside parens, so we walk depth.
+        start = _top_level_kw_offset(stmt, "where")
+        if start is not None:
+            rest = stmt[start:]
+            end = _first_kw(rest, _WHERE_REGION_ENDS)
+            regions.append((rest[:end], start))
+    # every JOIN ... ON predicate (top-level). Scan `stmt` at depth 0 for `on`, bound by the next kw.
+    for start in _top_level_kw_offsets(stmt, "on"):
+        rest = stmt[start:]
+        end = _first_kw(rest, _ON_REGION_ENDS)
+        regions.append((rest[:end], start))
+    return regions
+
+
+def _first_kw(s, kw_re):
+    """Offset of the first top-level (depth-0) regex match of `kw_re` in `s`, or len(s)."""
+    depth = 0
+    for m in re.finditer(kw_re, s):
+        # only accept a match that sits at paren-depth 0
+        if s[:m.start()].count("(") - s[:m.start()].count(")") == 0:
+            return m.start()
+    return len(s)
+
+
+def _top_level_kw_offset(s, kw):
+    """Offset just AFTER the first depth-0 occurrence of word `kw`, or None."""
+    offs = _top_level_kw_offsets(s, kw)
+    return offs[0] if offs else None
+
+
+def _top_level_kw_offsets(s, kw):
+    """All offsets just AFTER each depth-0 occurrence of the whole-word `kw` (case-insensitive)."""
+    out = []
+    for m in re.finditer(r"(?i)\b%s\b" % kw, s):
+        if s[:m.start()].count("(") - s[:m.start()].count(")") == 0:
+            out.append(m.end())
+    return out
+
+
+def _non_sargable_hits(region, orig, base):
+    """Yield (column, reason) for each non-sargable predicate in `region` (a WHERE/ON predicate text,
+    parens intact). `base` is region's offset into `stmt`; `orig` is the original (un-blanked) text of
+    the whole statement, length-aligned with `stmt` — used to read the leading-`%` of a LIKE literal.
+
+    Three smells: (1) a function wrapping a column on a comparison side; (2) arithmetic on a column on a
+    comparison side; (3) a leading-wildcard LIKE. FP guards: a fn/arith on the LITERAL side only does
+    NOT match (the column stays bare); `NOW()`/`CURRENT_*` on the literal side is skipped; an anchored
+    `LIKE 'x%'` does NOT match (only a LEADING `%` does); a bare `col = 'lit'` does NOT match."""
+    hits = []
+    # (1) FN(col) on either comparison side
+    for rx in (_NON_SARG_FN_LEFT, _NON_SARG_FN_RIGHT):
+        for m in rx.finditer(region):
+            fn, col = m.group(1), m.group(2)
+            if fn.lower() in _SARG_FN_SKIP:              # NOW()/CURRENT_* — not a column transform
+                continue
+            if _LITERAL_ITEM.match(col):                 # FN(42) / FN('x') — literal arg, column is bare
+                continue
+            hits.append((col, "function %s()" % fn.upper()))
+    # (2) arithmetic on a column on either comparison side
+    for rx in (_NON_SARG_ARITH_LEFT, _NON_SARG_ARITH_RIGHT):
+        for m in rx.finditer(region):
+            col = m.group(1)
+            if _LITERAL_ITEM.match(col):                 # a numeric op on a literal — not a column
+                continue
+            hits.append((col, "arithmetic"))
+    # (3) a LEADING-wildcard LIKE — read the un-blanked literal from `orig` at the literal's offset
+    for m in _LIKE_COL.finditer(region):
+        col = m.group(1)
+        lit_at = base + m.end()                          # position of the opening quote's NEXT char
+        if lit_at < len(orig) and orig[lit_at] == "%":   # leading wildcard ⇒ non-sargable
+            hits.append((col, "a leading-wildcard LIKE"))
+    return hits
 
 
 def _split_top_commas(s):
@@ -346,6 +487,22 @@ SQL_DEMOTE_LEFTCOL = ("SELECT u.id FROM users u "
 SQL_DEMOTE_INNER = ("SELECT u.id FROM users u "
                     "INNER JOIN orders o ON o.user_id=u.id WHERE o.status='paid';")        # already INNER
 
+# N1 — NON_SARGABLE: a WHERE/JOIN-ON predicate wrapping an indexed column in a function/arithmetic, or
+# a leading-wildcard LIKE, defeats the index (A5/B4). Each must FLAG:
+SQL_SARG_FN_DATE = "SELECT id FROM events WHERE DATE(created_at) = '2026-01-01';"           # function on col
+SQL_SARG_FN_UPPER = "SELECT id FROM users WHERE UPPER(name) = 'X';"                         # function on col
+SQL_SARG_ARITH = "SELECT id FROM items WHERE price * 1.2 > 100;"                            # arithmetic on col
+SQL_SARG_LIKE_LEAD = "SELECT id FROM users WHERE name LIKE '%foo';"                         # leading-% LIKE
+SQL_SARG_ON = "SELECT a.id FROM a JOIN b ON DATE(a.ts) = b.d;"                              # in a JOIN ON
+# ...and the sargable / out-of-scope forms must NOT flag:
+SQL_SARG_LIT_SIDE = "SELECT id FROM events WHERE created_at = DATE('2026-01-01');"          # fn on LITERAL side
+SQL_SARG_NOW = "SELECT id FROM events WHERE ts >= NOW() - INTERVAL '7 days';"               # NOW() on literal side
+SQL_SARG_LIKE_ANCHOR = "SELECT id FROM users WHERE name LIKE 'foo%';"                       # anchored LIKE (sargable)
+SQL_SARG_BARE = "SELECT id FROM users WHERE status = 'active';"                             # bare col = literal
+SQL_SARG_HAVING = ("SELECT region, COUNT(*) FROM sales "
+                   "GROUP BY region HAVING COUNT(*) > 5;")                                  # HAVING aggregate, not WHERE
+SQL_SARG_FN_IN_STRING = "SELECT id FROM t WHERE note = 'DATE(created_at) = today';"         # fn inside a string literal
+
 
 def selftest():
     errs = []
@@ -428,6 +585,31 @@ def selftest():
         errs.append("false positive OUTER_JOIN_DEMOTED on a predicate against the LEFT (driving) table")
     if "OUTER_JOIN_DEMOTED" in kinds(SQL_DEMOTE_INNER):
         errs.append("false positive OUTER_JOIN_DEMOTED on an INNER JOIN with the same WHERE")
+
+    # N1 — NON_SARGABLE: a function/arithmetic wrapping a column, or a leading-% LIKE, must FLAG...
+    if "NON_SARGABLE" not in kinds(SQL_SARG_FN_DATE):
+        errs.append("missed NON_SARGABLE on a function-wrapped column (DATE(created_at)=...)")
+    if "NON_SARGABLE" not in kinds(SQL_SARG_FN_UPPER):
+        errs.append("missed NON_SARGABLE on a function-wrapped column (UPPER(name)=...)")
+    if "NON_SARGABLE" not in kinds(SQL_SARG_ARITH):
+        errs.append("missed NON_SARGABLE on arithmetic over a column (price*1.2>...)")
+    if "NON_SARGABLE" not in kinds(SQL_SARG_LIKE_LEAD):
+        errs.append("missed NON_SARGABLE on a leading-wildcard LIKE (name LIKE '%foo')")
+    if "NON_SARGABLE" not in kinds(SQL_SARG_ON):
+        errs.append("missed NON_SARGABLE on a function-wrapped column in a JOIN ON (DATE(a.ts)=...)")
+    # ...and the sargable / out-of-scope forms must NOT flag
+    if "NON_SARGABLE" in kinds(SQL_SARG_LIT_SIDE):
+        errs.append("false positive NON_SARGABLE on a function on the LITERAL side (created_at=DATE(...))")
+    if "NON_SARGABLE" in kinds(SQL_SARG_NOW):
+        errs.append("false positive NON_SARGABLE on NOW()-INTERVAL on the literal side")
+    if "NON_SARGABLE" in kinds(SQL_SARG_LIKE_ANCHOR):
+        errs.append("false positive NON_SARGABLE on an anchored LIKE 'foo%' (sargable)")
+    if "NON_SARGABLE" in kinds(SQL_SARG_BARE):
+        errs.append("false positive NON_SARGABLE on a bare column = literal (status='active')")
+    if "NON_SARGABLE" in kinds(SQL_SARG_HAVING):
+        errs.append("false positive NON_SARGABLE on a HAVING aggregate (COUNT(*)>5 is not a WHERE smell)")
+    if "NON_SARGABLE" in kinds(SQL_SARG_FN_IN_STRING):
+        errs.append("false positive NON_SARGABLE on a function name inside a string literal")
     return errs
 
 
@@ -441,7 +623,7 @@ def main(argv):
             return 1
         print("sql-lint: OK — clean query passes; SELECT_STAR / MISSING_WHERE_DML / "
               "IMPLICIT_CROSS_JOIN / LIMIT_NO_ORDER / GROUP_BY_INCOMPLETE / JOIN_FANOUT / "
-              "OUTER_JOIN_DEMOTED detectors verified")
+              "OUTER_JOIN_DEMOTED / NON_SARGABLE detectors verified")
         return 0
     path = argv[0]
     files = []
