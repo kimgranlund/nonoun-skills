@@ -18,9 +18,37 @@
     {
       "name": "code-skills",
       "source": "./code-skills",
-      "description": "Engineering-domain skills: code-decomposer (decompose/design/grade a unit of code on SPEC x EXECUTION axes — is it the right code, and does it provably run — scored separately, with a self-tested execution harness, a test-vacuity linter that attacks the 'green but wrong' quadrant, and a mutation + adversarial-spec-probe doctrine).",
+      "description": "Engineering-domain skills: code-decomposer (grade a unit of code on SPEC x EXECUTION — right + provably runs — with an execution harness and a test-vacuity linter that attacks the 'green but wrong' quadrant), regex-decomposer (LANGUAGE x MATCH — a pattern that means the right language and won't ReDoS, with an example-set + ReDoS checker), query-decomposer (SEMANTICS x EXECUTION — a SQL query at the right grain that actually plans, with a SQL linter + EXPLAIN harness), and figma-plugins (build/review/test Figma plugins across the sandbox<->iframe message bridge).",
       "category": "engineering",
-      "tags": ["skills", "code", "code-review", "test-quality", "mutation-testing", "test-vacuity", "spec", "contract", "execution", "decomposition", "rubric", "engineering"]
+      "tags": ["skills", "code", "code-review", "test-quality", "mutation-testing", "regex", "redos", "sql", "query", "figma", "figma-plugin", "execution", "decomposition", "rubric", "engineering"]
+    },
+    {
+      "name": "data-skills",
+      "source": "./data-skills",
+      "description": "Data-domain skills: extraction-decomposer (decompose/design/grade a structured extraction on FIDELITY x VALIDITY axes — is the JSON both schema-valid and true to the source — scored separately, with a deterministic groundedness check that catches the invented values a schema gate can't see; the instructive inversion — gate validity, adversarially verify fidelity).",
+      "category": "data",
+      "tags": ["skills", "data", "extraction", "structured-output", "json-schema", "groundedness", "hallucination", "fidelity", "decomposition", "rubric"]
+    },
+    {
+      "name": "meta-skills",
+      "source": "./meta-skills",
+      "description": "Meta-domain skills (skills about skills): routing-decomposer (decompose/design/grade a skill's frontmatter description on INSTRUCTION x ROUTING axes — does it say the right thing AND fire on the right cases, not over- or under-trigger — scored separately, with a mechanized precision/recall/F1 routing-eval over a labeled corpus plus a description linter).",
+      "category": "meta",
+      "tags": ["skills", "meta", "routing", "skill-description", "precision-recall", "eval", "prompt", "decomposition", "rubric"]
+    },
+    {
+      "name": "reasoning-skills",
+      "source": "./reasoning-skills",
+      "description": "Reasoning-domain skills: proof-decomposer (decompose/design/grade a deductive argument or math proof on ARGUMENT x VERIFICATION axes — are the steps valid AND do they prove the stated claim, not a subtly different one — scored separately, with a proof-structure checker that catches circular reasoning, dangling citations, and unreachable goals, plus a numeric counterexample search).",
+      "category": "reasoning",
+      "tags": ["skills", "reasoning", "proof", "mathematics", "verification", "counterexample", "logic", "decomposition", "rubric"]
+    },
+    {
+      "name": "ops-skills",
+      "source": "./ops-skills",
+      "description": "Operations-domain skills: config-decomposer (decompose/design/grade a config or infrastructure-as-code artifact on INTENT x VALIDITY axes — does it declare the right desired-state AND validate/plan cleanly, not provision the wrong thing — scored separately, with a validate/plan harness, a safety linter for plaintext secrets, :latest, and wide-open permissions, and the plan-is-the-contract doctrine).",
+      "category": "ops",
+      "tags": ["skills", "ops", "config", "infrastructure-as-code", "terraform", "kubernetes", "secrets", "plan", "drift", "decomposition", "rubric"]
     }
   ]
 }

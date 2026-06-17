@@ -1,12 +1,12 @@
 {
   "name": "code-skills",
-  "version": "0.1.0",
-  "description": "Engineering-domain skills. One so far: code-decomposer (decompose, design, and grade a unit of code on the SPEC x EXECUTION axes — is it the right code, and does it provably run, here — scored separately so a plausible implementation can't hide a broken one nor a green test suite hide the wrong behavior; with a self-tested execution harness, a test-vacuity linter that attacks the 'green but wrong' quadrant, a mutation + adversarial-spec-probe doctrine, and unit-family playbooks). Skills only — no commands, agents, or MCP. Self-contained.",
+  "version": "0.2.0",
+  "description": "Engineering-domain skills: code-decomposer (grade a unit of code on SPEC x EXECUTION — right + provably runs — with an execution harness and a test-vacuity linter that attacks the 'green but wrong' quadrant), regex-decomposer (grade a regex on LANGUAGE x MATCH — means the right language and won't ReDoS — with an example-set + ReDoS checker), query-decomposer (grade a SQL query on SEMANTICS x EXECUTION — right grain, actually plans — with a SQL linter and an EXPLAIN/dry-run harness), and figma-plugins (build, review, and test Figma plugins across the sandbox<->iframe message bridge). Skills only — self-contained.",
   "author": {
     "name": "Kim",
     "email": "kim.granlund@gmail.com"
   },
   "homepage": "https://github.com/kimgranlund/nonoun-skills",
   "license": "MIT",
-  "keywords": ["skills", "code", "code-review", "test-quality", "mutation-testing", "test-vacuity", "spec", "contract", "execution", "definition-of-done", "decomposition", "code-rubric"]
+  "keywords": ["skills", "code", "code-review", "test-quality", "mutation-testing", "regex", "redos", "sql", "query", "grain", "figma", "figma-plugin", "spec", "execution", "decomposition", "code-rubric"]
 }

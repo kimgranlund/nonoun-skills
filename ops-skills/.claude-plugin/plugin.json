@@ -1,0 +1,12 @@
+{
+  "name": "ops-skills",
+  "version": "0.1.0",
+  "description": "Operations-domain skills. One so far: config-decomposer (decompose, design, and grade a config or infrastructure-as-code artifact on the INTENT x VALIDITY axes — does it declare the right desired-state AND validate/plan cleanly, not provision the wrong thing — scored separately, with a validate/plan harness, a safety linter for plaintext secrets, :latest, and wide-open permissions, and the plan-is-the-contract doctrine). Skills only — no commands, agents, or MCP. Self-contained.",
+  "author": {
+    "name": "Kim",
+    "email": "kim.granlund@gmail.com"
+  },
+  "homepage": "https://github.com/kimgranlund/nonoun-skills",
+  "license": "MIT",
+  "keywords": ["skills", "ops", "config", "infrastructure-as-code", "terraform", "kubernetes", "secrets", "plan", "drift", "decomposition", "rubric"]
+}

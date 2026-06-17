@@ -1,0 +1,21 @@
+{
+  "name": "routing-decomposer",
+  "version": "0.1.0",
+  "status": "draft",
+  "target": "both",
+  "description": "Decompose, write, and grade the routing surface of a skill — its frontmatter description — on two crossing axes: INSTRUCTION (capability → scope → triggers → disambiguation → economy) and ROUTING (fires → holds → boundary → robustness → stability), scored separately so a description that reads well can't hide that it mis-routes. ROUTING routes to a deterministic eval (precision/recall/F1 against a labeled, adversarially-built corpus); INSTRUCTION gates on capability/scope honesty the eval can't see, pre-filtered by a static description linter. Backed by a gated rubric, a corpus + scorecard protocol, and before/after rewrites that move precision or recall.",
+  "keywords": ["skill-routing", "description", "frontmatter", "routing-eval", "precision-recall", "f1", "trigger-phrases", "over-trigger", "under-trigger", "routing-corpus", "adversarial-negatives", "decomposition", "skill-rubric", "skills-studio"],
+  "files": [
+    "SKILL.md",
+    "references/decomposition-method.md",
+    "references/instruction-axis.md",
+    "references/routing-axis.md",
+    "references/eval-corpus.md",
+    "references/description-craft.md",
+    "references/policy.md",
+    "bin/routing-eval.py",
+    "bin/description-lint.py",
+    "CHANGELOG.md",
+    "ROADMAP.md"
+  ]
+}

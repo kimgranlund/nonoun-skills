@@ -1,0 +1,12 @@
+{
+  "name": "data-skills",
+  "version": "0.1.0",
+  "description": "Data-domain skills. One so far: extraction-decomposer (decompose, design, and grade a structured extraction on the FIDELITY x VALIDITY axes — is the JSON both schema-valid and true to the source — scored separately, with a deterministic groundedness check that catches the invented values a schema gate can't see; the instructive inversion — gate validity, adversarially verify fidelity). Skills only — no commands, agents, or MCP. Self-contained.",
+  "author": {
+    "name": "Kim",
+    "email": "kim.granlund@gmail.com"
+  },
+  "homepage": "https://github.com/kimgranlund/nonoun-skills",
+  "license": "MIT",
+  "keywords": ["skills", "data", "extraction", "structured-output", "json-schema", "groundedness", "hallucination", "fidelity", "decomposition", "rubric"]
+}
