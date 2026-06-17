@@ -14,6 +14,13 @@
       "description": "Design-domain skills: layout-decomposer (read/grade/design a UI on OUTSIDE-IN x INSIDE-OUT axes + a four-archetype ASCII-wireframe library), mermaid-decomposer (create/grade advanced Mermaid diagrams on INTENT x RENDER axes + a gated M1-M6 rubric + a mechanized render-check), component-decomposer (decompose/design/grade zero-dependency web components on COMPOSE x REALIZE axes + a deterministic geometry engine — the (height-glyph)/2 law + XS–2XL ramp — a contract linter, and controls/overlays recipes), color-science (perceptual color — spaces, gamut, contrast/APCA, harmony, CVD — with a TypeScript color library + 54 interactive demos), and typography-lettering (type anatomy, classification, metrics, scripts, and the modern CSS text surface).",
       "category": "design",
       "tags": ["skills", "ui", "layout", "wireframe", "mermaid", "diagrams", "web-components", "custom-elements", "component-library", "geometry", "color", "color-science", "typography", "decomposition", "rubric", "design"]
+    },
+    {
+      "name": "code-skills",
+      "source": "./code-skills",
+      "description": "Engineering-domain skills: code-decomposer (decompose/design/grade a unit of code on SPEC x EXECUTION axes — is it the right code, and does it provably run — scored separately, with a self-tested execution harness, a test-vacuity linter that attacks the 'green but wrong' quadrant, and a mutation + adversarial-spec-probe doctrine).",
+      "category": "engineering",
+      "tags": ["skills", "code", "code-review", "test-quality", "mutation-testing", "test-vacuity", "spec", "contract", "execution", "decomposition", "rubric", "engineering"]
     }
   ]
 }

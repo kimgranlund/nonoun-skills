@@ -1,0 +1,12 @@
+{
+  "name": "code-skills",
+  "version": "0.1.0",
+  "description": "Engineering-domain skills. One so far: code-decomposer (decompose, design, and grade a unit of code on the SPEC x EXECUTION axes — is it the right code, and does it provably run, here — scored separately so a plausible implementation can't hide a broken one nor a green test suite hide the wrong behavior; with a self-tested execution harness, a test-vacuity linter that attacks the 'green but wrong' quadrant, a mutation + adversarial-spec-probe doctrine, and unit-family playbooks). Skills only — no commands, agents, or MCP. Self-contained.",
+  "author": {
+    "name": "Kim",
+    "email": "kim.granlund@gmail.com"
+  },
+  "homepage": "https://github.com/kimgranlund/nonoun-skills",
+  "license": "MIT",
+  "keywords": ["skills", "code", "code-review", "test-quality", "mutation-testing", "test-vacuity", "spec", "contract", "execution", "definition-of-done", "decomposition", "code-rubric"]
+}
