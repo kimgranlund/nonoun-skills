@@ -3,6 +3,27 @@
 Versioned independently of the `code-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.2 — beta
+
+`bin/instance-check.py` now validates **conditional + composition schemas** (closes the ROADMAP
+keyword item). The composition keywords `allOf`/`anyOf`/`oneOf`/`not` were already enforced —
+verified and locked — with `oneOf` confirmed **exactly-one** (a value matching two branches, or
+none, is rejected: the discriminated-union contract, not at-least-one). New this cycle:
+`if`/`then`/`else` — *if* the instance validates against `if` it must validate against `then`,
+otherwise against `else`; each branch optional, `if` failing with no `else` is a pass, and a bare
+`then`/`else` with no `if` is inert. Every composed/conditional subschema is validated by the
+**same recursive `validate()`**, so type-aware equality (`true ≠ 1`), asserting `format`, local
+`$ref`, and `required` all apply *inside* the branches. The **default-deny is intact**: only these
+keywords joined the supported set — a genuinely unknown keyword (`contains`, `patternProperties`, …)
+appearing anywhere still surfaces as `UNSUPPORTED_SCHEMA` rather than false-greening. Locked with
+legal+illegal fixtures for each shape: a oneOf tagged union (both-match and neither-match rejected),
+if/then/else (card-with-number passes, card-without-number fails, non-card-with-account passes), an
+`if`-with-no-`else` case, allOf (fail-one rejected), anyOf (none rejected), `not` (forbidden shape
+rejected), plus a `contains` fixture asserting default-deny still fires. The existing keyword set and
+all hardening (bool≠int equality, `5.0 ⊨ integer`, format enforcement, `$ref` resolution) are
+untouched. `references/validity-axis.md` and `references/type-systems.md` move the keywords from the
+unsupported to the supported list.
+
 ## 0.2.1 — beta
 
 `bin/model-smells.py` now reads **TypeScript and Python type definitions**, not only JSON Schema

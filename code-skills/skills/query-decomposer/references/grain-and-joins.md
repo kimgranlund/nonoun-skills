@@ -82,6 +82,14 @@ Run it: `python3 bin/sql-lint.py <file|dir>`. Findings are *signals*, not proof 
 grain check at the weak spots. A clean lint does **not** mean the grain is right; only the
 row-count/uniqueness check proves that.
 
+The same tool reads the *plan* the query produced, not just its source:
+`python3 bin/sql-lint.py plan <explain.json>` parses a Postgres `EXPLAIN (FORMAT JSON)` document (a
+file — **no live DB needed**) and flags the EXECUTION-axis (B3/B4) smells the SQL read can't see — a
+`Nested Loop` driving a `Seq Scan` (O(n·m), `NESTED_LOOP_NO_INDEX`), a >100× `Actual` vs `Plan` row
+blowup (`ROW_ESTIMATE_BLOWUP`, ANALYZE only), a filtered/wide `Seq Scan` (`SEQ_SCAN`), and a large
+`Sort`/`Hash Aggregate` (`HIGH_COST_SORT`). See `references/execution-axis.md` for the full catalogue;
+the fan-out it confirms is the plan-level twin of the static `JOIN_FANOUT`/`IMPLICIT_CROSS_JOIN` above.
+
 ## How this scores
 
 A2 is **named ∧ proven**:

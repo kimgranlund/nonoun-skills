@@ -19,11 +19,25 @@ SQL with regex + simple bracket/quote stripping (best-effort, not a full parser)
 Findings are advisory signals for the SEMANTICS axis (A3/A4) and EXECUTION B5 — pair with the live
 grain check (COUNT(*) vs COUNT(DISTINCT key)) and an EXPLAIN read for proof.
 
+The `plan` subcommand reads a Postgres EXPLAIN (FORMAT JSON) document (structured JSON — robust, no
+live DB needed) and flags EXECUTION-axis (B3/B4) plan smells the static SQL read cannot see:
+
+  SEQ_SCAN             a Seq Scan with a Filter (or a large Plan Rows) — an index may be missing
+  NESTED_LOOP_NO_INDEX a Nested Loop whose inner child is a Seq Scan — O(n*m) join, likely no index
+  HIGH_COST_SORT       a Sort / Hash Aggregate over many rows (or a high Total Cost) — spill risk
+  ROW_ESTIMATE_BLOWUP  (ANALYZE only) Actual Rows vs Plan Rows differ by >100x — stale-stats smell
+
   python3 bin/sql-lint.py selftest
-  python3 bin/sql-lint.py <file | dir>
+  python3 bin/sql-lint.py <file | dir>            # lint .sql source
+  python3 bin/sql-lint.py plan <explain.json>     # lint a Postgres EXPLAIN (FORMAT JSON) plan
+
+Exit convention (shared by both modes): any non-advisory smell ⇒ exit 1; otherwise exit 0. In the
+SQL-source mode every smell is advisory-by-doctrine but still returns exit 1 so CI/automation keys on
+it. The `plan` mode mirrors that: any plan smell ⇒ exit 1 (advisory findings are still printed).
 
 Python 3.8+.
 """
+import json
 import os
 import re
 import sys
@@ -424,6 +438,183 @@ def _is_sql_file(fn):
     return fn.endswith(".sql")
 
 
+# --- EXPLAIN (FORMAT JSON) plan-smell parser ---------------------------------------------------
+# The `plan` subcommand reads a Postgres `EXPLAIN (FORMAT JSON)` document — a top-level list whose
+# first element is `{"Plan": {...}}`. Each Plan node carries a "Node Type" and (when present)
+# "Relation Name", "Plan Rows", "Total Cost", "Filter"/"Index Cond", and a nested "Plans": [...].
+# `EXPLAIN (ANALYZE, FORMAT JSON)` additionally carries "Actual Rows". We walk the tree top-down and
+# flag the EXECUTION-axis (B3/B4) smells a static SQL read cannot see — routing the dangerous plan
+# judgement to a deterministic parse of structured output, never to an LLM's read of the plan.
+#
+# Thresholds (deliberately coarse — these are advisory pre-filters, not a cost model):
+_PLAN_ROWS_SEQ_SCAN = 10000      # a Seq Scan over this many estimated rows is worth a look even w/o a Filter
+_PLAN_ROWS_HIGH_SORT = 100000    # a Sort / Hash Aggregate over this many rows risks an external (disk) spill
+_PLAN_COST_HIGH_SORT = 1000000.0  # ...or a Total Cost this high
+_ROW_BLOWUP_FACTOR = 100         # Actual vs estimated rows differing by this factor ⇒ stale-stats smell
+
+
+def _plan_roots(doc):
+    """Yield each top-level Plan node from a parsed EXPLAIN (FORMAT JSON) document. The canonical shape
+    is a list `[{"Plan": {...}}]`; tolerate a bare `{"Plan": {...}}` or a bare Plan node too."""
+    roots = []
+    items = doc if isinstance(doc, list) else [doc]
+    for item in items:
+        if isinstance(item, dict) and isinstance(item.get("Plan"), dict):
+            roots.append(item["Plan"])
+        elif isinstance(item, dict) and "Node Type" in item:   # already a bare Plan node
+            roots.append(item)
+    return roots
+
+
+def _children(node):
+    """The nested child Plan nodes of a Plan node (the "Plans" list), or []."""
+    kids = node.get("Plans")
+    return kids if isinstance(kids, list) else []
+
+
+def _node_label(node):
+    """A short `Node Type on relation` label for a finding."""
+    nt = node.get("Node Type", "?")
+    rel = node.get("Relation Name")
+    return "%s on %s" % (nt, rel) if rel else nt
+
+
+def _walk_plan(node, finds):
+    """Recursively walk a Plan node, appending (kind, label, why) findings. Each finding's third slot
+    carries an `advisory` bool via a 4-tuple internally; the caller flattens to (kind, label, why)."""
+    nt = node.get("Node Type", "")
+    rel = node.get("Relation Name")
+    plan_rows = node.get("Plan Rows")
+    total_cost = node.get("Total Cost")
+    has_filter = bool(node.get("Filter"))
+    children = _children(node)
+
+    # SEQ_SCAN — a Seq Scan WITH a Filter (an index may be missing for that predicate), or a Seq Scan
+    # whose estimated Plan Rows is large. A small unfiltered Seq Scan is often optimal, so it does NOT
+    # flag — only a filtered scan or a wide one. Advisory.
+    if nt == "Seq Scan":
+        if has_filter:
+            finds.append(("SEQ_SCAN", _node_label(node),
+                          "Seq Scan with a Filter (%s) — an index on the filtered column may be missing"
+                          % _short(node.get("Filter")), True))
+        elif isinstance(plan_rows, (int, float)) and plan_rows >= _PLAN_ROWS_SEQ_SCAN:
+            finds.append(("SEQ_SCAN", _node_label(node),
+                          "Seq Scan over ~%s estimated rows — a wide scan; confirm an index isn't expected"
+                          % _num(plan_rows), True))
+
+    # NESTED_LOOP_NO_INDEX — a Nested Loop whose INNER child (the second Plan, re-driven per outer row)
+    # is a Seq Scan ⇒ O(n*m): the join probably lacks an index on the inner relation's join key. This
+    # is the dominant B3 plan defect. Non-advisory (the one the exit code should react to).
+    if nt == "Nested Loop" and len(children) >= 2:
+        inner = children[1]                          # Postgres lists [outer, inner]
+        if isinstance(inner, dict) and inner.get("Node Type") == "Seq Scan":
+            finds.append(("NESTED_LOOP_NO_INDEX", _node_label(node),
+                          "Nested Loop drives a Seq Scan on '%s' per outer row (O(n*m)) — the join "
+                          "likely lacks an index on the inner relation's key"
+                          % (inner.get("Relation Name") or "?"), False))
+
+    # HIGH_COST_SORT — a Sort or Hash Aggregate over many rows (or with a high Total Cost) risks an
+    # in-memory blow-up / external (on-disk) spill. Advisory.
+    if nt in ("Sort", "Hash Aggregate"):
+        big_rows = isinstance(plan_rows, (int, float)) and plan_rows >= _PLAN_ROWS_HIGH_SORT
+        big_cost = isinstance(total_cost, (int, float)) and total_cost >= _PLAN_COST_HIGH_SORT
+        if big_rows or big_cost:
+            why = []
+            if big_rows:
+                why.append("~%s rows" % _num(plan_rows))
+            if big_cost:
+                why.append("cost %s" % _num(total_cost))
+            finds.append(("HIGH_COST_SORT", _node_label(node),
+                          "%s over %s — a large in-memory sort/agg; spill (work_mem) risk"
+                          % (nt, " / ".join(why)), True))
+
+    # ROW_ESTIMATE_BLOWUP — only when ANALYZE output is present (Actual Rows exists). A node whose
+    # actual rows diverge from the planner's estimate by >100x is a stale-stats / bad-estimate smell
+    # that misleads every join order above it. Non-advisory.
+    actual = node.get("Actual Rows")
+    if isinstance(actual, (int, float)) and isinstance(plan_rows, (int, float)):
+        hi, lo = max(actual, plan_rows), min(actual, plan_rows)
+        if lo >= 0 and (lo == 0 and hi >= _ROW_BLOWUP_FACTOR
+                        or lo > 0 and hi / lo > _ROW_BLOWUP_FACTOR):
+            finds.append(("ROW_ESTIMATE_BLOWUP", _node_label(node),
+                          "Actual Rows %s vs Plan Rows %s differ by >%dx — stale stats / bad estimate; "
+                          "ANALYZE the relation" % (_num(actual), _num(plan_rows), _ROW_BLOWUP_FACTOR),
+                          False))
+
+    for child in children:
+        if isinstance(child, dict):
+            _walk_plan(child, finds)
+
+
+def _short(text, n=60):
+    """Trim a Filter/Index-Cond string to a single short line for a finding."""
+    s = " ".join(str(text).split())
+    return s if len(s) <= n else s[: n - 1] + "…"
+
+
+def _num(x):
+    """Render a Plan Rows / Cost number compactly (integers without a trailing .0)."""
+    if isinstance(x, float) and x.is_integer():
+        x = int(x)
+    return "{:,}".format(x) if isinstance(x, int) else str(x)
+
+
+def analyze_plan(doc):
+    """Yield (kind, label, why, advisory) findings for a parsed EXPLAIN (FORMAT JSON) `doc`. `doc` is
+    the already-json.loads'd document (a list `[{"Plan": {...}}]` or a tolerated bare variant)."""
+    finds = []
+    for root in _plan_roots(doc):
+        _walk_plan(root, finds)
+    return finds
+
+
+def lint_plan_file(path):
+    """Read + parse an EXPLAIN (FORMAT JSON) file and return (findings, error). A malformed/empty file
+    or a structurally-wrong document yields an empty findings list and a human-readable error string —
+    never a crash. `error` is None on success."""
+    try:
+        raw = open(path, encoding="utf-8").read()
+    except OSError as e:
+        return [], "unreadable (%s)" % e
+    return _lint_plan_text(raw)
+
+
+def _lint_plan_text(raw):
+    """Parse EXPLAIN-JSON `raw` text → (findings, error). Shared by the file path and the selftest."""
+    if not raw.strip():
+        return [], "empty input — expected an EXPLAIN (FORMAT JSON) document"
+    try:
+        doc = json.loads(raw)
+    except (ValueError, TypeError) as e:
+        return [], "not valid JSON (%s)" % e
+    roots = _plan_roots(doc)
+    if not roots:
+        return [], ("no Plan node found — expected EXPLAIN (FORMAT JSON) output "
+                    "(a list like [{\"Plan\": {...}}])")
+    return analyze_plan(doc), None
+
+
+def _run_plan(path):
+    """The `plan` subcommand: lint one EXPLAIN (FORMAT JSON) file. Prints findings; returns the process
+    exit code (1 if any NON-advisory plan smell, else 0 — advisory-only is exit 0 with warnings)."""
+    finds, err = lint_plan_file(path)
+    if err is not None:
+        sys.stderr.write("sql-lint plan: %s: %s\n" % (path, err))
+        return 2
+    if not finds:
+        print("sql-lint plan: OK — no plan smells in %s" % path)
+        return 0
+    blocking = 0
+    for kind, label, why, advisory in finds:
+        tag = "advisory" if advisory else "SMELL"
+        if not advisory:
+            blocking += 1
+        print("  %-20s [%s]  %s — %s" % (kind, tag, label, why))
+    print("sql-lint plan: %d finding(s) in %s (%d blocking, %d advisory) — confirm against the live "
+          "plan / schema" % (len(finds), path, blocking, len(finds) - blocking))
+    return 1 if blocking else 0
+
+
 # --- selftest fixtures -------------------------------------------------------------------------
 SQL_CLEAN = """
 SELECT c.id, SUM(o.amount) AS revenue
@@ -502,6 +693,96 @@ SQL_SARG_BARE = "SELECT id FROM users WHERE status = 'active';"                 
 SQL_SARG_HAVING = ("SELECT region, COUNT(*) FROM sales "
                    "GROUP BY region HAVING COUNT(*) > 5;")                                  # HAVING aggregate, not WHERE
 SQL_SARG_FN_IN_STRING = "SELECT id FROM t WHERE note = 'DATE(created_at) = today';"         # fn inside a string literal
+
+
+# --- plan-smell fixtures (EXPLAIN (FORMAT JSON)) -----------------------------------------------
+# P1 (flag) — a Nested Loop whose inner child is a Seq Scan WITH a Filter ⇒ NESTED_LOOP_NO_INDEX
+# (blocking) + SEQ_SCAN (advisory). The shape `EXPLAIN (FORMAT JSON)` emits: a list of one node.
+PLAN_FLAG = """
+[
+  {
+    "Plan": {
+      "Node Type": "Nested Loop",
+      "Total Cost": 24000.50,
+      "Plan Rows": 5000,
+      "Plans": [
+        {
+          "Node Type": "Seq Scan",
+          "Relation Name": "orders",
+          "Total Cost": 1800.00,
+          "Plan Rows": 5000
+        },
+        {
+          "Node Type": "Seq Scan",
+          "Relation Name": "line_items",
+          "Total Cost": 950.00,
+          "Plan Rows": 200,
+          "Filter": "(line_items.order_id = orders.id)"
+        }
+      ]
+    }
+  }
+]
+"""
+
+# P2 (clean) — an Index Scan / Index Only Scan plan with no Seq Scan, no Nested-Loop-over-Seq-Scan,
+# no large sort ⇒ NO findings.
+PLAN_CLEAN = """
+[
+  {
+    "Plan": {
+      "Node Type": "Index Scan",
+      "Relation Name": "orders",
+      "Index Name": "orders_customer_id_idx",
+      "Total Cost": 8.30,
+      "Plan Rows": 12,
+      "Index Cond": "(customer_id = 42)",
+      "Plans": [
+        {
+          "Node Type": "Index Only Scan",
+          "Relation Name": "customers",
+          "Index Name": "customers_pkey",
+          "Total Cost": 0.42,
+          "Plan Rows": 1,
+          "Index Cond": "(id = 42)"
+        }
+      ]
+    }
+  }
+]
+"""
+
+# P3 (flag) — a Sort over many rows + (ANALYZE) a row-estimate blowup ⇒ HIGH_COST_SORT (advisory) +
+# ROW_ESTIMATE_BLOWUP (blocking). Exercises the ANALYZE-only Actual Rows path.
+PLAN_ANALYZE = """
+[
+  {
+    "Plan": {
+      "Node Type": "Sort",
+      "Total Cost": 50000.00,
+      "Plan Rows": 250000,
+      "Actual Rows": 250000,
+      "Plans": [
+        {
+          "Node Type": "Hash Join",
+          "Plan Rows": 80,
+          "Actual Rows": 90000,
+          "Total Cost": 41000.00
+        }
+      ]
+    }
+  }
+]
+"""
+
+# P4 (clean) — a small UNFILTERED Seq Scan must NOT flag (a small table scan is often optimal).
+PLAN_SMALL_SEQ = """
+[{ "Plan": { "Node Type": "Seq Scan", "Relation Name": "currencies", "Plan Rows": 42, "Total Cost": 1.42 } }]
+"""
+
+PLAN_MALFORMED = "{ this is not valid json "
+PLAN_EMPTY = "   \n  "
+PLAN_NO_PLAN = '{"foo": "bar"}'
 
 
 def selftest():
@@ -610,6 +891,62 @@ def selftest():
         errs.append("false positive NON_SARGABLE on a HAVING aggregate (COUNT(*)>5 is not a WHERE smell)")
     if "NON_SARGABLE" in kinds(SQL_SARG_FN_IN_STRING):
         errs.append("false positive NON_SARGABLE on a function name inside a string literal")
+
+    # --- plan-smell selftest (EXPLAIN FORMAT JSON) ---------------------------------------------
+    def plan_kinds(raw):
+        finds, err = _lint_plan_text(raw)
+        if err is not None:
+            return None
+        return {k for k, _, _, _ in finds}
+
+    def plan_blocking(raw):
+        finds, err = _lint_plan_text(raw)
+        if err is not None:
+            return None
+        return {k for k, _, _, adv in finds if not adv}
+
+    # P1 — the flag fixture: a Seq Scan + Filter under a Nested Loop flags both detectors
+    pk = plan_kinds(PLAN_FLAG)
+    if pk is None or "NESTED_LOOP_NO_INDEX" not in pk:
+        errs.append("missed NESTED_LOOP_NO_INDEX on a Nested Loop driving an inner Seq Scan")
+    if pk is None or "SEQ_SCAN" not in pk:
+        errs.append("missed SEQ_SCAN on a Seq Scan with a Filter under a Nested Loop")
+    # ...and NESTED_LOOP_NO_INDEX is the blocking (non-advisory) one
+    pb = plan_blocking(PLAN_FLAG)
+    if pb is None or "NESTED_LOOP_NO_INDEX" not in pb:
+        errs.append("NESTED_LOOP_NO_INDEX should be a blocking (non-advisory) plan smell")
+    if pb and "SEQ_SCAN" in pb:
+        errs.append("SEQ_SCAN should be advisory, not blocking")
+
+    # P2 — the clean fixture: an Index Scan / Index Only Scan plan yields NO findings
+    ck = plan_kinds(PLAN_CLEAN)
+    if ck is None:
+        errs.append("clean Index Scan plan failed to parse")
+    elif ck:
+        errs.append("false positive plan smell on a clean Index Scan / Index Only Scan plan: %s" % ck)
+
+    # P3 — ANALYZE path: a large Sort + a >100x row-estimate blowup
+    ak = plan_kinds(PLAN_ANALYZE)
+    if ak is None or "HIGH_COST_SORT" not in ak:
+        errs.append("missed HIGH_COST_SORT on a large Sort node")
+    if ak is None or "ROW_ESTIMATE_BLOWUP" not in ak:
+        errs.append("missed ROW_ESTIMATE_BLOWUP on a >100x Actual-vs-Plan-Rows divergence")
+
+    # P4 — a small UNFILTERED Seq Scan must NOT flag (FP guard)
+    sk = plan_kinds(PLAN_SMALL_SEQ)
+    if sk is None:
+        errs.append("small Seq Scan plan failed to parse")
+    elif "SEQ_SCAN" in sk:
+        errs.append("false positive SEQ_SCAN on a small unfiltered Seq Scan (42 rows, no filter)")
+
+    # malformed / empty / no-Plan inputs ⇒ a clean error, never a crash or a finding
+    for raw, label in ((PLAN_MALFORMED, "malformed JSON"), (PLAN_EMPTY, "empty input"),
+                       (PLAN_NO_PLAN, "a doc with no Plan node")):
+        finds, err = _lint_plan_text(raw)
+        if err is None:
+            errs.append("expected a clean error (not a crash/finding) on %s" % label)
+        if finds:
+            errs.append("expected no findings on %s, got %s" % (label, finds))
     return errs
 
 
@@ -623,8 +960,14 @@ def main(argv):
             return 1
         print("sql-lint: OK — clean query passes; SELECT_STAR / MISSING_WHERE_DML / "
               "IMPLICIT_CROSS_JOIN / LIMIT_NO_ORDER / GROUP_BY_INCOMPLETE / JOIN_FANOUT / "
-              "OUTER_JOIN_DEMOTED / NON_SARGABLE detectors verified")
+              "OUTER_JOIN_DEMOTED / NON_SARGABLE detectors verified; plan smells "
+              "SEQ_SCAN / NESTED_LOOP_NO_INDEX / HIGH_COST_SORT / ROW_ESTIMATE_BLOWUP verified")
         return 0
+    if argv[0] == "plan":
+        if len(argv) < 2:
+            sys.stderr.write("usage: sql-lint.py plan <explain.json>\n")
+            return 2
+        return _run_plan(argv[1])
     path = argv[0]
     files = []
     if os.path.isdir(path):

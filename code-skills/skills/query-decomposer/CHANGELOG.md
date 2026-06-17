@@ -3,6 +3,33 @@
 Versioned independently of the `code-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.3 — beta
+
+Deepened `bin/sql-lint.py` with a **plan-smell parser** — a new `plan` subcommand that reads a Postgres
+`EXPLAIN (FORMAT JSON)` document (a structured-JSON **file** — robust, **no live DB needed**) and
+mechanizes the EXPLAIN read the EXECUTION axis used to leave to the human (the ROADMAP `query-harness`
+plan-parsing item, shipped here to keep the `bin/` count stable). Locked with flag **and** clean
+selftest fixtures (`selftest` still exits 0; all prior SQL-source detectors + their FP guards intact;
+the default `<file.sql>` lint behavior is unchanged — dispatch is on the `plan` subcommand):
+
+- **NESTED_LOOP_NO_INDEX** (B3, *blocking*) — a `Nested Loop` whose **inner** child (`Plans[1]`) is a
+  `Seq Scan` ⇒ the inner relation is re-scanned per outer row (O(n·m)); the join key likely lacks an
+  index. The dominant plan-level grain/perf defect.
+- **ROW_ESTIMATE_BLOWUP** (*blocking*, ANALYZE-only) — a node where `Actual Rows` and `Plan Rows`
+  differ by **>100×** ⇒ stale stats / a bad estimate that misleads every join order above it.
+- **SEQ_SCAN** (B4, advisory) — a `Seq Scan` **with a `Filter`**, or one over ≥10 000 estimated rows
+  ⇒ an index on the filtered column may be missing. A *small, unfiltered* Seq Scan does **not** flag.
+- **HIGH_COST_SORT** (B4, advisory) — a `Sort` / `Hash Aggregate` over ≥100 000 rows or ≥1 000 000
+  cost ⇒ a large in-memory sort/agg with an external (on-disk) spill risk past `work_mem`.
+
+Exit convention (shared with the SQL-source mode): any **blocking** smell ⇒ exit 1; advisory-only ⇒
+exit 0 (warnings still printed). A **malformed / empty / no-`Plan` document ⇒ a clean error (exit 2),
+never a crash** — locked by selftest fixtures. Fixtures: a flag plan (a Seq Scan + Filter under a
+Nested Loop ⇒ `NESTED_LOOP_NO_INDEX` + `SEQ_SCAN`), an ANALYZE plan (large Sort + a >100× row blowup),
+a clean Index Scan / Index Only Scan plan (no findings), a small unfiltered Seq Scan (FP guard), and
+the three malformed inputs. `references/execution-axis.md` gains the plan-smell catalogue;
+`references/grain-and-joins.md` gains a pointer; the ROADMAP plan-parsing item is marked done.
+
 ## 0.2.2 — beta
 
 Deepened `bin/sql-lint.py` with the last ROADMAP-tracked smell, locked with must-flag **and**

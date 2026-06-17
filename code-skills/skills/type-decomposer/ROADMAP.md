@@ -5,9 +5,13 @@ type-spec card, the collapse toolkit). Everything below is additive.
 
 ## `bin/instance-check.py`
 
-- [ ] More JSON Schema keywords: `$ref`/`$defs` resolution (recursive models), `if/then/else`,
-      `dependentRequired`/`dependentSchemas` (a common way to express cross-field legality),
-      `propertyNames`, `patternProperties`.
+- [x] **Conditional + composition keywords** — `if`/`then`/`else` (cross-field legality), and the
+      composition set `allOf`/`anyOf`/`oneOf`/`not` (`oneOf` is exactly-one). Each composed/conditional
+      subschema reuses the same recursive `validate()`, so type-aware equality / `format` / `$ref` /
+      `required` apply inside the branches; default-deny is preserved for still-unknown keywords.
+      Local `$ref`/`$defs` resolution already shipped. Locked with legal+illegal fixtures. *(0.2.2)*
+- [ ] More JSON Schema keywords: `dependentRequired`/`dependentSchemas` (another cross-field-legality
+      idiom), `propertyNames`, `patternProperties`, `contains`/`minContains`.
 - [ ] **Uninhabited-type detection** (B2) — flag an `allOf`/`oneOf` whose branches can never be
       satisfied together (a representable-in-schema, impossible-to-instantiate type).
 - [ ] **Cardinality report** — estimate the admitted-state count vs the declared legal-state count

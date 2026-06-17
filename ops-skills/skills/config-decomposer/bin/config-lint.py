@@ -14,6 +14,9 @@ It is deliberately a STATIC smell detector, not a policy engine (that's the harn
 Smell kinds:
   PLAINTEXT_SECRET     a secret-ish key (password/secret/token/api_key/pwd/pat/dsn/...) set to a literal string
   URL_EMBEDDED_SECRET  a literal password in a connection-string / URL userinfo (scheme://user:PASS@host)
+  BASE64_SECRET        a committed k8s Secret with a literal base64 `data:` value — commit-time secret material
+  HEREDOC_SECRET       a secret-ish key assigned a multi-line literal (YAML block scalar | / >, or a shell heredoc)
+  WORLD_WRITABLE       a world-writable file mode (0777/0666/777/666/0o777) or chmod 777/666/o+w/a+w
   UNPINNED_VERSION     `:latest` or a missing image/version pin — the deploy is not reproducible
   OPEN_NETWORK         0.0.0.0/0 or ::/0 — ingress/egress open to the entire internet
   WILDCARD_GRANT       "*" in an IAM action/resource/principal position — over-broad permission
@@ -113,6 +116,50 @@ _K8S_HOSTPATH = re.compile(r"""(?im)^\s*hostPath\s*:""")
 _K8S_RUNASROOT = re.compile(r"""(?im)^\s*runAsUser\s*:\s*0\b""")
 _K8S_PRIVESC = re.compile(r"""(?im)^\s*allowPrivilegeEscalation\s*:\s*true\b""")
 
+# --- BASE64_SECRET: a committed k8s Secret with literal base64 `data:` material ---------------------
+# Scoped STRICTLY to a `kind: Secret` doc (so a base64-looking checksum / `@sha256:` digest in an
+# arbitrary doc never trips). Within such a doc, a `data:` block (NOT `stringData:` — that's plaintext,
+# already PLAINTEXT_SECRET's job) whose entries are `key: <base64>` is committed secret material: k8s
+# `data:` values are base64 by spec. A value is LITERAL base64 when it is >=8 chars of [A-Za-z0-9+/]
+# with optional `=` padding and nothing else — a `${VAR}` / `<PLACEHOLDER>` / templated value is not.
+_K8S_SECRET_KIND = re.compile(r"""(?im)^\s*kind\s*:\s*["']?Secret["']?\s*$""")
+# a `data:` block header (its own line, no inline value) — `stringData:` is explicitly excluded by the
+# `(?<![A-Za-z])` lookbehind so `stringData:` cannot match the `data:` tail.
+_K8S_DATA_HEADER = re.compile(r"""(?im)^(\s*)(?<![A-Za-z])data\s*:\s*$""")
+_K8S_STRINGDATA_HEADER = re.compile(r"""(?im)^(\s*)stringData\s*:\s*$""")
+# one `key: value` entry inside a `data:` block; group 1 = key, group 2 = the (possibly quoted) value.
+_DATA_ENTRY = re.compile(r"""^(\s*)([A-Za-z0-9_.\-]+)\s*:\s*(.*?)\s*$""")
+_BASE64_LITERAL = re.compile(r"""^['"]?[A-Za-z0-9+/]{8,}={0,2}['"]?$""")
+
+# --- HEREDOC_SECRET: a secret-ish key assigned a multi-line literal (block scalar / heredoc) --------
+# A YAML block scalar opens a secret key with `|` / `>` (and chomp/indent indicators `|-`, `>2`, `|+`):
+#   password: |
+#     -----BEGIN ...
+# Group 1 = the secret key. Reuses the SAME secret-key alternation as _SECRET_KEY/_SECRET_KEY_WHOLE.
+_SECRET_KEY_NAME = (r"""[A-Za-z0-9_.\-]*?(?:password|passwd|secret|token|api[_-]?key|"""
+                    r"""access[_-]?key(?:[_-]?id)?|secret[_-]?key|private[_-]?key|client[_-]?secret|"""
+                    r"""auth|credential)[A-Za-z0-9_.\-]*|pwd|pat|bearer|dsn""")
+_SECRET_BLOCK_SCALAR = re.compile(
+    r"""(?im)^(\s*)['"]?(""" + _SECRET_KEY_NAME + r""")['"]?\s*:\s*[|>][+\-0-9]*\s*$""")
+# a shell heredoc feeding a secret key: `KEY=$(cat <<EOF` / `KEY="$(cat <<'EOF'`  (the body follows).
+_SECRET_HEREDOC = re.compile(
+    r"""(?im)^[^\n#]*\b(""" + _SECRET_KEY_NAME + r""")\b[^\n=]*=\s*.*<<[-~]?\s*['"]?\w+['"]?""")
+
+# --- WORLD_WRITABLE: a world-writable file mode (octal mode field or a chmod command) ---------------
+# A `mode:` (k8s file mode / ansible) of 0777/0666/777/666 (with optional `0`/`0o` prefix, optional
+# quotes), or a `chmod` granting world write: `chmod 777`/`766`-style octals ending in 6/7 for the
+# `other` digit, or symbolic `o+w` / `a+w`. Octal modes 0644/0600/0755/0750 (other digit 0/4/5) are SAFE.
+_WORLD_WRITABLE_MODE = re.compile(
+    r"""(?im)\bmode\s*[:=]\s*['"]?(?:0o?)?(777|666)['"]?\b""")
+# chmod granting world write: a 0?(777|666) octal, or a symbolic clause whose target class is `o`/`a`
+# (or has no class — bare `+w`, which defaults to all) AND adds `w`.
+_WORLD_WRITABLE_CHMOD = re.compile(
+    r"""(?imx)\bchmod\b[^\n]*?
+        (?: \b0?(?:777|666)\b                       # octal world-writable
+          | (?:[oa]|[ugo]*[oa][ugo]*)\+[rx]*w       # o+w / a+w / go+w / ao+rwx (class includes o or a)
+          | (?<![ugoa])\+[rx]*w\b )                 # bare +w (no class = "a" by default)
+    """)
+
 
 def _strip_value(value):
     """Normalize a captured secret value: drop a trailing comment and a single trailing `,`/`]`/`}`.
@@ -163,6 +210,94 @@ def _url_pw_is_literal(pw):
     return True
 
 
+def _find_base64_secrets(text, lines):
+    """Find committed k8s Secret `data:` entries whose value is literal base64.
+
+    Scoped strictly to a `kind: Secret` doc. Walks each `data:` block (NOT `stringData:`) and flags any
+    `key: <base64-literal>` entry — a `${VAR}`/`<PLACEHOLDER>`/templated value is not base64 so it's
+    skipped by `_BASE64_LITERAL`, and `stringData:` is excluded so plaintext isn't double-flagged.
+    """
+    finds = []
+    if not _K8S_SECRET_KIND.search(text):
+        return finds
+    in_data = False
+    data_indent = -1
+    for i, raw in enumerate(lines, 1):
+        if not raw.strip() or raw.lstrip().startswith("#"):
+            continue
+        dh = _K8S_DATA_HEADER.match(raw)
+        sdh = _K8S_STRINGDATA_HEADER.match(raw)
+        if sdh:                                  # a stringData: block — leave data-scanning mode
+            in_data = False
+            continue
+        if dh:
+            in_data = True
+            data_indent = len(dh.group(1))
+            continue
+        if in_data:
+            em = _DATA_ENTRY.match(raw)
+            indent = len(em.group(1)) if em else 0
+            # a sibling/dedent key at or above the data: indent closes the block
+            if not em or indent <= data_indent:
+                in_data = False
+                continue
+            value = em.group(3)
+            if value and _BASE64_LITERAL.match(value):
+                finds.append(("BASE64_SECRET", i,
+                              "%s: a committed k8s Secret with literal base64 data — inject via a secret "
+                              "store / sealed-secrets / external-secrets, don't commit the manifest"
+                              % em.group(2)))
+    return finds
+
+
+def _block_scalar_body_is_literal(lines, start_idx, key_indent):
+    """A YAML block scalar opened at lines[start_idx] (0-based) has a non-empty literal body that is NOT
+    a single `${VAR}`/placeholder reference. Returns (is_literal, body_end_line_1based).
+    """
+    body = []
+    j = start_idx + 1
+    while j < len(lines):
+        ln = lines[j]
+        if ln.strip() == "":
+            body.append("")
+            j += 1
+            continue
+        indent = len(ln) - len(ln.lstrip())
+        if indent <= key_indent:                 # dedent ends the block scalar
+            break
+        body.append(ln.strip())
+        j += 1
+    nonblank = [b for b in body if b]
+    if not nonblank:
+        return False, j
+    # a body that is a single reference/placeholder line is NOT a literal secret
+    if len(nonblank) == 1 and (_REF.match(nonblank[0]) or _URL_PW_REF.match(nonblank[0])):
+        return False, j
+    return True, j
+
+
+def _find_heredoc_secrets(text, lines):
+    """A secret-ish key assigned a multi-line literal — a YAML block scalar (`key: |` / `key: >`) or a
+    shell heredoc (`KEY=$(cat <<EOF`). The block-scalar body is checked against the ref/placeholder
+    guard so a `${VAR}` body isn't flagged; a block scalar on a NON-secret key never matches (the key
+    alternation is the secret set)."""
+    finds = []
+    for m in _SECRET_BLOCK_SCALAR.finditer(text):
+        start = text.count("\n", 0, m.start())   # 0-based line index of the `key: |` line
+        key_indent = len(m.group(1))
+        is_lit, _ = _block_scalar_body_is_literal(lines, start, key_indent)
+        if is_lit:
+            finds.append(("HEREDOC_SECRET", start + 1,
+                          "%s assigned a multi-line literal (block scalar) — still a committed plaintext "
+                          "secret; source it from a secret ref" % m.group(2)))
+    for m in _SECRET_HEREDOC.finditer(text):
+        line = text.count("\n", 0, m.start()) + 1
+        finds.append(("HEREDOC_SECRET", line,
+                      "%s assigned a multi-line literal (shell heredoc) — still a committed plaintext "
+                      "secret; source it from a secret ref" % m.group(1)))
+    return finds
+
+
 def lint_text(text, path=""):
     """Return a list of (kind, line, detail) findings for one config blob."""
     finds = []
@@ -188,6 +323,13 @@ def lint_text(text, path=""):
             finds.append(("OPEN_NETWORK", i, "0.0.0.0/0 or ::/0 — open to the entire internet"))
         if _WILDCARD_GRANT.search(line) or _WILDCARD_GRANT_LIST.search(line):
             finds.append(("WILDCARD_GRANT", i, "wildcard \"*\" grant — over-broad permission (least-privilege)"))
+        mw = _WORLD_WRITABLE_MODE.search(line)
+        if mw:
+            finds.append(("WORLD_WRITABLE", i,
+                          "world-writable mode %s — anyone can modify; tighten to 0644/0600/0755" % mw.group(1)))
+        elif _WORLD_WRITABLE_CHMOD.search(line):
+            finds.append(("WORLD_WRITABLE", i,
+                          "world-writable chmod (777/666/o+w/a+w) — anyone can modify; tighten to 0644/0600/0755"))
 
     for m in _WILDCARD_GRANT_MULTILINE.finditer(text):
         # report the line of the bare "*" element, not the opening key
@@ -198,6 +340,10 @@ def lint_text(text, path=""):
         finds.append(("UNPINNED_VERSION", text.count("\n", 0, m.start()) + 1, "uses :latest — not reproducible, pin a version/digest"))
     for m in _FROM_NO_TAG.finditer(text):
         finds.append(("UNPINNED_VERSION", text.count("\n", 0, m.start()) + 1, "Dockerfile FROM has no tag/digest — pin it"))
+
+    # committed k8s Secret base64 `data:` material, and secret keys assigned a multi-line literal.
+    finds.extend(_find_base64_secrets(text, lines))
+    finds.extend(_find_heredoc_secrets(text, lines))
 
     # k8s: a pod whose spec has containers but NO `resources:` block anywhere in the document.
     # This is a coarse, document-level heuristic, not a per-container check: a sidecar that *does* set
@@ -224,6 +370,13 @@ def lint_text(text, path=""):
             for m in rx.finditer(text):
                 line = text.count("\n", 0, m.start()) + 1
                 finds.append(("K8S_UNSAFE", line, detail))
+
+    # where a BASE64_SECRET fires on a line, drop a PLAINTEXT_SECRET on the SAME line: a k8s Secret
+    # `data:` value is base64 by spec, so the precise diagnosis is BASE64_SECRET (committed Secret
+    # material), not "a literal value" — BASE64 is the canonical finding for that line, not a duplicate.
+    b64_lines = {ln for k, ln, _ in finds if k == "BASE64_SECRET"}
+    if b64_lines:
+        finds = [f for f in finds if not (f[0] == "PLAINTEXT_SECRET" and f[1] in b64_lines)]
 
     # de-dup identical (kind,line)
     seen, out = set(), []
@@ -312,6 +465,41 @@ SAFE_K8S_HARDENED = ('apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - nam
 # a non-k8s doc that merely mentions "privileged"/"runAsUser" in prose/comment must NOT trip K8S_UNSAFE
 SAFE_NONK8S_PROSE = '# this service runs privileged: true on the legacy box\nmode: standard\nrunAsUser: 0\n'
 
+# --- NEW SMELL 4: BASE64_SECRET — a committed k8s Secret with literal base64 `data:` material ---
+BAD_BASE64_SECRET = ('apiVersion: v1\nkind: Secret\nmetadata:\n  name: db\ntype: Opaque\n'
+                     'data:\n  password: cGFzc3dvcmQ=\n  username: YWRtaW4=\n')
+# stringData: is plaintext (covered by PLAINTEXT_SECRET) — must NOT be double-flagged as BASE64
+SAFE_BASE64_STRINGDATA = ('apiVersion: v1\nkind: Secret\nmetadata:\n  name: db\n'
+                          'stringData:\n  password: hunter2supersecret\n')
+# a Secret `data:` whose value is a ${VAR}/placeholder reference — NOT literal base64
+SAFE_BASE64_REF = ('apiVersion: v1\nkind: Secret\nmetadata:\n  name: db\n'
+                   'data:\n  password: ${SECRET}\n  token: <PLACEHOLDER>\n')
+# a NON-Secret doc that merely contains a base64-looking string (a digest / checksum) — out of scope
+SAFE_BASE64_NONSECRET = ('apiVersion: apps/v1\nkind: Deployment\nspec:\n  template:\n    spec:\n'
+                         '      containers:\n        - name: web\n'
+                         '          image: web@sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b\n'
+                         '          resources:\n            limits: { cpu: "1" }\n')
+
+# --- NEW SMELL 5: HEREDOC_SECRET — a secret key assigned a multi-line literal (block scalar / heredoc) ---
+BAD_HEREDOC_BLOCK_SCALAR = ('tls:\n  private_key: |\n    -----BEGIN RSA PRIVATE KEY-----\n'
+                            '    MIIEowIBAAKCAQEA1234567890abcdef\n    -----END RSA PRIVATE KEY-----\n')
+BAD_HEREDOC_SHELL = 'export DB_PASSWORD=$(cat <<EOF\nrealsecretvalue\nEOF\n)\n'
+# a block scalar on a NON-secret key — must NOT be flagged
+SAFE_HEREDOC_NONSECRET = 'config:\n  description: |\n    some multi-line\n    descriptive text\n'
+# a block-scalar body that is a single ${VAR} reference — must NOT be flagged
+SAFE_HEREDOC_REF = 'tls:\n  private_key: |\n    ${TLS_PRIVATE_KEY}\n'
+
+# --- NEW SMELL 6: WORLD_WRITABLE — an octal world-writable mode or a chmod 777/666/o+w/a+w ---
+BAD_WW_MODE_0777 = 'files:\n  - path: /data/app.conf\n    mode: 0777\n'
+BAD_WW_CHMOD_777 = 'RUN chmod -R 777 /data\n'
+BAD_WW_MODE_QUOTED_0666 = 'volume:\n  mode: "0666"\n'
+BAD_WW_CHMOD_OW = 'RUN chmod o+w /var/log/app.log\n'
+# safe modes (other digit 0/4/5) and a restrictive chmod must NOT be flagged
+SAFE_WW_MODE_0644 = 'files:\n  - path: /etc/app.conf\n    mode: 0644\n'
+SAFE_WW_MODE_0600 = 'files:\n  - path: /etc/secret.conf\n    mode: 0600\n'
+SAFE_WW_MODE_0755 = 'files:\n  - path: /usr/bin/app\n    mode: 0755\n'
+SAFE_WW_CHMOD_750 = 'RUN chmod 750 /opt/app\n'
+
 
 def selftest():
     errs = []
@@ -343,6 +531,13 @@ def selftest():
         (BAD_K8S_RUNASROOT, "K8S_UNSAFE"),                 # NEW3: runAsUser: 0
         (BAD_K8S_HOSTPATH, "K8S_UNSAFE"),                  # NEW3: hostPath volume
         (BAD_K8S_FRAGMENT, "K8S_UNSAFE"),                  # NEW3: pod-spec fragment (no apiVersion/kind)
+        (BAD_BASE64_SECRET, "BASE64_SECRET"),              # NEW4: committed k8s Secret literal base64 data:
+        (BAD_HEREDOC_BLOCK_SCALAR, "HEREDOC_SECRET"),      # NEW5: private_key: | multi-line literal
+        (BAD_HEREDOC_SHELL, "HEREDOC_SECRET"),             # NEW5: KEY=$(cat <<EOF ...)
+        (BAD_WW_MODE_0777, "WORLD_WRITABLE"),              # NEW6: mode: 0777
+        (BAD_WW_CHMOD_777, "WORLD_WRITABLE"),              # NEW6: chmod -R 777
+        (BAD_WW_MODE_QUOTED_0666, "WORLD_WRITABLE"),       # NEW6: mode: "0666"
+        (BAD_WW_CHMOD_OW, "WORLD_WRITABLE"),               # NEW6: chmod o+w
     ):
         if want not in kinds(text):
             errs.append("missed %s (got %s)" % (want, sorted(kinds(text))))
@@ -364,6 +559,25 @@ def selftest():
     for safe in (SAFE_K8S_HARDENED, SAFE_NONK8S_PROSE):
         if "K8S_UNSAFE" in kinds(safe):
             errs.append("false positive: flagged a hardened / non-k8s doc as K8S_UNSAFE: %s" % lint_text(safe))
+    # NEW4 false-positive guards: stringData (plaintext, not BASE64), a ${VAR}/placeholder data value,
+    # and a non-Secret doc with a base64-looking digest must NOT trip BASE64_SECRET
+    for safe in (SAFE_BASE64_STRINGDATA, SAFE_BASE64_REF, SAFE_BASE64_NONSECRET):
+        if "BASE64_SECRET" in kinds(safe):
+            errs.append("false positive: flagged a stringData/ref/non-Secret as BASE64_SECRET: %s" % lint_text(safe))
+    # the stringData fixture is plaintext base64-free text — but it IS a literal secret key, so it should
+    # still be PLAINTEXT_SECRET (proving BASE64 doesn't steal the finding, and plaintext still fires)
+    if "PLAINTEXT_SECRET" not in kinds(SAFE_BASE64_STRINGDATA):
+        errs.append("stringData literal password not caught as PLAINTEXT_SECRET (BASE64 must not mask it)")
+    # NEW5 false-positive guards: a block scalar on a NON-secret key, and a block-scalar body that is a
+    # single ${VAR} reference must NOT trip HEREDOC_SECRET
+    for safe in (SAFE_HEREDOC_NONSECRET, SAFE_HEREDOC_REF):
+        if "HEREDOC_SECRET" in kinds(safe):
+            errs.append("false positive: flagged a non-secret / ${VAR} block scalar as HEREDOC_SECRET: %s" % lint_text(safe))
+    # NEW6 false-positive guards: octal modes with other-digit 0/4/5 and a restrictive chmod 750 must NOT
+    # trip WORLD_WRITABLE
+    for safe in (SAFE_WW_MODE_0644, SAFE_WW_MODE_0600, SAFE_WW_MODE_0755, SAFE_WW_CHMOD_750):
+        if "WORLD_WRITABLE" in kinds(safe):
+            errs.append("false positive: flagged a non-world-writable mode/chmod as WORLD_WRITABLE: %s" % lint_text(safe))
     # a scoped multi-line action list (real verbs, no bare "*") must NOT trip the multi-line scan
     if "WILDCARD_GRANT" in kinds(SAFE_WILDCARD_SCOPED):
         errs.append("false positive: flagged a scoped (non-wildcard) action list as a wildcard grant")
@@ -407,9 +621,10 @@ def main(argv):
             for e in errs:
                 sys.stderr.write("  - %s\n" % e)
             return 1
-        print("config-lint: OK — 7 safety smells (plaintext + URL-embedded secrets, unpinned, open-net, "
-              "wildcard grant, no-limits, k8s-unsafe) caught; reference/placeholder/whole-key + "
-              "non-k8s false-positive guards + api.Dockerfile scan verified")
+        print("config-lint: OK — 10 safety smells (plaintext + URL-embedded + base64 + heredoc secrets, "
+              "unpinned, open-net, wildcard grant, no-limits, k8s-unsafe, world-writable) caught; "
+              "reference/placeholder/whole-key/stringData/non-Secret/non-secret-key + non-k8s + "
+              "safe-mode false-positive guards + api.Dockerfile scan verified")
         return 0
     total, n = 0, 0
     for fp in _iter_files(argv[0]):

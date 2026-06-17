@@ -118,7 +118,9 @@ walk, doesn't change it. Full table in `references/dialects.md`.
   evidence*, not a pass — a hallucinated column name reads perfectly.
 - **Read the plan for the cartesian, not just the exit code.** A query can bind and "run" yet carry a
   nested-loop over an unconstrained join. `sql-lint.py` flags the implicit cross join statically; the
-  plan confirms it.
+  plan confirms it — and `sql-lint.py plan <explain.json>` mechanizes that read, parsing a Postgres
+  `EXPLAIN (FORMAT JSON)` file (no live DB) for a `Nested Loop` over a `Seq Scan` / a row-estimate
+  blowup so the dangerous plan judgement routes to code, not to a human eyeballing the tree.
 - **Gates before reviews, always.** Don't grade aggregation for a query that won't bind, or
   performance for one whose grain is wrong. Stop each axis at its first failed gate.
 - **Two scores, never one.** *Right-logic-won't-bind* and *returns-rows-wrong-grain* need opposite
@@ -152,4 +154,4 @@ or one blended score is reported.
 | `references/dialects.md` | **picking the engine** — Postgres · MySQL · SQLite · BigQuery · Snowflake, each with the `GROUP BY`/NULL/typing/window/cost differences that flip a query to won't-bind or wrong-answer |
 | `references/policy.md` | **definition-of-done / handoff** — the 10-point DoD, the query-spec card `{question, grain, tables[], plan_verdict}` + plan-report shapes, the harness adapter manifest, and the seams to `code-decomposer`, `regex-decomposer`, `arch-system`, and a reviewer |
 | `bin/query-harness.py` | **mechanizes B1–B3** — reads a per-project command manifest, runs each present gate (parse/bind/explain/run), normalizes verdicts to a report card (a missing tool is a SKIP, not a pass). `template` · `<manifest.json>` · `selftest` |
-| `bin/sql-lint.py` | **mechanizes the SQL smell pre-filter** — flags `SELECT *`, `UPDATE`/`DELETE` with no `WHERE`, multi-table `FROM` with no join predicate (implicit cross join), `LIMIT` with no `ORDER BY`, likely-incomplete `GROUP BY`; `<file\|dir>` · `selftest` |
+| `bin/sql-lint.py` | **mechanizes the SQL smell pre-filter** — flags `SELECT *`, `UPDATE`/`DELETE` with no `WHERE`, multi-table `FROM` with no join predicate (implicit cross join), `LIMIT` with no `ORDER BY`, likely-incomplete `GROUP BY`, `JOIN_FANOUT`, `OUTER_JOIN_DEMOTED`, `NON_SARGABLE`; `<file\|dir>` · `selftest`. The `plan <explain.json>` subcommand reads a Postgres `EXPLAIN (FORMAT JSON)` file (no live DB) and flags plan smells — `NESTED_LOOP_NO_INDEX`, `ROW_ESTIMATE_BLOWUP` (blocking), `SEQ_SCAN`, `HIGH_COST_SORT` (advisory) — see `references/execution-axis.md` |

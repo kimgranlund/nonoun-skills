@@ -18,14 +18,22 @@ plan-verdict cards, the plan-and-drift centerpiece). Everything below is additiv
         `${VAR}`/`${{…}}`/`<PASSWORD>`/`***`/`REDACTED`/no-password guarded).
       - [x] **Unusual key names** — `pwd`, `pat`, `bearer`, `dsn` (whole-key), plus `access_key_id`,
         `secret_key`, `private_key`, `client_secret` folded into the broad alternation. Done in 0.2.1.
-      - [ ] **Base64 / encoded blobs** (a k8s `Secret` `data:` field, an inlined PEM/cert) — high
-        entropy, not a literal string the `LOOKSREAL` test models.
-      - [ ] **Heredoc / block-scalar** multi-line literal values.
-      Until those close, `config-lint` is documented as a cheap **first pass**, not a complete floor
+      - [x] **Base64 / encoded blobs** (a k8s `Secret` `data:` field) — done in 0.2.2 as
+        **BASE64_SECRET** (scoped strictly to a `kind: Secret` doc's `data:` block; a literal base64
+        value `^[A-Za-z0-9+/]{8,}={0,2}$` is flagged, while `stringData:`, a `${VAR}`/placeholder
+        value, and a non-Secret base64-looking string — a `@sha256:` digest/checksum — are guarded).
+        An inlined PEM/cert under a secret KEY is now also caught via HEREDOC_SECRET (below).
+      - [x] **Heredoc / block-scalar** multi-line literal values — done in 0.2.2 as **HEREDOC_SECRET**
+        (a secret-ish key assigned a YAML block scalar `|` / `>` or a shell heredoc `<<EOF`; a
+        block-scalar body that is a single `${VAR}`/placeholder and a NON-secret key are guarded).
+      Until the structured-aware pass lands, `config-lint` is documented as a cheap **first pass**, not a complete floor
       (see `secrets-and-safety.md`); the deeper pass is a policy engine wired as the harness `policy`
       phase.
-- [ ] **More smells**: world-writable file modes, `latest`-equivalent floating refs (a branch
+- [ ] **More smells**: `latest`-equivalent floating refs (a branch
       `?ref=main`, a `@v4` action tag), disabled TLS verification, default/empty admin passwords.
+      - [x] **World-writable file modes** — done in 0.2.2 as **WORLD_WRITABLE** (an octal `mode:` of
+        `0777`/`0666`/`777`/`666` incl. `0o` prefix, or a `chmod 777`/`666`/`o+w`/`a+w`/`+w`; restrictive
+        modes — other-digit 0/4/5 — and owner/group-only chmods `u+w`/`g+w` guarded).
       - [x] **k8s pod-security** — `privileged: true` / `hostPath` / `runAsUser: 0` /
         `allowPrivilegeEscalation: true`. Done in 0.2.1 as **K8S_UNSAFE** (line-anchored, gated on a
         k8s-looking doc; `runAsUser: 1000` / `allowPrivilegeEscalation: false` / non-k8s prose guarded).

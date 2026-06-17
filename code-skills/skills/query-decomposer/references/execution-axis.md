@@ -67,6 +67,35 @@ A SHIPPABLE verdict requires the gates to have actually **run green**, not merel
 - **EXPLAIN ANALYZE** — the proof for B4: actual vs estimated rows, actual time, buffers/bytes read.
   Advisory by cost (it runs the query), decisive in judgment.
 
+## The plan-smell parser (`sql-lint.py plan`) — mechanizing the EXPLAIN read
+
+Reading a plan by eye is where the EXECUTION axis fails *silently*: a Nested-Loop-over-Seq-Scan and a
+100×-off row estimate are invisible unless you go looking. The `plan` subcommand routes that read to a
+**deterministic parse of structured output** — it reads a Postgres `EXPLAIN (FORMAT JSON)` document (a
+file, **no live DB needed**) and recursively walks the Plan tree:
+
+```sh
+psql -d app -c "EXPLAIN (FORMAT JSON) <the query>" -t -A > plan.json   # or (ANALYZE, FORMAT JSON)
+python3 bin/sql-lint.py plan plan.json
+```
+
+It flags four B3/B4 plan smells. **Exit convention matches the linter:** any *blocking* smell ⇒ exit 1,
+advisory-only ⇒ exit 0 (warnings still printed); a malformed / empty / no-`Plan` document ⇒ exit 2 with
+a clean error, never a crash.
+
+| Plan smell | Trigger in the EXPLAIN-JSON tree | Why it matters | Severity |
+|---|---|---|---|
+| **NESTED_LOOP_NO_INDEX** | a `Nested Loop` whose **inner** child (`Plans[1]`) is a `Seq Scan` | the inner relation is re-scanned per outer row — O(n·m); the join key likely lacks an index. The dominant B3 plan defect | **blocking** (exit 1) |
+| **ROW_ESTIMATE_BLOWUP** | a node where `Actual Rows` (ANALYZE only) and `Plan Rows` differ by **>100×** | stale stats / a bad estimate misleads every join order above it — the fan-out signature even when the result looks small | **blocking** (exit 1) |
+| **SEQ_SCAN** | a `Seq Scan` **with a `Filter`**, or one whose `Plan Rows` ≥ 10 000 | an index on the filtered column may be missing (B4). A *small, unfiltered* Seq Scan does **not** flag — scanning a tiny table is often optimal | advisory |
+| **HIGH_COST_SORT** | a `Sort` / `Hash Aggregate` with `Plan Rows` ≥ 100 000 or `Total Cost` ≥ 1 000 000 | a large in-memory sort/agg risks an external (on-disk) spill past `work_mem` | advisory |
+
+It is the mechanized companion to the live `EXPLAIN` read above: the static `sql-lint.py <file.sql>`
+smells the *source*, the harness *runs* the gate, and `sql-lint.py plan` reads the *plan it produced*.
+Like every gate here, a clean parse is **necessary, not sufficient** — the thresholds are coarse
+advisory pre-filters, not a cost model; confirm a flagged plan against the live schema and EXPLAIN
+ANALYZE before acting.
+
 ## B4 Performance & B5 Safety (reviews)
 
 - **B4** — beyond "it runs": does it use the indexes/partitions it should? Is the scan bounded? On a

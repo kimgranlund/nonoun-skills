@@ -3,6 +3,33 @@
 Versioned independently of the `ops-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.2 — beta
+
+Deepened the `bin/config-lint.py` safety floor from 7 smells to 10, with every new detection locked by
+must-FLAG **and** must-NOT-flag selftest fixtures (all existing smells + their false-positive guards
+intact). `references/secrets-and-safety.md` updated; the matching ROADMAP items marked done.
+
+- **BASE64_SECRET (new).** A committed k8s `Secret` whose `data:` block carries literal base64 values —
+  k8s `data:` is base64 by spec, so a `password: cGFzc3dvcmQ=` entry is commit-time secret material.
+  Scoped **strictly** to a `kind: Secret` doc with a `data:` block (NOT `stringData:`, which is
+  plaintext and stays PLAINTEXT_SECRET's job); a value is flagged only when it's a literal base64 token
+  (`^[A-Za-z0-9+/]{8,}={0,2}$`), so a `${SECRET}` / `<PLACEHOLDER>` value, a `stringData:` block, and a
+  non-Secret doc that merely contains a base64-looking string (a `@sha256:` digest, a checksum) are not
+  flagged. Where BASE64_SECRET fires it **supersedes** a same-line PLAINTEXT_SECRET (the base64 finding
+  is the precise diagnosis; the "literal value" wording is wrong for an encoded blob). Must-FLAG:
+  `kind: Secret` + `data:\n  password: cGFzc3dvcmQ=`.
+- **HEREDOC_SECRET (new).** A secret-ish key (the existing key set — `password`/`secret`/`token`/
+  `api_key`/`private_key`/`client_secret`/`pwd`/`pat`/…) assigned a multi-line literal via a YAML block
+  scalar (`key: |` / `key: >`, incl. chomp/indent indicators `|-` / `>2`) or a shell heredoc
+  (`KEY=$(cat <<EOF` / `<<'EOF'`). Reuses the literal-vs-reference guard: a block-scalar body that is a
+  single `${VAR}` / placeholder line is **not** flagged, and a block scalar on a NON-secret key
+  (`description: |`) never matches. Must-FLAG: `private_key: |\n  -----BEGIN RSA PRIVATE KEY-----\n …`.
+- **WORLD_WRITABLE (new).** A world-writable file mode — an octal `mode:` of `0777`/`0666`/`777`/`666`
+  (with optional `0`/`0o` prefix, optional quotes), or a `chmod 777`/`666` / `chmod o+w` / `chmod a+w`
+  / bare `chmod +w` command. Restrictive modes (other-digit 0/4/5: `0644`/`0600`/`0755`/`0700`/`0750`)
+  and owner/group-only chmods (`u+w`/`g+w`) are **not** flagged. Must-FLAG: `mode: 0777`,
+  `chmod -R 777 /data`, `mode: "0666"`.
+
 ## 0.2.1 — beta
 
 Deepened the `bin/config-lint.py` safety floor from 5 smells to 7, with every new detection locked by

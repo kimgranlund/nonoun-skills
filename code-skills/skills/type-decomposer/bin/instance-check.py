@@ -8,15 +8,15 @@ An illegal instance that validates is the signature failure: an illegal state IS
 
 This carries a JSON-Schema SUBSET validator big enough to express the tools that make illegal
 states unrepresentable — `oneOf` (tagged unions), `additionalProperties:false` (closed records),
-`const`/`enum`, `required`, `not`, `allOf`/`anyOf`, `pattern`, an asserting `format` set
-(email/uri/url/uuid/date/date-time), and local `$ref` into `#/$defs`/`#/definitions` — then runs
-a spec of legal/illegal instances against it.
+`const`/`enum`, `required`, `not`, `allOf`/`anyOf`, `if`/`then`/`else` (cross-field conditional
+legality), `pattern`, an asserting `format` set (email/uri/url/uuid/date/date-time), and local
+`$ref` into `#/$defs`/`#/definitions` — then runs a spec of legal/illegal instances against it.
 
-DEFAULT-DENY: this is a SUBSET, so any keyword it does not understand (`if/then/else`,
-`patternProperties`, `dependentRequired`, `propertyNames`, `contains`, `prefixItems`, tuple-`items`,
-a remote `$ref`, …) raises and surfaces as an UNSUPPORTED_SCHEMA finding — a LOUD failure — rather
-than being silently ignored. A silent ignore would drop a real constraint and let an illegal
-instance false-green; the gate's whole value is being a trustworthy rejecter.
+DEFAULT-DENY: this is a SUBSET, so any keyword it does not understand (`patternProperties`,
+`dependentRequired`, `propertyNames`, `contains`, `prefixItems`, tuple-`items`, a remote `$ref`, …)
+raises and surfaces as an UNSUPPORTED_SCHEMA finding — a LOUD failure — rather than being silently
+ignored. A silent ignore would drop a real constraint and let an illegal instance false-green; the
+gate's whole value is being a trustworthy rejecter.
 
 Type-aware scalar equality (const/enum/uniqueItems): a JSON `bool` is a distinct value class from
 int/float (`true != 1`), while `1 == 1.0`; a float with zero fractional part satisfies `integer`
@@ -139,14 +139,14 @@ _FORMAT = {
     "date": re.compile(r"^\d{4}-\d{2}-\d{2}$"),
 }
 
-# Keywords this subset validator UNDERSTANDS. Anything else (a $ref, an if/then/else, a tuple
-# items, patternProperties, …) must FAIL LOUD via default-deny — never be silently ignored, which
-# would drop a real constraint and false-green an illegal instance.
+# Keywords this subset validator UNDERSTANDS. Anything else (a remote $ref, a tuple-form items,
+# patternProperties, contains, dependentRequired, …) must FAIL LOUD via default-deny — never be
+# silently ignored, which would drop a real constraint and false-green an illegal instance.
 _KNOWN = frozenset({
     "type", "const", "enum", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",
     "multipleOf", "minLength", "maxLength", "pattern", "format", "minItems", "maxItems",
     "uniqueItems", "items", "properties", "required", "additionalProperties",
-    "allOf", "anyOf", "oneOf", "not",
+    "allOf", "anyOf", "oneOf", "not", "if", "then", "else",
     # definition containers — hold subschemas reached via $ref; carry no constraint themselves
     "$defs", "definitions",
     # annotations — accepted, carry no constraint
@@ -291,6 +291,19 @@ def validate(v, schema, path="$", root=None):
             errs.append("%s: matches %d of oneOf (need exactly 1)" % (path, n))
     if "not" in schema and not validate(v, schema["not"], path, root):
         errs.append("%s: matches 'not' schema" % path)
+    if "if" in schema:
+        # Conditional: if the instance validates against `if`, it must validate against `then`;
+        # otherwise against `else`. Each branch is optional — `if` failing with no `else` is a
+        # pass; `if` holding with no `then` is a pass. A bare `then`/`else` with no `if` is inert
+        # (JSON Schema annotation-only), so this whole block is gated on `if` being present.
+        if validate(v, schema["if"], path, root):
+            # `if` did not hold → the `else` branch governs (if present).
+            if "else" in schema:
+                errs += validate(v, schema["else"], path, root)
+        else:
+            # `if` held → the `then` branch governs (if present).
+            if "then" in schema:
+                errs += validate(v, schema["then"], path, root)
     return errs
 
 
@@ -404,6 +417,114 @@ FORMAT_EMAIL = {
     "legal": [{"email": "a@b.co"}],
     "illegal": [{"email": "not-an-email"}],
 }
+# C1 (oneOf tagged union, EXACTLY-one): a tagged union of two closed records. A valid A and a valid
+# B each match exactly one branch (legal). An instance matching BOTH branches or NEITHER is rejected
+# — the discriminated-union contract is exactly-one, not at-least-one.
+ONEOF_UNION = {
+    "schema": {
+        "oneOf": [
+            {"type": "object", "additionalProperties": False, "required": ["tag", "a"],
+             "properties": {"tag": {"const": "a"}, "a": {"type": "integer"}}},
+            {"type": "object", "additionalProperties": False, "required": ["tag", "b"],
+             "properties": {"tag": {"const": "b"}, "b": {"type": "string"}}},
+        ],
+    },
+    "legal": [{"tag": "a", "a": 1}, {"tag": "b", "b": "x"}],
+    "illegal": [
+        # Matches NEITHER branch (closed records reject the foreign field, so no branch holds).
+        {"tag": "a", "a": 1, "b": "x"},
+        # Matches NEITHER: unknown tag, no branch's const holds.
+        {"tag": "c"},
+        {},
+    ],
+}
+# C1b (oneOf BOTH-match → rejected): two open, overlapping branches. An instance satisfying both is
+# ambiguous and must be rejected (need exactly 1, not ≥1) — the headline oneOf-vs-anyOf distinction.
+ONEOF_BOTH = {
+    "schema": {
+        "oneOf": [
+            {"type": "object", "required": ["a"], "properties": {"a": {"type": "integer"}}},
+            {"type": "object", "required": ["b"], "properties": {"b": {"type": "integer"}}},
+        ],
+    },
+    "legal": [{"a": 1}, {"b": 2}],
+    "illegal": [{"a": 1, "b": 2}],  # satisfies BOTH branches → ambiguous → rejected
+}
+# C2 (if/then/else): cross-field conditional legality. A card must carry a `number`; a non-card must
+# carry an `account`. `if` selects the branch; the recursion means `required`/`const` apply inside.
+IF_THEN_ELSE = {
+    "schema": {
+        "type": "object",
+        "if": {"properties": {"kind": {"const": "card"}}, "required": ["kind"]},
+        "then": {"required": ["number"]},
+        "else": {"required": ["account"]},
+    },
+    "legal": [
+        {"kind": "card", "number": "4111"},   # if holds → then satisfied
+        {"kind": "bank", "account": "GB123"},  # if fails → else satisfied
+    ],
+    "illegal": [
+        {"kind": "card"},                       # if holds → then requires number (missing)
+        {"kind": "bank", "number": "4111"},     # if fails → else requires account (missing)
+    ],
+}
+# C2b (if with no else): `if` failing with no `else` is a PASS; `if` holding still imposes `then`.
+IF_NO_ELSE = {
+    "schema": {
+        "type": "object",
+        "if": {"required": ["premium"], "properties": {"premium": {"const": True}}},
+        "then": {"required": ["billing"]},
+    },
+    "legal": [
+        {"premium": True, "billing": "x"},  # if holds → then satisfied
+        {"premium": False},                 # if fails, no else → pass
+        {},                                 # if fails (no premium), no else → pass
+    ],
+    "illegal": [{"premium": True}],         # if holds → then requires billing (missing)
+}
+# C3 (allOf): the instance must satisfy EVERY subschema; failing one is rejected.
+ALLOF = {
+    "schema": {
+        "allOf": [
+            {"type": "object", "required": ["a"], "properties": {"a": {"type": "integer", "minimum": 0}}},
+            {"type": "object", "required": ["b"], "properties": {"b": {"type": "string", "minLength": 2}}},
+        ],
+    },
+    "legal": [{"a": 1, "b": "xy"}],
+    "illegal": [
+        {"a": 1},               # fails the second half (b missing)
+        {"a": -1, "b": "xy"},   # fails the first half (a < minimum)
+        {"a": 1, "b": "x"},     # fails the second half (b too short)
+    ],
+}
+# C4 (anyOf): satisfying AT LEAST ONE subschema passes; satisfying none is rejected.
+ANYOF = {
+    "schema": {
+        "anyOf": [
+            {"type": "object", "required": ["email"], "properties": {"email": {"type": "string", "format": "email"}}},
+            {"type": "object", "required": ["phone"], "properties": {"phone": {"type": "string", "minLength": 7}}},
+        ],
+    },
+    "legal": [{"email": "a@b.co"}, {"phone": "1234567"}, {"email": "a@b.co", "phone": "1234567"}],
+    "illegal": [
+        {},                                  # matches neither (both contacts missing)
+        {"email": "nope", "phone": "12"},    # email invalid AND phone too short → neither holds
+    ],
+}
+# C5 (not): an instance of the FORBIDDEN shape is rejected; another passes. The negated subschema
+# recurses, so the forbidden `const` is type-aware.
+NOT = {
+    "schema": {"type": "object", "not": {"required": ["banned"], "properties": {"banned": {"const": True}}}},
+    "legal": [{"ok": 1}, {"banned": False}],
+    "illegal": [{"banned": True}],  # is the forbidden shape → rejected
+}
+# C6 (default-deny PRESERVED): a still-unknown keyword (`contains`) must STILL raise
+# UNSUPPORTED_SCHEMA — adding if/then/else + composition did NOT open the gate to everything.
+STILL_UNSUPPORTED = {
+    "schema": {"type": "array", "contains": {"type": "integer"}},
+    "legal": [[1, 2]],
+    "illegal": [["x"]],
+}
 
 
 def selftest():
@@ -439,6 +560,39 @@ def selftest():
     f, _ = check_spec(FORMAT_EMAIL)
     if f:
         errs.append("FORMAT_EMAIL not clean — format:email not enforced: %s" % f)
+
+    # C1 — oneOf is EXACTLY-one: valid A and valid B pass; neither-match is rejected. CLEAN.
+    f, _ = check_spec(ONEOF_UNION)
+    if f:
+        errs.append("ONEOF_UNION not clean — oneOf tagged union not exactly-one: %s" % f)
+    # C1b — an instance matching BOTH branches must be rejected (oneOf ≠ anyOf). CLEAN.
+    f, _ = check_spec(ONEOF_BOTH)
+    if f:
+        errs.append("ONEOF_BOTH not clean — oneOf accepted a both-branch (ambiguous) match: %s" % f)
+    # C2 — if/then/else routes to the right branch; required applies inside. CLEAN.
+    f, _ = check_spec(IF_THEN_ELSE)
+    if f:
+        errs.append("IF_THEN_ELSE not clean — conditional branch not enforced: %s" % f)
+    # C2b — if failing with no else is a pass; if holding still imposes then. CLEAN.
+    f, _ = check_spec(IF_NO_ELSE)
+    if f:
+        errs.append("IF_NO_ELSE not clean — bare if/then semantics wrong: %s" % f)
+    # C3 — allOf requires EVERY subschema; failing one is rejected. CLEAN.
+    f, _ = check_spec(ALLOF)
+    if f:
+        errs.append("ALLOF not clean — allOf did not require every subschema: %s" % f)
+    # C4 — anyOf requires AT LEAST ONE; none is rejected. CLEAN.
+    f, _ = check_spec(ANYOF)
+    if f:
+        errs.append("ANYOF not clean — anyOf did not require at least one subschema: %s" % f)
+    # C5 — not rejects the forbidden shape, passes others. CLEAN.
+    f, _ = check_spec(NOT)
+    if f:
+        errs.append("NOT not clean — 'not' did not reject the forbidden shape: %s" % f)
+    # C6 — DEFAULT-DENY PRESERVED: a still-unknown keyword must FAIL LOUD, not be silently allowed.
+    f, _ = check_spec(STILL_UNSUPPORTED)
+    if not any(k == "UNSUPPORTED_SCHEMA" for k, _ in f):
+        errs.append("STILL_UNSUPPORTED did not fail loud — default-deny was opened too wide: %s" % f)
 
     # validator spot-checks
     if validate(True, {"type": "integer"}) == []:
@@ -487,6 +641,29 @@ def selftest():
         errs.append("additionalProperties:false not enforced")
     if validate("card", {"oneOf": [{"const": "card"}, {"const": "cash"}]}):
         errs.append("oneOf exact-one not satisfied for a valid tag")
+    # oneOf rejects a both-branch match (overlapping schemas) — exactly-one, not at-least-one
+    if validate(5, {"oneOf": [{"type": "integer"}, {"minimum": 0}]}) == []:
+        errs.append("oneOf accepted a value matching two branches")
+    # if/then/else recursion: required inside `then` must be enforced via the same validate()
+    _cond = {"if": {"required": ["k"], "properties": {"k": {"const": "card"}}}, "then": {"required": ["n"]}}
+    if validate({"k": "card"}, _cond) == []:
+        errs.append("if/then did not enforce `then` required when `if` held")
+    if validate({"k": "card", "n": 1}, _cond):
+        errs.append("if/then wrongly rejected a satisfying instance")
+    if validate({"k": "x"}, _cond):
+        errs.append("if/then wrongly applied `then` when `if` failed (no else → should pass)")
+    # if/else: `if` failing routes to `else`
+    if validate({}, {"if": {"required": ["a"]}, "else": {"required": ["b"]}}) == []:
+        errs.append("if/else did not enforce `else` when `if` failed")
+    # bare then/else with no `if` is inert (annotation-only), must not constrain
+    if validate({}, {"then": {"required": ["x"]}, "else": {"required": ["y"]}}):
+        errs.append("bare then/else (no if) wrongly constrained the instance")
+    # default-deny still fires for a genuinely unknown keyword (gate not opened to everything)
+    try:
+        validate([1], {"type": "array", "contains": {"type": "integer"}})
+        errs.append("unknown keyword `contains` did not raise after adding if/then/else")
+    except SchemaError:
+        pass
     return errs
 
 

@@ -71,13 +71,19 @@ pass would drop the constraint and false-green an illegal instance).
   (type-aware: `true ≠ 1`, `1 = 1.0`), `required`, `additionalProperties:false` and schema-form,
   `properties`, object-form `items`, `minimum`/`maximum`/`exclusive*`, `multipleOf` (tolerant),
   `minLength`/`maxLength`, `pattern` (trailing `$` → end-of-string), `minItems`/`maxItems`,
-  `uniqueItems` (`1` and `1.0` collide), `allOf`/`anyOf`/`oneOf`/`not`, **asserting** `format`
-  (`email`, `uri`, `url`, `uuid`, `date`, `date-time`), and **local `$ref`** into `#/$defs` /
-  `#/definitions`.
-- **Unsupported (flagged loudly, never silently ignored):** `if`/`then`/`else`, `patternProperties`,
-  `propertyNames`, `dependentRequired`/`dependentSchemas`, `contains`/`minContains`,
-  `prefixItems` and tuple-form (array) `items`, remote/non-local `$ref`, `$dynamicRef`, and any
-  unrecognized keyword. Express the constraint with a supported keyword, or extend the tool.
+  `uniqueItems` (`1` and `1.0` collide), the composition keywords `allOf`/`anyOf`/`oneOf`/`not`
+  (`oneOf` is **exactly-one**, the discriminated-union contract), the conditional
+  `if`/`then`/`else` (cross-field legality — each branch optional, `if` failing with no `else` is a
+  pass), **asserting** `format` (`email`, `uri`, `url`, `uuid`, `date`, `date-time`), and **local
+  `$ref`** into `#/$defs` / `#/definitions`. Every composed/conditional subschema is validated by
+  the *same* recursive `validate()`, so type-aware equality, `format`, `$ref`, and `required` all
+  apply inside the branches.
+- **Unsupported (flagged loudly, never silently ignored):** `patternProperties`, `propertyNames`,
+  `dependentRequired`/`dependentSchemas`, `contains`/`minContains`, `prefixItems` and tuple-form
+  (array) `items`, remote/non-local `$ref`, `$dynamicRef`, and any unrecognized keyword. The
+  default-deny is intact — adding composition/conditional keywords did **not** open the gate;
+  anything outside the supported set still surfaces as `UNSUPPORTED_SCHEMA`. Express the constraint
+  with a supported keyword, or extend the tool.
 
 Note on `format`: the JSON Schema spec makes `format` **non-asserting by default**, but this tool
 asserts the formats above (an `email` that isn't one is rejected) precisely because the

@@ -19,14 +19,20 @@ cards, the dialect playbooks). Everything below is additive.
       `LIKE '%x'` ⇒ advisory flag. A fn/arith on the literal side, an anchored `LIKE 'x%'`, a bare
       `col = 'lit'`, and `HAVING` aggregates are out of scope and don't flag.*
 - [ ] Emit a machine-readable report (JSON) so GRADE can fold smell signals into the plan report card.
+- [x] **Plan parsing** — read the `EXPLAIN` output and flag a `Nested Loop` over a `Seq Scan` /
+      a row-estimate blowup automatically, instead of leaving the plan read to the human. *Shipped
+      0.2.3 as `sql-lint.py plan <explain.json>`: parses a Postgres `EXPLAIN (FORMAT JSON)` document
+      (a structured-JSON file — **no live DB needed**), recursively walks the Plan tree, and flags
+      `NESTED_LOOP_NO_INDEX` (a Nested Loop driving an inner Seq Scan, blocking), `ROW_ESTIMATE_BLOWUP`
+      (>100× Actual vs Plan rows, ANALYZE-only, blocking), `SEQ_SCAN` (filtered/wide, advisory), and
+      `HIGH_COST_SORT` (large Sort/Hash Aggregate, advisory). Any blocking smell ⇒ exit 1; malformed/
+      empty input ⇒ a clean error (exit 2), never a crash. Locked with flag + clean selftest fixtures.*
 
 ## `bin/query-harness.py`
 
 - [ ] **A grain-check phase** — a first-class `grain` gate that wraps the query and runs the
       `COUNT(*)` vs `COUNT(DISTINCT key)` check, so the most dangerous defect is mechanized end-to-end
       rather than run by hand.
-- [ ] **Plan parsing** — read the `EXPLAIN` output and flag a `Nested Loop` with no join condition /
-      a row-estimate blowup automatically, instead of leaving the plan read to the human.
 - [ ] Per-phase **timeout** + output capture to the report card; a `--json` report mode.
 - [ ] A small **manifest registry** of starter manifests per engine (postgres/psql, mysql,
       sqlite3, bigquery/bq, snowflake/snowsql) the skill can drop in.
