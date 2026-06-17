@@ -9,16 +9,17 @@ An illegal instance that validates is the signature failure: an illegal state IS
 This carries a JSON-Schema SUBSET validator big enough to express the tools that make illegal
 states unrepresentable — `oneOf` (tagged unions), `additionalProperties:false` (closed records),
 `const`/`enum`, `required`, `not`, `allOf`/`anyOf`, `if`/`then`/`else` (cross-field conditional
-legality), `patternProperties` (name-keyed subschemas), `dependentRequired` (presence-triggered
-required), the array `contains` (at-least-one-element), `pattern`, an asserting `format` set
-(email/uri/url/uuid/date/date-time), and local `$ref` into `#/$defs`/`#/definitions` — then runs a
-spec of legal/illegal instances against it.
+legality), `patternProperties` (name-keyed subschemas), `propertyNames` (every property NAME must
+validate as a string), `dependentRequired` (presence-triggered required), `dependentSchemas`
+(presence-triggered whole-instance subschema), the array `contains` with `minContains`/`maxContains`
+(bounded existence), `pattern`, an asserting `format` set (email/uri/url/uuid/date/date-time), and
+local `$ref` into `#/$defs`/`#/definitions` — then runs a spec of legal/illegal instances against it.
 
-DEFAULT-DENY: this is a SUBSET, so any keyword it does not understand (`propertyNames`,
-`unevaluatedProperties`, `dependentSchemas`, `minContains`/`maxContains`, `prefixItems`,
-tuple-`items`, a remote `$ref`, …) raises and surfaces as an UNSUPPORTED_SCHEMA finding — a LOUD
-failure — rather than being silently ignored. A silent ignore would drop a real constraint and let
-an illegal instance false-green; the gate's whole value is being a trustworthy rejecter.
+DEFAULT-DENY: this is a SUBSET, so any keyword it does not understand (`unevaluatedProperties`,
+`unevaluatedItems`, `prefixItems`, tuple-`items`, a remote `$ref`, …) raises and surfaces as an
+UNSUPPORTED_SCHEMA finding — a LOUD failure — rather than being silently ignored. A silent ignore
+would drop a real constraint and let an illegal instance false-green; the gate's whole value is
+being a trustworthy rejecter.
 
 Type-aware scalar equality (const/enum/uniqueItems): a JSON `bool` is a distinct value class from
 int/float (`true != 1`), while `1 == 1.0`; a float with zero fractional part satisfies `integer`
@@ -142,14 +143,14 @@ _FORMAT = {
 }
 
 # Keywords this subset validator UNDERSTANDS. Anything else (a remote $ref, a tuple-form items,
-# propertyNames, dependentSchemas, minContains/maxContains, unevaluatedProperties, …) must FAIL
-# LOUD via default-deny — never be silently ignored, which would drop a real constraint and
-# false-green an illegal instance.
+# prefixItems, unevaluatedProperties/unevaluatedItems, …) must FAIL LOUD via default-deny — never
+# be silently ignored, which would drop a real constraint and false-green an illegal instance.
 _KNOWN = frozenset({
     "type", "const", "enum", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",
     "multipleOf", "minLength", "maxLength", "pattern", "format", "minItems", "maxItems",
-    "uniqueItems", "items", "contains", "properties", "patternProperties", "required",
-    "dependentRequired", "additionalProperties",
+    "uniqueItems", "items", "contains", "minContains", "maxContains",
+    "properties", "patternProperties", "propertyNames", "required",
+    "dependentRequired", "dependentSchemas", "additionalProperties",
     "allOf", "anyOf", "oneOf", "not", "if", "then", "else",
     # definition containers — hold subschemas reached via $ref; carry no constraint themselves
     "$defs", "definitions",
@@ -271,13 +272,20 @@ def validate(v, schema, path="$", root=None):
             for i, item in enumerate(v):
                 errs += validate(item, schema["items"], "%s[%d]" % (path, i), root)
         if "contains" in schema:
-            # At LEAST one element must validate against the subschema (the existence keyword).
-            # The element subschema reuses validate(), so type-aware equality / format / $ref /
-            # required all apply inside it. minContains/maxContains are INTENTIONALLY left out of
-            # _KNOWN: a schema relying on them default-denies (UNSUPPORTED_SCHEMA) rather than being
-            # silently downgraded to the plain ≥1 semantics this implements.
-            if not any(not validate(item, schema["contains"], path, root) for item in v):
-                errs.append("%s: no element matches `contains`" % path)
+            # `contains` asserts a BOUNDED count of matching elements. The element subschema reuses
+            # validate(), so type-aware equality / format / $ref / required all apply inside it.
+            # Count the matches once, then refine with minContains/maxContains:
+            #   minContains (default 1) ≤ matches ≤ maxContains (default ∞).
+            # minContains:0 makes `contains` pass even with ZERO matches (it relaxes the existence
+            # floor to "no constraint on the low end" — only maxContains then bites).
+            n = sum(1 for item in v if not validate(item, schema["contains"], path, root))
+            lo = schema.get("minContains", 1)
+            hi = schema.get("maxContains")
+            if n < lo:
+                errs.append("%s: only %d element(s) match `contains` (minContains %s)"
+                            % (path, n, lo))
+            if hi is not None and n > hi:
+                errs.append("%s: %d element(s) match `contains` (maxContains %s)" % (path, n, hi))
     if kind == "object":
         props = schema.get("properties", {})
         pat_props = schema.get("patternProperties", {})
@@ -307,12 +315,25 @@ def validate(v, schema, path="$", root=None):
                 errs.append("%s: additional property '%s' not allowed (closed record)" % (path, k))
             elif isinstance(ap, dict):
                 errs += validate(val, ap, "%s.%s" % (path, k), root)
+        # propertyNames: every property NAME is validated — as a STRING instance — against the
+        # subschema. The name string reuses validate(), so `pattern`/`format`/`minLength`/enum all
+        # apply to the key. A key that fails the name schema is an illegal key (e.g. `Foo` or `a1`
+        # under {"pattern":"^[a-z]+$"}).
+        if "propertyNames" in schema:
+            for k in v:
+                errs += validate(k, schema["propertyNames"], "%s/(propertyName %r)" % (path, k), root)
         # dependentRequired: if the trigger property is present, every listed dependent must be too.
         for trigger, deps in schema.get("dependentRequired", {}).items():
             if trigger in v:
                 for dep in deps:
                     if dep not in v:
                         errs.append("%s: '%s' present but dependent '%s' missing" % (path, trigger, dep))
+        # dependentSchemas: if the trigger property is present, the WHOLE instance must additionally
+        # validate against the dependent subschema (sibling to dependentRequired, but an arbitrary
+        # schema, not just a required list). Recurses the whole instance through validate().
+        for trigger, sub in schema.get("dependentSchemas", {}).items():
+            if trigger in v:
+                errs += validate(v, sub, path, root)
 
     if "allOf" in schema:
         for sub in schema["allOf"]:
@@ -431,12 +452,12 @@ REF_SPEC = {
     "illegal": [{"kind": "zzz"}],  # was silently ACCEPTED when $ref was ignored
 }
 # B2 (default-deny LOUD): an UNSUPPORTED keyword must surface as UNSUPPORTED_SCHEMA, never as a
-# silent green. `propertyNames` is not in the subset (patternProperties was the witness here until it
-# joined the supported set — propertyNames is still out).
+# silent green. `prefixItems` is not in the subset (patternProperties, then propertyNames, were the
+# witnesses here until each joined the supported set — prefixItems is still out).
 UNSUPPORTED_SPEC = {
-    "schema": {"type": "object", "propertyNames": {"pattern": "^x"}},
-    "legal": [{"x1": "ok"}],
-    "illegal": [{"yy": 5}],
+    "schema": {"type": "array", "prefixItems": [{"type": "string"}]},
+    "legal": [["ok"]],
+    "illegal": [[5]],
 }
 # M1 (5.0 ⊨ integer): a float with zero fractional part is a legal integer instance.
 FLOAT_INTEGER = {
@@ -553,13 +574,14 @@ NOT = {
     "legal": [{"ok": 1}, {"banned": False}],
     "illegal": [{"banned": True}],  # is the forbidden shape → rejected
 }
-# C6 (default-deny PRESERVED): a still-unknown keyword (`propertyNames`) must STILL raise
-# UNSUPPORTED_SCHEMA — adding patternProperties/contains/dependentRequired did NOT open the gate to
-# everything. (`contains` USED to be the witness here; now that it's supported, propertyNames is.)
+# C6 (default-deny PRESERVED): a still-unknown keyword (`prefixItems`) must STILL raise
+# UNSUPPORTED_SCHEMA — adding propertyNames/dependentSchemas/min-maxContains did NOT open the gate to
+# everything. (`contains`, then `propertyNames`, USED to be the witness here; now that both are
+# supported, `prefixItems` is.)
 STILL_UNSUPPORTED = {
-    "schema": {"type": "object", "propertyNames": {"pattern": "^[a-z]+$"}},
-    "legal": [{"ok": 1}],
-    "illegal": [{"X": 1}],
+    "schema": {"type": "array", "prefixItems": [{"type": "integer"}]},
+    "legal": [[1]],
+    "illegal": [["x"]],
 }
 # D1 (patternProperties): every property whose NAME matches the regex must validate against the
 # subschema. An `x-foo: "ok"` (string) passes; `x-foo: 5` (number) is rejected; a property NOT
@@ -593,9 +615,8 @@ PATTERN_PROPERTIES_CLOSED = {
         {"name": "a", "x-trace": 9},      # matched by pattern but wrong type → rejected
     ],
 }
-# D2 (contains): the array must have AT LEAST ONE element validating against the subschema.
-# [1,2,"x"] has integers → passes; ["a","b"] has none → rejected. minContains/maxContains are NOT
-# in the subset (left unknown → default-denied); only the plain ≥1 existence semantics ship.
+# D2 (contains): the array must have AT LEAST ONE element validating against the subschema (the
+# default minContains 1). [1,2,"x"] has integers → passes; ["a","b"] has none → rejected.
 CONTAINS = {
     "schema": {"type": "array", "contains": {"type": "integer"}},
     "legal": [[1, 2, "x"], [5], ["a", 3]],
@@ -614,6 +635,65 @@ DEPENDENT_REQUIRED = {
     "illegal": [
         {"credit_card": "4111"},                                  # trigger present, dependent missing
     ],
+}
+# D4 (propertyNames): every property NAME must validate as a STRING instance against the subschema.
+# Under {pattern:"^[a-z]+$"} a key `Foo` (uppercase) or `a1` (digit) is an illegal key; lowercase
+# keys pass. The empty object is vacuously valid (no names to check).
+PROPERTY_NAMES = {
+    "schema": {"type": "object", "propertyNames": {"pattern": "^[a-z]+$"}},
+    "legal": [
+        {"a": 1, "b": 2},                 # all names lowercase letters → valid
+        {},                               # no names → vacuously valid
+    ],
+    "illegal": [
+        {"A": 1},                         # uppercase name → rejected
+        {"a1": 1},                        # digit in name → rejected
+        {"a": 1, "B": 2},                 # one bad name spoils it
+    ],
+}
+# D5 (dependentSchemas): if the trigger property is present, the WHOLE instance must additionally
+# validate against the dependent subschema. {cc} alone is rejected (the dependent schema requires
+# `billing`); {cc, billing} passes; {} (no trigger) passes. Sibling to dependentRequired.
+DEPENDENT_SCHEMAS = {
+    "schema": {"type": "object",
+               "dependentSchemas": {"credit_card": {"required": ["billing"]}}},
+    "legal": [
+        {"credit_card": "x", "billing": "y"},  # trigger present, dependent schema satisfied
+        {},                                    # no trigger → dependent schema not applied
+        {"billing": "y"},                      # dependent's required field present, no trigger → fine
+    ],
+    "illegal": [
+        {"credit_card": "x"},                  # trigger present, dependent schema's required missing
+    ],
+}
+# D6 (minContains/maxContains): refine `contains` with a bounded match count.
+# minContains:2 needs ≥2 matching elements; [1,2,"a"] (2 ints) passes, [1,"a"] (1 int) is rejected.
+MIN_CONTAINS = {
+    "schema": {"type": "array", "contains": {"type": "integer"}, "minContains": 2},
+    "legal": [[1, 2, "a"], [1, 2, 3]],
+    "illegal": [[1, "a"], ["a", "b"], []],   # 1, 0, 0 matches respectively → all < 2
+}
+# maxContains:1 caps the match count; default minContains is still 1, so exactly-one int passes.
+# [1,"a"] (1 int) passes; [1,2] (2 ints) exceeds maxContains; ["a","b"] (0 ints) misses the default
+# floor of 1 — both ends bite.
+MAX_CONTAINS = {
+    "schema": {"type": "array", "contains": {"type": "integer"}, "maxContains": 1},
+    "legal": [[1, "a"], [5]],                # exactly 1 match each
+    "illegal": [[1, 2], ["a", "b"]],         # 2 matches (> max) and 0 matches (< default min 1)
+}
+# minContains:0 relaxes the existence floor — `contains` passes even with ZERO matches (only
+# maxContains, if present, then bites). An array with no integer is now LEGAL.
+MIN_CONTAINS_ZERO = {
+    "schema": {"type": "array", "contains": {"type": "integer"}, "minContains": 0},
+    "legal": [[], ["a", "b"], [1, 2, 3]],    # 0, 0, 3 matches → all ≥ 0 (no floor)
+    "illegal": [],
+}
+# minContains:0 + maxContains:1 — zero floor, but at most one match. [] and [1] pass; [1,2] rejected.
+MIN_ZERO_MAX_ONE = {
+    "schema": {"type": "array", "contains": {"type": "integer"},
+               "minContains": 0, "maxContains": 1},
+    "legal": [[], ["a"], [1, "a"]],          # 0, 0, 1 matches
+    "illegal": [[1, 2]],                     # 2 matches → exceeds maxContains 1
 }
 
 
@@ -706,6 +786,32 @@ def selftest():
     f, _ = check_spec(DEPENDENT_REQUIRED)
     if f:
         errs.append("DEPENDENT_REQUIRED not clean — presence-triggered required not enforced: %s" % f)
+    # D4 — propertyNames: every property NAME must validate (as a string) against the subschema; a
+    # name failing the pattern is an illegal key. CLEAN.
+    f, _ = check_spec(PROPERTY_NAMES)
+    if f:
+        errs.append("PROPERTY_NAMES not clean — property-name subschema not enforced: %s" % f)
+    # D5 — dependentSchemas: trigger present → the whole instance must validate against the dependent
+    # subschema; no trigger → not applied. CLEAN.
+    f, _ = check_spec(DEPENDENT_SCHEMAS)
+    if f:
+        errs.append("DEPENDENT_SCHEMAS not clean — presence-triggered subschema not enforced: %s" % f)
+    # D6 — minContains: the match count must be ≥ minContains; too-few matches is rejected. CLEAN.
+    f, _ = check_spec(MIN_CONTAINS)
+    if f:
+        errs.append("MIN_CONTAINS not clean — minContains lower bound not enforced: %s" % f)
+    # D6 — maxContains: the match count must be ≤ maxContains; too-many matches is rejected. CLEAN.
+    f, _ = check_spec(MAX_CONTAINS)
+    if f:
+        errs.append("MAX_CONTAINS not clean — maxContains upper bound not enforced: %s" % f)
+    # D6 — minContains:0 relaxes the existence floor — zero matches now passes. CLEAN.
+    f, _ = check_spec(MIN_CONTAINS_ZERO)
+    if f:
+        errs.append("MIN_CONTAINS_ZERO not clean — minContains:0 did not relax the floor: %s" % f)
+    # D6 — minContains:0 + maxContains:1 — zero floor but at most one match. CLEAN.
+    f, _ = check_spec(MIN_ZERO_MAX_ONE)
+    if f:
+        errs.append("MIN_ZERO_MAX_ONE not clean — combined min:0/max:1 bound wrong: %s" % f)
 
     # validator spot-checks
     if validate(True, {"type": "integer"}) == []:
@@ -743,10 +849,11 @@ def selftest():
     # minor: pattern trailing $ must not match before a trailing newline (ECMA vs Python)
     if validate("ab\n", {"type": "string", "pattern": "^ab$"}) == []:
         errs.append("pattern $ wrongly matched before trailing newline")
-    # B2 default-deny: an unsupported keyword raises rather than silently validating. `propertyNames`
-    # is still outside the subset (patternProperties used to be the witness here — now it's supported).
+    # B2 default-deny: an unsupported keyword raises rather than silently validating. `prefixItems`
+    # is still outside the subset (patternProperties, then propertyNames, used to be the witness here
+    # — both are now supported, so prefixItems carries the test).
     try:
-        validate({"x1": "ok"}, {"type": "object", "propertyNames": {"pattern": "^x"}})
+        validate(["ok"], {"type": "array", "prefixItems": [{"type": "string"}]})
         errs.append("unsupported keyword did not raise (silent false-green)")
     except SchemaError:
         pass
@@ -800,11 +907,44 @@ def selftest():
         errs.append("dependentRequired accepted a present trigger with a missing dependent")
     if validate({}, _dep):
         errs.append("dependentRequired wrongly required a dependent with no trigger present")
+    # propertyNames: each key is validated as a STRING instance through the subschema; pattern applies
+    _pn = {"type": "object", "propertyNames": {"pattern": "^[a-z]+$"}}
+    if validate({"a": 1, "b": 2}, _pn):
+        errs.append("propertyNames rejected an object whose names all match")
+    if validate({"A": 1}, _pn) == []:
+        errs.append("propertyNames accepted an object with a non-matching name")
+    if validate({"a1": 1}, _pn) == []:
+        errs.append("propertyNames accepted a name with a digit against ^[a-z]+$")
+    if validate({}, _pn):
+        errs.append("propertyNames wrongly rejected the empty object (no names → vacuous)")
+    # propertyNames runs the name through the SAME validator, so format/minLength on the name apply
+    if validate({"X": 1}, {"type": "object", "propertyNames": {"minLength": 2}}) == []:
+        errs.append("propertyNames did not enforce minLength on the key string")
+    # dependentSchemas: trigger present → whole instance must also satisfy the dependent subschema
+    _ds = {"type": "object", "dependentSchemas": {"cc": {"required": ["billing"]}}}
+    if validate({"cc": "x", "billing": "y"}, _ds):
+        errs.append("dependentSchemas rejected a satisfied dependent subschema")
+    if validate({"cc": "x"}, _ds) == []:
+        errs.append("dependentSchemas accepted a trigger whose dependent subschema is unsatisfied")
+    if validate({}, _ds):
+        errs.append("dependentSchemas wrongly applied the subschema with no trigger present")
+    # minContains/maxContains: refine the contains match count (default minContains 1)
+    _ci = {"type": "array", "contains": {"type": "integer"}}
+    if validate([1, 2, "a"], dict(_ci, minContains=2)):
+        errs.append("minContains:2 rejected an array with 2 matching elements")
+    if validate([1, "a"], dict(_ci, minContains=2)) == []:
+        errs.append("minContains:2 accepted an array with only 1 matching element")
+    if validate([1, 2], dict(_ci, maxContains=1)) == []:
+        errs.append("maxContains:1 accepted an array with 2 matching elements")
+    if validate([], dict(_ci, minContains=0)):
+        errs.append("minContains:0 rejected an array with no matching element (floor not relaxed)")
+    if validate(["a", "b"], dict(_ci, minContains=0)):
+        errs.append("minContains:0 rejected a no-match array (floor not relaxed)")
     # default-deny still fires for a genuinely unknown keyword (gate not opened to everything).
-    # `contains` USED to be the witness here; now that it's supported, `propertyNames` is.
+    # `contains`, then `propertyNames`, USED to be witnesses here; now both ship, so `prefixItems` is.
     try:
-        validate({"a": 1}, {"type": "object", "propertyNames": {"pattern": "^a$"}})
-        errs.append("unknown keyword `propertyNames` did not raise after adding the 3 new keywords")
+        validate([1], {"type": "array", "prefixItems": [{"type": "integer"}]})
+        errs.append("unknown keyword `prefixItems` did not raise after adding the 3 new keywords")
     except SchemaError:
         pass
     return errs

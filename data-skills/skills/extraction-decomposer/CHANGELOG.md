@@ -3,6 +3,14 @@
 Versioned independently of the `data-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.5 — beta
+
+**`schema-check` enforces more JSON-Schema keywords** (previously surfaced as "unsupported" WARNs):
+`additionalProperties` (`false`, or a schema for the extras), `uniqueItems` (type-aware — `1` ≠ `true`),
+`minItems`/`maxItems`, `const` (type-aware), and same-document `$defs` / local `$ref` (`#/$defs/Name`,
+no remote fetch — the clean-checkout-true contract holds). A still-unsupported keyword still WARNs and
+exits nonzero (no silent no-op). Locked with legal/illegal fixtures.
+
 ## 0.2.4 — beta
 
 Added a **machine-readable report mode** (`--json`) to `bin/groundedness-check.py` — the shared schema

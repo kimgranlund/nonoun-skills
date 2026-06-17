@@ -3,6 +3,15 @@
 Versioned independently of the `code-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.4 — beta
+
+**The remaining structural JSON-Schema keywords** in `instance-check`: `propertyNames` (every property
+name validates as a string against the subschema), `dependentSchemas` (if property X is present, the
+whole instance must additionally validate against a schema), and `minContains`/`maxContains` (refine
+`contains`'s match count; `minContains: 0` lets zero matches pass). Recursive through `validate()`;
+default-deny intact — `prefixItems`/`unevaluatedProperties` still raise `UNSUPPORTED_SCHEMA`. Legal/
+illegal instance fixtures lock each.
+
 ## 0.2.3 — beta
 
 **More JSON-Schema keywords** in `instance-check`: `patternProperties` (regex-keyed property schemas),

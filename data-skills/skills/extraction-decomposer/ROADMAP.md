@@ -56,10 +56,23 @@ extraction-report card, the inversion doctrine). Everything below is additive.
       produced a false green); each surfaces a `WARN: unknown/unsupported keyword 'X' — not enforced`
       line and the run exits nonzero. Meta/annotation keywords ($schema, title, description, …) are
       ignored without a warning. Adversarial fixture added.
-- [ ] **`$defs` / local `$ref`** resolution (same-document only — no remote fetch, keeping the
-      clean-checkout-true contract).
-- [ ] More keywords as the extraction corpus demands: `additionalProperties`, `uniqueItems`,
-      `minItems`/`maxItems`, `const`, `format` (as advisory, since format is not a hard gate).
+- [x] **`$defs` / local `$ref`** resolution (0.2.5) — a same-document `$ref` (`#/$defs/Name`,
+      `#/definitions/Name`, or the bare root `#`, with JSON-Pointer `~0`/`~1` unescaping) now resolves
+      against the ROOT schema and applies the referenced subschema in place. **No remote fetch** — a
+      non-`#` ref (`https://…`, a file path) is a SCHEMA ERROR, never a silent pass, keeping the
+      clean-checkout-true contract. A sibling keyword alongside `$ref` is not composed (the ref wins) —
+      that JSON-Schema-2020-12 nuance stays out of scope. Locked with through-`$ref` legal+illegal
+      (type + minimum), remote-ref-rejected, and unresolvable-ref-rejected fixtures.
+- [x] More keywords (0.2.5): **`additionalProperties`** (`false` forbids any property not in
+      `properties`/`patternProperties`; a subschema constrains each extra), **`patternProperties`**
+      (regex-named properties, which also count as "known" for `additionalProperties`), **`uniqueItems`**
+      (`true` → distinct under type-aware deep equality, so `[1, true]` is not a dup of `[1, 1]`),
+      **`minItems`/`maxItems`** (inclusive array-length bounds), and **`const`** (type-aware deep-equal,
+      so `1` ≠ `true`). Each is locked with legal+illegal fixtures, and each NO LONGER appears as an
+      unknown-keyword WARN. *Still unsupported (and so still WARNed):* `format` (advisory-only, deferred),
+      `propertyNames`, `if`/`then`/`else` and the other applicators (`allOf`/`anyOf`/`oneOf`/`not`),
+      `dependentRequired`, `multipleOf`, `contains`, `prefixItems`. A genuinely-unknown keyword still
+      surfaces a WARN and exits nonzero — that guarantee is itself fixture-locked (`if`).
 - [ ] **Coercion-aware mode** — report a value that would pass only after a string→number coercion, so
       a `"13020"` in a numeric field is flagged as a normalization (A3) issue, not silently rejected.
 

@@ -11,8 +11,11 @@ type-spec card, the collapse toolkit). Everything below is additive.
       `required` apply inside the branches; default-deny is preserved for still-unknown keywords.
       Local `$ref`/`$defs` resolution already shipped. Locked with legal+illegal fixtures. *(0.2.2)*
 - [x] More JSON Schema keywords (0.2.3): `patternProperties`, `contains`, and `dependentRequired`
-      (cross-field legality) added (recursive, default-deny preserved). Still deferred:
-      `dependentSchemas`, `propertyNames`, `minContains`/`maxContains`.
+      (cross-field legality) added (recursive, default-deny preserved).
+- [x] The remaining structural keywords (0.2.4): `propertyNames` (each key validates as a string),
+      `dependentSchemas` (X present → whole instance must validate against a schema), and
+      `minContains`/`maxContains` (refine `contains`'s match count). Default-deny still holds for
+      `prefixItems`/`unevaluatedProperties`.
 - [ ] **Uninhabited-type detection** (B2) — flag an `allOf`/`oneOf` whose branches can never be
       satisfied together (a representable-in-schema, impossible-to-instantiate type).
 - [ ] **Cardinality report** — estimate the admitted-state count vs the declared legal-state count
