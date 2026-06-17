@@ -1,6 +1,6 @@
 {
   "name": "reasoning-skills",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Reasoning-domain skills. One so far: proof-decomposer (decompose, design, and grade a deductive argument or math proof on the ARGUMENT x VERIFICATION axes — are the steps valid AND do they prove the stated claim, not a subtly different one — scored separately, with a proof-structure checker that catches circular reasoning, dangling citations, and unreachable goals, plus a numeric counterexample search). Skills only — no commands, agents, or MCP. Self-contained.",
   "author": {
     "name": "Kim",

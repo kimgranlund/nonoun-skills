@@ -1,8 +1,28 @@
 # Changelog
 
 Notable changes to the **nonoun-skills marketplace** — plugins, the gate, and cross-cutting work.
-Each skill also keeps its own `CHANGELOG.md`; this file tracks the repo as a whole. The marketplace
-has no version tags yet, so entries are grouped by date.
+Each skill also keeps its own `CHANGELOG.md`; this file tracks the repo as a whole. Entries are
+grouped by date; the first tagged release is **v0.2.0** (2026-06-17).
+
+## 2026-06-17 — v0.2.0 (first tagged release)
+
+The maturation milestone: every full-stack skill promoted **draft → beta**, and the marketplace's
+first version tag. A four-phase program, each phase run **build → adversarial review → fix → gate**:
+
+- **Routing corpora + sibling-collision analysis.** A checked-in routing-eval corpus per skill
+  (positives across phrasing families + adversarial sibling-trigger negatives). The corpora surfaced
+  that 8 of the 11 near-identically-phrased decomposers lexically grabbed each other's requests;
+  each NOT-for fence was sharpened to name the colliding sibling's vocabulary — **12/13 skills now
+  collision-clean**, recall held, the one residual a documented genuine ambiguity (not gamed).
+- **Deepened mechanism gates.** `regex-check` ReDoS detection rebuilt on the real regex AST (stdlib
+  `re._parser`) — verified against 14 novel patterns beyond its own fixtures. `groundedness-check`
+  gained an opt-in wrong-span proximity signal, with role-confirmation honestly routed to
+  adversarial verify rather than overclaimed as deterministic.
+- **Worked walkthroughs.** All 11 decomposers ship an `examples/walkthrough.md` — a DECOMPOSE → fix
+  → GRADE transcript, 10 of them with a checked-in red→green pair the bin actually verifies.
+- **Promotion.** 13 skills → `status: beta`, `v0.2.0`; plugins bumped (design-/code-skills 0.4.0;
+  data-/meta-/reasoning-/ops-skills 0.2.0); tagged **v0.2.0**. (`figma-plugins` is concurrently
+  maintained — untouched.)
 
 ## 2026-06-16
 

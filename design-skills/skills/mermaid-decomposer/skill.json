@@ -1,7 +1,7 @@
 {
   "name": "mermaid-decomposer",
-  "version": "0.1.0",
-  "status": "draft",
+  "version": "0.2.0",
+  "status": "beta",
   "target": "both",
   "description": "Create, decompose, and grade advanced Mermaid diagrams with the two-axis technique — INTENT (relationship → type → skeleton → elements → labels) and RENDER (keyword → syntax → strict-safety → legibility) — backed by a gated M1–M6 rubric and a verbatim syntax catalog for the 11 advanced types (journey, gantt, erDiagram, sankey-beta, kanban, architecture-beta, treeView-beta, venn-beta, ishikawa-beta, wardley-beta, eventmodeling). NOT for a UI layout / screenshot decomposed into regions (layout-decomposer), a type graded for illegal states (type-decomposer), non-Mermaid diagramming (graphviz/plantuml/d2), hosting/rendering the engine, or visual-style taste (brand-forge).",
   "keywords": ["mermaid", "diagram", "diagramming", "sankey", "gantt", "erd", "architecture-diagram", "flowchart", "wardley", "decomposition", "diagram-rubric", "mermaid-syntax", "intent", "render"],

@@ -3,6 +3,10 @@
 Versioned independently of the `reasoning-skills` plugin; the gate (`bin/check-skills.py`) must pass
 for any release.
 
+## 0.2.0 — beta
+
+Promoted to beta as part of the marketplace **v0.2.0** milestone (see the root CHANGELOG). This cycle the skill gained a checked-in, sibling-collision-tested routing-eval corpus, an adversarial-review hardening pass (fixes locked as selftest fixtures), and a worked `examples/walkthrough.md` (a red→green bin proof).
+
 ## 0.1.0 — draft
 
 Initial release. Decompose / design / grade a mathematical proof or deductive argument on the

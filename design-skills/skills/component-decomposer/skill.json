@@ -1,7 +1,7 @@
 {
   "name": "component-decomposer",
-  "version": "0.1.0",
-  "status": "draft",
+  "version": "0.2.0",
+  "status": "beta",
   "target": "both",
   "description": "Decompose, design, and grade zero-dependency web components (Custom Elements, signals, FACE, no native form elements) on two crossing axes — COMPOSE (layer → anatomy → API → composition) and REALIZE (geometry → element → semantics → interaction → fidelity) — scored separately, backed by a gated rubric, a deterministic geometry engine (the (height-glyph)/2 padding law + the XS–2XL ramp), a contract-card linter, and family recipes for controls and overlays. NOT for a function graded on spec & execution axes (code-decomposer), a proof or argument graded on its logic (proof-decomposer), code generation (ui-build-components), app-shell layout (layout-decomposer), or token math (ui-build-tokens).",
   "keywords": ["web-components", "custom-elements", "design-system", "component-library", "geometry", "button", "face", "element-internals", "anchor-positioning", "popover", "ssr", "decomposition", "component-rubric", "compose", "realize"],

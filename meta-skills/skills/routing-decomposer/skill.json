@@ -1,7 +1,7 @@
 {
   "name": "routing-decomposer",
-  "version": "0.1.1",
-  "status": "draft",
+  "version": "0.2.0",
+  "status": "beta",
   "target": "both",
   "description": "Decompose, write, and grade the routing surface of a skill — its frontmatter description — on two crossing axes: INSTRUCTION (capability → scope → triggers → disambiguation → economy) and ROUTING (fires → holds → boundary → robustness → stability), scored separately so a description that reads well can't hide that it mis-routes. ROUTING uses a deterministic lexical-overlap eval over a labeled, adversarially-built corpus as a legibility AID — it lists the recall/precision holes by name (the truthful NOT-for fence repels sibling vocabulary); a human reads them, since a green F1 is not a pass and the proxy can't grade paraphrase (B4). INSTRUCTION gates on capability/scope honesty the eval can't see, pre-filtered by a static description linter. Backed by a gated rubric, a checked-in corpus + scorecard protocol, and before/after rewrites that move precision or recall. NOT for authoring or writing a whole skill end-to-end (skills-studio); NOT for grading a function on spec/execution (code-decomposer) or layouts/components/types/configs/queries (the in-repo *-decomposer siblings).",
   "keywords": ["skill-routing", "description", "frontmatter", "routing-eval", "precision-recall", "f1", "trigger-phrases", "over-trigger", "under-trigger", "routing-corpus", "adversarial-negatives", "decomposition", "skill-rubric", "skills-studio"],

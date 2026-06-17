@@ -1,7 +1,7 @@
 {
   "name": "extraction-decomposer",
-  "version": "0.1.0",
-  "status": "draft",
+  "version": "0.2.0",
+  "status": "beta",
   "target": "both",
   "description": "Decompose, design, and grade a structured extraction — JSON pulled out of a source document by an LLM — on two crossing axes: FIDELITY (completeness → faithfulness → normalization → disambiguation → provenance) and VALIDITY (well-formed → schema → constraints → robustness → stability) — scored separately so schema-conformant JSON can't hide invented values. The instructive inversion: the cheap gate (schema validation) is blind to the dangerous failure — valid JSON with hallucinated values the source never stated. VALIDITY routes to a schema check; FIDELITY routes to a groundedness check plus an adversarial source cross-check. Use when designing an extraction schema, grading an extraction against its source, or hunting hallucinated fields. NOT for query correctness (query-decomposer), a unit of code (code-decomposer), stored-data audits, or a type / schema design itself — validate instances against a schema, illegal states (type-decomposer; extraction grades fidelity to a source, not schema design).",
   "keywords": ["extraction", "structured-extraction", "json-extraction", "hallucination", "groundedness", "schema-validation", "json-schema", "fidelity", "faithfulness", "provenance", "llm-output", "data-extraction", "decomposition", "extraction-rubric", "adversarial-verification"],

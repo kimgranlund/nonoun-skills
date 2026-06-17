@@ -1,9 +1,9 @@
 {
   "$schema": "https://schemas.adia.ai/skill/v1.json",
   "name": "typography-lettering",
-  "version": "1.1.1",
+  "version": "0.2.0",
   "description": "Answers typography and lettering questions; points at a builder peer for output. Use when choosing, comparing, pairing, explaining, classifying, or specifying type: type anatomy (x-height, cap-height), classification (Vox-ATypI, Bringhurst, humanist vs geometric), font metrics and metric-compatible fallback stacks (font-size-adjust, layout shift on swap), world scripts and diacritics (Arabic contextual forms, Devanagari conjuncts, Hebrew niqqud, CJK), OpenType features (small caps, oldstyle figures), variable-font axes (wght, wdth, opsz), CSS text surface (text-wrap pretty/balance, leading-trim, text-box-trim, font-optical-sizing, optical size), pairing serif with sans, measure / characters-per-line readability, text accessibility (dyslexic, low-vision). NOT for generating a modular type scale, design tokens, a token sheet of font-size custom properties, or building components (ui-compose-typography, ui-build-tokens); NOT for locale date/number formatting (ui-verify-i18n). ANSWERS, does not generate.",
-  "status": "complete",
+  "status": "beta",
   "authors": [
     "kim"
   ],

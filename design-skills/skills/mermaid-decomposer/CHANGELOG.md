@@ -2,6 +2,10 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/). Versioning: [SemVer](https://semver.org/).
 
+## 0.2.0 — beta
+
+Promoted to beta as part of the marketplace **v0.2.0** milestone (see the root CHANGELOG). This cycle the skill gained a checked-in, sibling-collision-tested routing-eval corpus, an adversarial-review hardening pass (fixes locked as selftest fixtures), and a worked `examples/walkthrough.md` (a red→green bin proof).
+
 ## [0.1.0] — 2026-06-16
 
 Initial cut. The two-axis diagram technique, modeled on [[layout-decomposer]] and built on the advanced-Mermaid reference + rubric authored for the catalog corpus-reader (`mermaid@11.15.0`, `securityLevel:"strict"`).

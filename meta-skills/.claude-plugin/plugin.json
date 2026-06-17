@@ -1,6 +1,6 @@
 {
   "name": "meta-skills",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Meta-domain skills — skills about skills. One so far: routing-decomposer (decompose, design, and grade a skill's frontmatter description on the INSTRUCTION x ROUTING axes — does it say the right thing AND fire on the right cases, not over- or under-trigger — scored separately, with a mechanized precision/recall/F1 routing-eval over a labeled corpus plus a description linter). Skills only — no commands, agents, or MCP. Self-contained.",
   "author": {
     "name": "Kim",
