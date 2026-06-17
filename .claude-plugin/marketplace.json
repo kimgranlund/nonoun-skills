@@ -18,9 +18,9 @@
     {
       "name": "code-skills",
       "source": "./code-skills",
-      "description": "Engineering-domain skills: code-decomposer (grade a unit of code on SPEC x EXECUTION — right + provably runs — with an execution harness and a test-vacuity linter that attacks the 'green but wrong' quadrant), regex-decomposer (LANGUAGE x MATCH — a pattern that means the right language and won't ReDoS, with an example-set + ReDoS checker), query-decomposer (SEMANTICS x EXECUTION — a SQL query at the right grain that actually plans, with a SQL linter + EXPLAIN harness), and figma-plugins (build/review/test Figma plugins across the sandbox<->iframe message bridge).",
+      "description": "Engineering-domain skills: code-decomposer (grade a unit of code on SPEC x EXECUTION — right + provably runs — with an execution harness and a test-vacuity linter that attacks the 'green but wrong' quadrant), regex-decomposer (LANGUAGE x MATCH — a pattern that means the right language and won't ReDoS, with an example-set + ReDoS checker), query-decomposer (SEMANTICS x EXECUTION — a SQL query at the right grain that actually plans, with a SQL linter + EXPLAIN harness), type-decomposer (MODEL x VALIDITY — make illegal states unrepresentable, proven by a JSON-Schema validator that runs legal/illegal instance sets, plus a model-smell linter), and figma-plugins (build/review/test Figma plugins across the sandbox<->iframe message bridge).",
       "category": "engineering",
-      "tags": ["skills", "code", "code-review", "test-quality", "mutation-testing", "regex", "redos", "sql", "query", "figma", "figma-plugin", "execution", "decomposition", "rubric", "engineering"]
+      "tags": ["skills", "code", "code-review", "test-quality", "mutation-testing", "regex", "redos", "sql", "query", "types", "type-design", "figma", "figma-plugin", "execution", "decomposition", "rubric", "engineering"]
     },
     {
       "name": "data-skills",
