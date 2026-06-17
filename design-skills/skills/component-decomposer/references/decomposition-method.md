@@ -55,7 +55,10 @@ Two gates route to code, never inference:
   listbox · option · indicator ]`. Anatomy you can't name you can't theme, compose, or test.
 - **A3 API surface `[review]`** — props-vs-slots discipline (config the common + finite, slot the
   open-ended), orthogonal `variant` × `size` enums (not multiplied booleans), controlled/uncontrolled,
-  event payload contracts.
+  event payload contracts. For a custom element the API *is* the **attributes-as-API** surface — typed
+  attributes (+ reflection), declared-vs-manual properties, semantic events, the form-value channel
+  (`attributes-as-api.md`). **A3 cannot score 5 while a `manual:true` property has no upgrade story**
+  (the lazy-upgrade / `upgradeProperty` hazard — *designed-right, built-wrong* in API form).
 - **A4 Composition `[review]`** — does it compose *up* without boolean-prop explosion, without owning
   its outer margin, without leaking compound-component state? Does its anatomy nest (a button is also
   the trigger of a select, the item of a menu)?

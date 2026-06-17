@@ -49,6 +49,12 @@ uses before promotion); reuse costs ~3× to build; "well-crafted ≠ belongs."
   `signal`; "controlled" means the consumer owns it and the element reflects.
 - **Future-proof the shape**: `type="warning"` (string, extensible) over a `warning` boolean.
   *"Make the common configurable, make the uncommon composable."*
+- **Attributes ARE the API, for a custom element.** Prop-counting is incomplete — a custom element's
+  public surface is its typed **attributes**, its **properties** (declared vs hand-written), their
+  **reflection** direction, its semantic **events**, and (for a control) the **form-value** channel.
+  Grade that platform-precise surface, not just the prop list — including the lazy-upgrade hazard that
+  caps A3 at <5 when a hand-written accessor has no `upgradeProperty` story. Full model + the
+  mechanized checks: `attributes-as-api.md`.
 
 ## A2 · Anatomy — name the parts
 
@@ -119,9 +125,21 @@ The artifact DESIGN emits and GRADE re-derives — a `*.contract.json` checked b
   "keyboard": ["ArrowDown", "ArrowUp", "Enter", "Escape", "Home", "End"],
   "forced_colors": true,
   "owns_outer_margin": false,
-  "validity": true
+  "validity": true,
+
+  "attributes": {
+    "size":  { "type": "enum", "values": ["sm", "md", "lg"], "reflect": true },
+    "value": { "type": "string", "reflect": false }
+  },
+  "properties": [ { "name": "value", "manual": true }, { "name": "open", "readonly": false } ],
+  "upgrades_manual_props": true,
+  "events": ["change", "input"]
 }
 ```
 The linter gates: hyphenated tag, valid layer, role present for interactive, FACE for controls,
-APG-keyboard minimum, forced-colors for native-replacing controls; and warns on boolean-prop
-explosion and self-owned outer margin.
+APG-keyboard minimum, forced-colors for native-replacing controls, and an **enum attribute with no
+`values[]`**; and warns on boolean-prop explosion, self-owned outer margin, a **`manual:true`
+property with no upgrade story**, an **implementation-named event**, and a **form control reflecting
+its `value`**. The `attributes` / `properties` / `events` / `upgrades_manual_props` block is the
+attributes-as-API surface (`attributes-as-api.md`) — **optional and additive**: an old card with only
+the flat `props` / `boolean_props` still lints clean.
