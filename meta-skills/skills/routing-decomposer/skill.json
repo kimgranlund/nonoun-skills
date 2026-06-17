@@ -16,6 +16,10 @@
     "bin/routing-eval.py",
     "bin/description-lint.py",
     "routing-decomposer.corpus.json",
+    "examples/walkthrough.md",
+    "examples/widget-skill.red.txt",
+    "examples/widget-skill.green.txt",
+    "examples/widget-skill.corpus.json",
     "CHANGELOG.md",
     "ROADMAP.md"
   ]

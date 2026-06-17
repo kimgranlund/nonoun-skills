@@ -15,6 +15,9 @@
     "references/policy.md",
     "bin/query-harness.py",
     "bin/sql-lint.py",
+    "examples/walkthrough.md",
+    "examples/active-roles.red.sql",
+    "examples/active-roles.green.sql",
     "query-decomposer.corpus.json",
     "CHANGELOG.md",
     "ROADMAP.md"

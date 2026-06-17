@@ -1,0 +1,2 @@
+Design and model widgets — handle the widget's fields and overall appearance. Use this
+whenever a widget needs design attention or you want to model how a widget looks.

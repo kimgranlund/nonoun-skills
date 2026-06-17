@@ -1,0 +1,14 @@
+# A service config that PARSES and SCHEMA-VALIDATES fine — and is unsafe.
+# Three B4 safety smells hide behind a green parse: a literal secret, an
+# unpinned image, and an ingress open to the entire internet.
+service:
+  name: payments-api
+  image: payments-api:latest          # UNPINNED — not reproducible
+database:
+  host: db.internal
+  username: payments
+  password: "hunter2supersecret"       # PLAINTEXT_SECRET — a real literal
+network:
+  ingress:
+    - description: public
+      cidr: 0.0.0.0/0                   # OPEN_NETWORK — the whole internet

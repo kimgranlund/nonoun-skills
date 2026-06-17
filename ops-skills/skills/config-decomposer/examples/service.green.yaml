@@ -1,0 +1,14 @@
+# The same desired state, made safe — and still parses/schema-validates identically.
+# The secret is a reference (NOT a literal, so the FP guard keeps it clean), the image
+# is pinned to a digest-able tag, and the ingress is scoped to the private network.
+service:
+  name: payments-api
+  image: payments-api:1.4.2            # pinned version
+database:
+  host: db.internal
+  username: payments
+  password: ${DB_PASSWORD}             # a reference — resolved from the secret store
+network:
+  ingress:
+    - description: internal VPC only
+      cidr: 10.0.0.0/8                  # scoped to the private range

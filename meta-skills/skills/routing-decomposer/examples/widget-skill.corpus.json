@@ -1,0 +1,18 @@
+{
+  "skill": "widget-painter (TOY)",
+  "_note": "A throwaway corpus for the worked example. The skill 'widget-painter' is for PAINTING widgets — colors, themes, fills. Positives are paint requests across phrasings. Negatives are drawn ADVERSARIALLY from its sibling 'widget-modeler' (which owns the widget's DATA MODEL — schema, fields, validation) — the territory widget-painter must REPEL, not grab.",
+  "sibling": "widget-modeler",
+  "positives": [
+    "paint this widget blue",
+    "recolor the widget to match the theme",
+    "set the widget fill and stroke colors",
+    "restyle the widget surface",
+    "apply a color theme to the widget"
+  ],
+  "negatives": [
+    "build the widget's data model",
+    "design the widget schema and fields",
+    "add validation to the widget model",
+    "model the widget's persisted state"
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "premises": ["n_int", "n_nonneg"],
+  "axioms": ["parity"],
+  "steps": [
+    { "id": "cases", "from": ["parity"], "statement": "by the parity axiom, n is either even or odd — split on the two cases" },
+    { "id": "even_n", "from": ["cases"], "statement": "if n is even then n = 2k, so n(n+1) = 2k(n+1) is even" },
+    { "id": "odd_n", "from": ["cases"], "statement": "if n is odd then n+1 is even, n+1 = 2m, so n(n+1) = 2m·n is even" },
+    { "id": "goal", "from": ["even_n", "odd_n"], "statement": "both cases give n(n+1) even, so n(n+1) is even for all integers n >= 0" }
+  ],
+  "goal": "goal"
+}

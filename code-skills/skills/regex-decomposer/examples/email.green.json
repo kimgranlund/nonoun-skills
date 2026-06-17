@@ -1,0 +1,8 @@
+{
+  "name": "email-safe",
+  "pattern": "[\\w.]+@\\w+\\.\\w+",
+  "mode": "full",
+  "engine": "python-re",
+  "positives": ["alice@example.com", "bob@mail.org"],
+  "negatives": ["no-at-sign", "@example.com"]
+}

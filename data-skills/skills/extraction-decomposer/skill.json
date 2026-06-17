@@ -15,6 +15,10 @@
     "references/policy.md",
     "bin/groundedness-check.py",
     "bin/schema-check.py",
+    "examples/walkthrough.md",
+    "examples/invoice.source.txt",
+    "examples/invoice.red.json",
+    "examples/invoice.green.json",
     "extraction-decomposer.corpus.json",
     "CHANGELOG.md",
     "ROADMAP.md"

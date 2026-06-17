@@ -1,0 +1,9 @@
+{
+  "premises": ["n_int", "n_nonneg"],
+  "axioms": ["parity"],
+  "steps": [
+    { "id": "s1", "from": ["s2"], "statement": "n(n+1) is even because the product of consecutive integers is even" },
+    { "id": "s2", "from": ["s1"], "statement": "the product of consecutive integers is even because n(n+1) is even" }
+  ],
+  "goal": "s2"
+}

@@ -15,6 +15,9 @@
     "references/policy.md",
     "bin/config-lint.py",
     "bin/config-harness.py",
+    "examples/walkthrough.md",
+    "examples/service.red.yaml",
+    "examples/service.green.yaml",
     "config-decomposer.corpus.json",
     "CHANGELOG.md",
     "ROADMAP.md"

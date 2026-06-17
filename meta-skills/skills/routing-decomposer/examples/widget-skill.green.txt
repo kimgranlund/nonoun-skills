@@ -1,0 +1,4 @@
+Paint and restyle a widget's surface — its colors, fills, strokes, and theme. Triggers on:
+"paint this widget blue", "recolor the widget to match the theme", "set the widget fill and
+stroke colors", "restyle the widget surface", "apply a color theme to the widget". NOT for
+the widget's data model — schema, fields, validation, persisted state (widget-modeler).

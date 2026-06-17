@@ -13,6 +13,7 @@
     "references/archetype-marketing-site.md",
     "references/archetype-mobile-app.md",
     "layout-decomposer.corpus.json",
+    "examples/walkthrough.md",
     "CHANGELOG.md",
     "ROADMAP.md"
   ]

@@ -15,6 +15,9 @@
     "references/policy.md",
     "bin/proof-structure-check.py",
     "bin/numeric-spotcheck.py",
+    "examples/walkthrough.md",
+    "examples/even-sum.red.json",
+    "examples/even-sum.green.json",
     "proof-decomposer.corpus.json",
     "CHANGELOG.md",
     "ROADMAP.md"
