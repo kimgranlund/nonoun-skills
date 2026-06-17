@@ -35,16 +35,21 @@ schema:
 Run it: `python3 bin/instance-check.py spec.json`, where the spec is
 `{ "schema": {…}, "legal": [...], "illegal": [...] }`. The validator carries the subset that
 expresses the unrepresentability tools — `oneOf` (tagged unions, **exactly-one**),
-`additionalProperties:false` (closed records), `const`/`enum`, `required`, the composition keywords
+`additionalProperties:false` (closed records), `const`/`enum`, `required`, `patternProperties`
+(name-keyed subschemas — a property whose name matches the regex must validate against it;
+`re.search`, so anchor the pattern if you mean a full-name match), `dependentRequired`
+(presence-triggered required — if the trigger property is present, each listed dependent must be too),
+the array `contains` (at-least-one element validates against the subschema), the composition keywords
 `not`/`allOf`/`anyOf`, the conditional `if`/`then`/`else` (cross-field legality — *if* the instance
 matches `if`, it must match `then`, else `else`; each branch optional), `pattern`, an asserting
 `format` set, and local `$ref` — so the illegal set can actually be rejected by the schema rather
-than by hand-waving. Every composed/conditional branch reuses the *same* recursive validator, so
-type-aware equality, `format`, `$ref`, and `required` apply inside it. It is a **subset** and
-**default-deny**: a schema using a keyword it can't enforce (`patternProperties`, `contains`,
-`dependentRequired`, tuple-`items`, a remote `$ref`, …) FAILS LOUD as an `UNSUPPORTED_SCHEMA`
-finding instead of false-greening — so a green is a green over the *supported* subset, never a
-silent pass. The full supported/unsupported list lives in `references/type-systems.md`.
+than by hand-waving. Every composed/conditional/keyed branch reuses the *same* recursive validator,
+so type-aware equality, `format`, `$ref`, and `required` apply inside it. It is a **subset** and
+**default-deny**: a schema using a keyword it can't enforce (`propertyNames`,
+`minContains`/`maxContains`, `dependentSchemas`, `unevaluatedProperties`, tuple-`items`, a remote
+`$ref`, …) FAILS LOUD as an `UNSUPPORTED_SCHEMA` finding instead of false-greening — so a green is a
+green over the *supported* subset, never a silent pass. The full supported/unsupported list lives in
+`references/type-systems.md`.
 
 A green B3 is the mechanized proof of A2. This is why the two axes cross at the schema: the illegal
 instance set is simultaneously a MODEL claim (these states are illegal) and a VALIDITY test (the

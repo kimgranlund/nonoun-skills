@@ -3,6 +3,16 @@
 Versioned independently of the `data-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.3 — beta
+
+**Span emission (provenance) + a configurable weak-grounding floor** — two additive, opt-in CLI flags:
+- `--spans` — for each grounded scalar, also emit the SOURCE offset + snippet that grounded it (A5
+  provenance), so a green run shows *where* each value came from, not only pass/fail.
+- `--min-tokens N` / `--min-chars N` — expose the WEAK_GROUNDING floor (was a hardcoded 2/4) so a
+  high-recall corpus can tighten or loosen the band.
+
+Default output and exit code are byte-identical to before (no flag → unchanged). Locked with fixtures.
+
 ## 0.2.2 — beta
 
 **Locale dates & non-ASCII digits grounded.** The follow-on to 0.2.1, in the same additive,

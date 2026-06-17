@@ -77,6 +77,53 @@ incl. an `0o` prefix) and a `chmod` that grants `other`/`all` write (`777`/`666`
 a restrictive mode (other-digit `0`/`4`/`5` — `0644`/`0600`/`0755`/`0700`/`0750`) and an owner/group-only
 `chmod u+w`/`g+w` do **not** trip it.
 
+## Allowlist / baseline — suppressing a *reviewed* exception (opt-in)
+
+Some findings are intended: a public ALB *is* `0.0.0.0/0`, a demo image *is* pinned to a tag the team
+accepts. Re-failing on those every run trains people to ignore the linter. The allowlist suppresses a
+**specific, reviewed** finding *without* disabling the smell globally. It is **opt-in and default-off**:
+with no `--ignore` flag and no discovered `.config-lint-ignore`, the linter behaves exactly as it does
+without the feature — every smell still fires.
+
+Provide it two ways:
+- `python3 bin/config-lint.py --ignore <file> <target>` — an explicit allowlist (wins over discovery).
+- drop a `.config-lint-ignore` in the scanned directory (or the CWD) — it is **auto-discovered** like a
+  `.gitignore`, so a committed baseline travels with the repo.
+
+**Format** — line-based; blank lines and `#` comments are ignored. Each entry is one of:
+
+| Entry | Suppresses |
+|---|---|
+| `KIND` | **all** findings of that kind (e.g. `NO_RESOURCE_LIMITS`) |
+| `KIND:path/to/file.yaml` | that kind **in that file** |
+| `KIND:path/to/file.yaml:LINE` | that kind **at that exact line** in that file |
+
+Matching is **deliberately precise** — a too-broad entry would silently hide a *real* finding, which is
+the failure mode an allowlist must avoid:
+- the **KIND** must match the finding's kind **exactly** (case-sensitive — `OPEN_NETWORK`, not
+  `open_network`);
+- the **path** (when given) matches the finding's file as a **path SUFFIX on segment boundaries** —
+  `app/db.yaml` matches `svc/app/db.yaml` but **not** `myapp/db.yaml`; a bare `db.yaml` matches any
+  `…/db.yaml`. (A non-boundary substring like `fra.yaml` does **not** match `infra.yaml`.)
+- the **LINE** (when given) must equal the finding's line.
+
+**No silent caps — what was dropped is always surfaced.** Whenever the allowlist suppresses anything, a
+one-line `config-lint: N finding(s) suppressed by allowlist (<file>)` summary is written to **stderr**,
+so a silently over-broad allowlist is visible. `--show-suppressed` additionally prints each dropped
+finding (prefixed `SUPPRESSED`). A suppressed finding is **not** counted toward the exit code, so a
+config whose *only* remaining findings are all allowlisted exits `0` (with the suppressed count noted).
+
+**Anti-rot guards** (so the baseline can't silently decay):
+- an entry that matches **nothing** — a stale exception left after the config was fixed — emits
+  `WARN: stale allowlist entry 'X' (matched nothing)`. Treat a new stale warning as a prompt to delete
+  the line.
+- a **malformed** line emits a `WARN` and is **skipped** (it never crashes the run); the rest of the
+  allowlist still applies.
+
+The allowlist is for an exception you have **read and accepted**, not a way to silence the linter
+wholesale — it is the baseline equivalent of the reference/placeholder guard above: a finding is dropped
+only when a human has explicitly listed it, and the drop is always counted in the open.
+
 ## Least-privilege (the B4 judgment, beyond the linter)
 
 The linter catches the wildcard `"*"`; minimality needs a read:

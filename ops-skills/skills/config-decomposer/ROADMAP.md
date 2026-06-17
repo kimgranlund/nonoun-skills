@@ -37,8 +37,14 @@ plan-verdict cards, the plan-and-drift centerpiece). Everything below is additiv
       - [x] **k8s pod-security** — `privileged: true` / `hostPath` / `runAsUser: 0` /
         `allowPrivilegeEscalation: true`. Done in 0.2.1 as **K8S_UNSAFE** (line-anchored, gated on a
         k8s-looking doc; `runAsUser: 1000` / `allowPrivilegeEscalation: false` / non-k8s prose guarded).
-- [ ] **Allowlist / baseline file** — a committed `.config-lint-ignore` for reviewed exceptions, so a
-      known-intended `0.0.0.0/0` (a public ALB) doesn't re-fire every run.
+- [x] **Allowlist / baseline file** — done in 0.2.3. An opt-in, line-based `.config-lint-ignore`
+      (auto-discovered in the scanned dir / CWD like a `.gitignore`, or passed via `--ignore <file>`)
+      for reviewed exceptions, so a known-intended `0.0.0.0/0` (a public ALB) doesn't re-fire every run.
+      Entry grammar `KIND` / `KIND:file` / `KIND:file:LINE` with exact-kind + segment-boundary path-suffix
+      + exact-line matching; a stale (matched-nothing) entry WARNs so the baseline can't rot, a malformed
+      line WARNs and is skipped, and the suppressed count is always surfaced to stderr (`--show-suppressed`
+      prints each dropped finding) — no silent caps. Default-off: absent an allowlist, behavior is
+      byte-identical to 0.2.2.
 - [ ] Emit a machine-readable report (JSON) so GRADE can fold safety findings into the report card's
       `safety_findings[]`.
 

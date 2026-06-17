@@ -62,12 +62,26 @@ content is usually a B4 "had to put something" defect, not silently grounded).
   python3 bin/groundedness-check.py <extraction.json> <source.txt>             # nonzero exit on any ungrounded scalar
   python3 bin/groundedness-check.py <extraction.json> <source.txt> [cues.json] [--window N]
                                                                                # opt-in proximity (WEAK_CONTEXT advisory)
+  python3 bin/groundedness-check.py <extraction.json> <source.txt> [...] [--spans]
+                                                                               # ALSO emit A5 provenance per grounded scalar
+  python3 bin/groundedness-check.py <extraction.json> <source.txt> [...] [--min-tokens N] [--min-chars N]
+                                                                               # tune the WEAK_GROUNDING floor (defaults 2 / 4)
 
 `cues.json` (optional) is a JSON object mapping a field's LEAF NAME to a list of cue strings, e.g.
 `{"buyer": ["buyer","bill to","purchaser"], "seller": ["seller","sold by","vendor"]}`. Only fields
 present in this map get the proximity check; everything else behaves exactly as before. --window sets
 the cue token window (default 12). WEAK_CONTEXT is ADVISORY: it is printed but does NOT change the exit
-code (presence/grounding failures still do). Python 3.8+.
+code (presence/grounding failures still do).
+
+--spans (ADDITIVE, OPT-IN, A5 provenance): for each GROUNDED scalar, additionally emit the SOURCE span
+that grounded it — the character offset and a short ±20-char snippet of the source where the grounding
+match occurred. A green run then produces provenance, not just pass/fail. A value grounding at multiple
+spans emits the FIRST and notes the count. Without --spans, output and exit are EXACTLY as before.
+
+--min-tokens N / --min-chars N (ADDITIVE, OPT-IN): the WEAK_GROUNDING floor — a string value whose only
+grounding is below BOTH floors (< N tokens AND < N chars) is surfaced as WEAK_GROUNDING rather than
+passed. Defaults are unchanged (2 tokens, 4 chars), so a call without these flags behaves exactly as
+before; a high-recall corpus can tighten or loosen the band. Python 3.8+.
 """
 import json
 import re
@@ -107,6 +121,8 @@ _PUNCT_EDGE = re.compile(r"^[\s\"'`.,;:!?()\[\]{}<>\-–—]+|[\s\"'`.,;:!?()\[\
 MIN_TOKENS = 2
 MIN_CHARS = 4
 
+DEFAULT_CUE_WINDOW = 12  # tokens of gap allowed between a value occurrence and the nearest cue
+
 
 def normalize(s):
     """Case-fold, collapse internal whitespace, strip edge punctuation/quotes."""
@@ -129,6 +145,16 @@ def tokens(s, fold=True):
     fold=False keeps original case, so EXACT (case-sensitive) and NORMALIZED (case-folded) stay
     distinguishable rungs even though both are token-boundary matches."""
     return [(t.casefold() if fold else t) for t in _TOKEN.findall(str(s))]
+
+
+def token_spans(s, fold=True):
+    """Like tokens(), but each token carries its CHARACTER span in `s`: (token, char_start, char_end).
+
+    Provenance (--spans) threads the source character offset back from a token match. The token strings
+    are IDENTICAL to tokens(s, fold)'s output (same casefold), so a token index into one is the same
+    index into the other — the spans line up with the lists is_grounded already matches against."""
+    return [((m.group(0).casefold() if fold else m.group(0)), m.start(), m.end())
+            for m in _TOKEN.finditer(str(s))]
 
 
 def _contiguous_sublist(needle, haystack):
@@ -162,8 +188,29 @@ def _occurrence_spans(needle, haystack):
     return spans
 
 
-# --- proximity / context-cue heuristic (OPT-IN; approximates wrong-span, never confirms role) -------
-DEFAULT_CUE_WINDOW = 12  # tokens of gap allowed between a value occurrence and the nearest cue
+# --- A5 provenance: locate the SOURCE span that grounded a value (OPT-IN, --spans) ------------------
+SNIPPET_PAD = 20  # chars of context shown on each side of the grounding offset in the emitted snippet
+
+
+def _snippet(source, start, end, pad=SNIPPET_PAD):
+    """A short ±pad-char window of `source` around the [start, end) char span, whitespace-collapsed.
+
+    Elision markers (…) mark a clipped edge so the snippet is not mistaken for a document boundary."""
+    lo = max(0, start - pad)
+    hi = min(len(source), end + pad)
+    frag = _WS.sub(" ", source[lo:hi]).strip()
+    return ("…" if lo > 0 else "") + frag + ("…" if hi < len(source) else "")
+
+
+def _token_run_offsets(needle_tokens, source_spans):
+    """Char offsets (start) of every place `needle_tokens` runs contiguously through `source_spans`.
+
+    `source_spans` is token_spans() output [(tok, cstart, cend), ...]; the match is on the token strings
+    (index-aligned with the token list is_grounded already matched), and the returned offset is the
+    char start of the run's FIRST token — the exact source character where the grounding begins."""
+    toks = [t for t, _, _ in source_spans]
+    spans = _occurrence_spans(needle_tokens, toks)
+    return [source_spans[i][1] for i, _ in spans]
 
 
 def _leaf_field(path):
@@ -262,6 +309,31 @@ def _source_num_keys(source):
     return ({_num_key(t) for t in _NUM_TOKEN.findall(source)} | _locale_num_keys(source)) - {None}
 
 
+def _num_offsets(source, want_key):
+    """Char offsets where a source number canonicalizes to `want_key` (for --spans provenance).
+
+    `_ascii_digits` is a per-character fold, so the folded string is the same length as `source` and a
+    match offset in it is the same offset in the original. Plain US tokens and EU/scientific tokens are
+    both scanned, mirroring the keys _source_num_keys emits; returns offsets in document order."""
+    folded = _ascii_digits(source)
+    offs = []
+    for m in _NUM_TOKEN.finditer(folded):
+        if _num_key(m.group(0)) == want_key:
+            offs.append(m.start())
+    for m in _EU_NUM.finditer(folded):
+        if _num_key(m.group(0).replace(".", "").replace(",", ".")) == want_key:
+            offs.append(m.start())
+    for m in _SCI_NUM.finditer(folded):
+        try:
+            v = float(m.group(0))
+        except ValueError:
+            continue
+        k = _num_key(str(int(v)) if v == int(v) else repr(v))
+        if k == want_key:
+            offs.append(m.start())
+    return sorted(set(offs))
+
+
 # the ENTIRE trimmed string must be one number token to take the numeric back door. This closes the
 # M1 trap: "12 Nonexistent Street" and "12-FAKE-ID-9999" merely START with a number; without this
 # anchor their leading "12" would ground them via _num_key (which reads only the first match). A
@@ -325,6 +397,36 @@ def _date_keys(text):
     return keys
 
 
+def _date_offsets(source, want_keys):
+    """Char offsets where a source date expresses any key in `want_keys` (for --spans provenance).
+
+    Same per-character-fold offset invariance as _num_offsets. A slashed/dotted date yields both the
+    M/D/Y and D/M/Y readings (matching _date_keys), so it matches if EITHER reading is wanted; a named
+    date is matched by its single valid reading. Returns offsets in document order."""
+    folded = _ascii_digits(source)
+    offs = []
+    for m in _ISO.finditer(folded):
+        y, mo, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        if _valid_ymd(y, mo, d) and (y, mo, d) in want_keys:
+            offs.append(m.start())
+    for m in _SLASH.finditer(folded):
+        a, b, y = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        if ((_valid_ymd(y, a, b) and (y, a, b) in want_keys) or
+                (_valid_ymd(y, b, a) and (y, b, a) in want_keys)):
+            offs.append(m.start())
+    for m in _NAMED.finditer(folded):
+        mi = _MONTHS.get(m.group(1).casefold())
+        d, y = int(m.group(2)), int(m.group(3))
+        if mi and _valid_ymd(y, mi, d) and (y, mi, d) in want_keys:
+            offs.append(m.start())
+    for m in _NAMED2.finditer(folded):
+        mi = _MONTHS.get(m.group(2).casefold())
+        d, y = int(m.group(1)), int(m.group(3))
+        if mi and _valid_ymd(y, mi, d) and (y, mi, d) in want_keys:
+            offs.append(m.start())
+    return sorted(set(offs))
+
+
 # --- the groundedness test ---------------------------------------------------------------------
 def scalar_values(obj, path="$"):
     """Yield (json-path, value) for every scalar leaf. Lists index by [i]; objects by .key.
@@ -354,14 +456,18 @@ _FAIL_KINDS = ("UNGROUNDED", "WEAK_GROUNDING", "EMPTY")
 WEAK_CONTEXT = "WEAK_CONTEXT"
 
 
-def is_grounded(value, source, source_tokens, source_norm_tokens, source_nums, source_dates):
+def is_grounded(value, source, source_tokens, source_norm_tokens, source_nums, source_dates,
+                min_tokens=MIN_TOKENS, min_chars=MIN_CHARS):
     """Return the outcome kind for a scalar value.
 
     Grounding (PASS):  'EXACT' | 'NORMALIZED' | 'NUMERIC' | 'DATE'
     Findings (FAIL):   'WEAK_GROUNDING' (matched, but below the floor — verify manually)
                        'EMPTY'          (empty / whitespace-only value)
                        'UNGROUNDED'     (no rung matched — likely hallucination)
-    """
+
+    `min_tokens`/`min_chars` are the WEAK_GROUNDING floor (a token-match below BOTH is surfaced as
+    WEAK rather than passed). They default to the module constants, so every existing caller is
+    byte-for-byte unchanged; --min-tokens / --min-chars thread alternates through here."""
     sval = str(value)
     if not sval.strip():
         return "EMPTY"  # empty string asserts nothing; an empty value where the source has content
@@ -402,35 +508,83 @@ def is_grounded(value, source, source_tokens, source_norm_tokens, source_nums, s
             matched = "NORMALIZED"
     if matched:
         # the weak-grounding floor: a 1-token, ≤3-char hit is where a coincidental fragment match
-        # lives — do not pass it silently; surface it for manual verification.
-        if len(vtoks) < MIN_TOKENS and len(sval.strip()) < MIN_CHARS:
+        # lives — do not pass it silently; surface it for manual verification. The floors are
+        # configurable (--min-tokens / --min-chars); defaults reproduce the historical behaviour.
+        if len(vtoks) < min_tokens and len(sval.strip()) < min_chars:
             return "WEAK_GROUNDING"
         return matched
     return "UNGROUNDED"
 
 
-def check(extraction, source, cues=None, window=DEFAULT_CUE_WINDOW):
+def grounded_span(value, kind, source, source_spans_cs, source_spans_norm, source_dates):
+    """A5 provenance: for an already-GROUNDED value of `kind`, return (offset, snippet, count).
+
+    `offset` is the char position in `source` where the FIRST grounding occurrence begins; `snippet`
+    is a short ±SNIPPET_PAD-char window of the source around it; `count` is how many spans grounded
+    the value (>1 means the value is ambiguous — surfaced for the adversarial verifier, see ROADMAP).
+    Returns None if no concrete span can be located (defensive — `kind` should already be a PASS).
+
+    `source_spans_cs` / `source_spans_norm` are token_spans(source, fold=False/True) — passed in so
+    check() builds them once. This function performs NO grounding decision; it only RE-LOCATES the
+    span for a value the grounding ladder already accepted, so it cannot change any pass/fail."""
+    sval = str(value)
+    nval = _ascii_digits(sval)
+    if kind == "NUMERIC":
+        offs = _num_offsets(source, _num_key(nval))
+    elif kind == "DATE":
+        offs = _date_offsets(source, _date_keys(sval))
+    elif kind == "EXACT":
+        offs = _token_run_offsets(tokens(sval, fold=False), source_spans_cs)
+    elif kind == "NORMALIZED":
+        offs = _token_run_offsets(tokens(sval), source_spans_norm)
+    else:
+        return None
+    if not offs:
+        return None
+    start = offs[0]
+    return start, _snippet(source, start, start + len(sval) if start + len(sval) <= len(source)
+                           else len(source)), len(offs)
+
+
+def check(extraction, source, cues=None, window=DEFAULT_CUE_WINDOW,
+          min_tokens=MIN_TOKENS, min_chars=MIN_CHARS, spans=False, provenance_out=None):
     """Return (findings, n_scalars). A finding is (path, value, kind) for a non-grounding outcome.
 
     `cues` (optional) maps a field's LEAF NAME to a list of cue strings. When provided for a field, a
     GROUNDED scalar whose nearest source occurrence is not within `window` tokens of any cue occurrence
     yields a WEAK_CONTEXT advisory (possible wrong-span). Fields absent from `cues` are unaffected — the
     signal is strictly opt-in, so a cue-less call behaves exactly as before. WEAK_CONTEXT is advisory
-    and does NOT enter the exit-affecting _FAIL_KINDS set."""
+    and does NOT enter the exit-affecting _FAIL_KINDS set.
+
+    `min_tokens`/`min_chars` configure the WEAK_GROUNDING floor (defaults reproduce historical
+    behaviour). `spans` (A5 provenance, OPT-IN): when True, `provenance_out` (if given) is appended
+    with one (path, kind, offset, snippet, count) per GROUNDED scalar — the source span that grounded
+    it. The (findings, n) return value is UNCHANGED whether or not spans is set, so every existing
+    caller is byte-for-byte unaffected; provenance is a side-channel, never folded into findings."""
     cues = cues or {}
     source_tokens = tokens(source, fold=False)   # case-sensitive, for the EXACT rung
     source_norm_tokens = tokens(source)           # case-folded, for the NORMALIZED rung
     source_nums = _source_num_keys(source)
     source_dates = _date_keys(source)
+    # token_spans() is built ONLY when --spans is requested (no cost on the default path).
+    source_spans_cs = token_spans(source, fold=False) if spans else None
+    source_spans_norm = token_spans(source) if spans else None
     findings, n = [], 0
     for path, value in scalar_values(extraction):
         n += 1
-        kind = is_grounded(value, source, source_tokens, source_norm_tokens, source_nums, source_dates)
+        kind = is_grounded(value, source, source_tokens, source_norm_tokens, source_nums, source_dates,
+                           min_tokens=min_tokens, min_chars=min_chars)
         if kind in _FAIL_KINDS:
             findings.append((path, value, kind))
             continue
-        # the value is GROUNDED (a PASS rung). Only now does proximity apply, and only if the field has
-        # cues. A grounded value far from every cue occurrence is a possible wrong-span -> WEAK_CONTEXT.
+        # the value is GROUNDED (a PASS rung). Emit A5 provenance (opt-in) before the proximity check.
+        if spans and provenance_out is not None:
+            prov = grounded_span(value, kind, source, source_spans_cs, source_spans_norm, source_dates)
+            if prov is not None:
+                offset, snippet, count = prov
+                provenance_out.append((path, kind, offset, snippet, count))
+        # Only now does proximity apply, and only if the field has cues. A grounded value far from
+        # every cue occurrence is a possible wrong-span -> WEAK_CONTEXT.
         cues_for_field = cues.get(_leaf_field(path))
         if cues_for_field and not near_a_cue(value, cues_for_field, source_norm_tokens, window):
             findings.append((path, value, WEAK_CONTEXT))
@@ -699,6 +853,96 @@ def selftest():
     if _ascii_digits("Plain ASCII 1234.") != "Plain ASCII 1234.":
         errs.append("_ascii_digits perturbed an all-ASCII string")
 
+    # 3e. SPAN EMISSION (0.2.3) — A5 provenance: --spans emits, per GROUNDED scalar, the SOURCE char
+    #     offset + snippet that grounded it. The offset must point AT the real occurrence, a multi-span
+    #     value must note count>1, and --spans must NOT alter the (findings, n) the gate already returns.
+    prov = []
+    finds_s, n_s = check(FAITHFUL, SOURCE, spans=True, provenance_out=prov)
+    # (i) spans never perturb the gate: findings/n are byte-identical to the default run.
+    finds_d, n_d = check(FAITHFUL, SOURCE)
+    if finds_s != finds_d or n_s != n_d:
+        errs.append("spans perturbed the gate: (%s,%d) != default (%s,%d)"
+                    % (finds_s, n_s, finds_d, n_d))
+    # (ii) every grounded scalar got a provenance row; each offset really points at its value in SOURCE.
+    by_path = {p: (kind, off, snip, cnt) for p, kind, off, snip, cnt in prov}
+    if "$.vendor" not in by_path:
+        errs.append("spans: grounded $.vendor produced no provenance row (got %s)" % sorted(by_path))
+    else:
+        _, voff, vsnip, _ = by_path["$.vendor"]
+        # the offset must be the literal position of "Acme Robotics Inc." in the source text
+        if SOURCE.find("Acme Robotics Inc.") != voff:
+            errs.append("spans: $.vendor offset %d does not point at the real 'Acme Robotics Inc.' "
+                        "occurrence (expected %d)" % (voff, SOURCE.find("Acme Robotics Inc.")))
+        if "Acme Robotics Inc" not in vsnip:
+            errs.append("spans: $.vendor snippet %r does not contain the grounding text" % vsnip)
+    # a NUMERIC offset must point at the digits in the source ("$12,000.00" -> the '1' of 12,000)
+    if "$.subtotal" in by_path:
+        _, soff, _, _ = by_path["$.subtotal"]
+        if SOURCE[soff:soff + 2] != "12":
+            errs.append("spans: $.subtotal NUMERIC offset %d should point at '12' (got %r)"
+                        % (soff, SOURCE[soff:soff + 2]))
+    # a DATE offset must point at the source's date span ("June 16, 2026")
+    if "$.issued" in by_path:
+        _, ioff, isnip, _ = by_path["$.issued"]
+        if SOURCE.find("June 16, 2026") != ioff:
+            errs.append("spans: $.issued DATE offset %d should point at 'June 16, 2026' (expected %d)"
+                        % (ioff, SOURCE.find("June 16, 2026")))
+    # (iii) a value grounding at MULTIPLE spans notes count>1 (and still emits the FIRST offset).
+    multi_src = "Acme paid Acme. Acme."
+    mprov = []
+    check({"who": "Acme"}, multi_src, spans=True, provenance_out=mprov)
+    mrow = next((r for r in mprov if r[0] == "$.who"), None)
+    if not mrow:
+        errs.append("spans multi: grounded $.who produced no provenance row")
+    else:
+        _, _, moff, _, mcount = mrow
+        if mcount != 3:
+            errs.append("spans multi: 'Acme' occurs 3x but count noted %d" % mcount)
+        if moff != multi_src.find("Acme"):
+            errs.append("spans multi: first offset %d should be the first 'Acme' at %d"
+                        % (moff, multi_src.find("Acme")))
+    # (iv) without --spans, the provenance_out is left untouched (no side-effect leaks into the default).
+    untouched = []
+    check(FAITHFUL, SOURCE, provenance_out=untouched)            # spans defaults False
+    if untouched:
+        errs.append("spans off: provenance_out must stay empty when spans is not set, got %s" % untouched)
+
+    # 3f. CONFIGURABLE WEAK-GROUNDING FLOOR (0.2.3) — --min-tokens / --min-chars move the WEAK band.
+    #     "Lee" is a single 3-char whole source token in SOURCE ("Dana Lee"): at the DEFAULT floor
+    #     (2 tokens / 4 chars) it is below both -> WEAK_GROUNDING; raising --min-chars does nothing to
+    #     it (already weak), but a value that is clean at default must FLIP to weak when the floor rises.
+    #     "Dana" is a 4-char single token: at default (chars 4 is NOT < 4) it grounds clean (EXACT);
+    #     with --min-chars 6 it now falls below the char floor -> WEAK_GROUNDING. That flip proves the
+    #     flag changes the band.
+    def _kindf(val, src, mt=MIN_TOKENS, mc=MIN_CHARS):
+        return is_grounded(val, src, tokens(src, fold=False), tokens(src),
+                           _source_num_keys(src), _date_keys(src), min_tokens=mt, min_chars=mc)
+    # default floor: "Dana" (4 chars, 1 token) grounds clean — 4 is NOT < 4, so the char floor misses it
+    if _kindf("Dana", SOURCE) != "EXACT":
+        errs.append("floor default: 'Dana' (4 chars) should ground EXACT at the default floor, got %r"
+                    % _kindf("Dana", SOURCE))
+    # raise the char floor to 6: "Dana" now falls below BOTH floors (1<2 tokens AND 4<6 chars) -> WEAK
+    if _kindf("Dana", SOURCE, mc=6) != "WEAK_GROUNDING":
+        errs.append("floor --min-chars 6: 'Dana' should flip to WEAK_GROUNDING, got %r"
+                    % _kindf("Dana", SOURCE, mc=6))
+    # and the flip is reachable through the public check() API via its min_chars kwarg
+    finds_floor, _ = check({"first": "Dana"}, SOURCE, min_chars=6)
+    if {p: k for p, _, k in finds_floor}.get("$.first") != "WEAK_GROUNDING":
+        errs.append("floor via check(min_chars=6): $.first 'Dana' should be WEAK_GROUNDING, got %s"
+                    % finds_floor)
+    # the DEFAULT (no flag) is byte-identical to before: 'Dana' clean, the existing WEAK case unchanged
+    if check({"first": "Dana"}, SOURCE)[0]:
+        errs.append("floor default regression: 'Dana' must stay clean with no flag, got %s"
+                    % check({"first": "Dana"}, SOURCE)[0])
+    if _kindf("net", FRAGMENT_SOURCE) != "WEAK_GROUNDING":   # the 0.2.0 WEAK case still weak at default
+        errs.append("floor default regression: 'net' must stay WEAK at the default floor, got %r"
+                    % _kindf("net", FRAGMENT_SOURCE))
+    # lowering the floor can RECLASSIFY a default-weak hit as a clean grounding (the opposite direction).
+    # "net" appears verbatim (case-sensitive) in FRAGMENT_SOURCE, so the clean rung is EXACT.
+    if _kindf("net", FRAGMENT_SOURCE, mt=1, mc=1) != "EXACT":
+        errs.append("floor --min-tokens 1 --min-chars 1: 'net' should now ground clean (EXACT), got %r"
+                    % _kindf("net", FRAGMENT_SOURCE, mt=1, mc=1))
+
     # 4. booleans/null are skipped by the scalar walk (never grounded, never flagged).
     paths = {p for p, _ in scalar_values({"a": True, "b": None, "c": "x"})}
     if paths != {"$.c"}:
@@ -724,31 +968,41 @@ def main(argv):
               "proximity cues opt-in (WEAK_CONTEXT advisory)")
         return 0
 
-    # parse args: <extraction.json> <source.txt> [cues.json] [--window N], order-flexible for the flag.
+    # parse args: <extraction.json> <source.txt> [cues.json] [--window N] [--spans]
+    #             [--min-tokens N] [--min-chars N] — order-flexible for the flags.
     window = DEFAULT_CUE_WINDOW
+    min_tokens = MIN_TOKENS
+    min_chars = MIN_CHARS
+    spans = False
     positional = []
+    # integer-valued flags share one parser (both --flag N and --flag=N forms); --spans is a bare bool.
+    _int_flags = {"--window": "window", "--min-tokens": "min_tokens", "--min-chars": "min_chars"}
+    int_vals = {"window": window, "min_tokens": min_tokens, "min_chars": min_chars}
     i = 0
     while i < len(argv):
         a = argv[i]
-        if a == "--window":
+        if a == "--spans":
+            spans = True
+        elif a in _int_flags:
             i += 1
             if i >= len(argv) or not argv[i].lstrip("-").isdigit():
-                sys.stderr.write("--window needs an integer\n")
+                sys.stderr.write("%s needs an integer\n" % a)
                 return 2
-            window = int(argv[i])
-        elif a.startswith("--window="):
-            v = a.split("=", 1)[1]
+            int_vals[_int_flags[a]] = int(argv[i])
+        elif "=" in a and a.split("=", 1)[0] in _int_flags:
+            name, v = a.split("=", 1)
             if not v.lstrip("-").isdigit():
-                sys.stderr.write("--window needs an integer\n")
+                sys.stderr.write("%s needs an integer\n" % name)
                 return 2
-            window = int(v)
+            int_vals[_int_flags[name]] = int(v)
         else:
             positional.append(a)
         i += 1
+    window, min_tokens, min_chars = int_vals["window"], int_vals["min_tokens"], int_vals["min_chars"]
 
     if len(positional) < 2:
         sys.stderr.write("usage: groundedness-check.py <extraction.json> <source.txt> "
-                         "[cues.json] [--window N]\n")
+                         "[cues.json] [--window N] [--spans] [--min-tokens N] [--min-chars N]\n")
         return 2
     try:
         extraction = json.load(open(positional[0], encoding="utf-8"))
@@ -771,7 +1025,10 @@ def main(argv):
             sys.stderr.write("cues.json must be an object: {\"field\": [\"cue\", ...], ...}\n")
             return 2
 
-    findings, n = check(extraction, source, cues=cues, window=window)
+    provenance = [] if spans else None
+    findings, n = check(extraction, source, cues=cues, window=window,
+                        min_tokens=min_tokens, min_chars=min_chars,
+                        spans=spans, provenance_out=provenance)
     for path, value, kind in findings:
         v = repr(value)
         note = {"UNGROUNDED": "", "WEAK_GROUNDING": "  (short match — verify manually)",
@@ -779,6 +1036,17 @@ def main(argv):
                 WEAK_CONTEXT: "  (grounded but not near a '%s' cue — possible wrong-span; verify the "
                               "role via adversarial cross-check)" % _leaf_field(path)}.get(kind, "")
         print("  %-14s %-28s %s%s" % (kind, path, v if len(v) <= 50 else v[:47] + "...", note))
+
+    # A5 PROVENANCE (--spans): for each GROUNDED scalar, print the source span that grounded it. This is
+    # additive output — it appears ONLY under --spans and does NOT change the exit code or the findings.
+    if spans and provenance:
+        print("  --- provenance (--spans): %d grounded scalar(s) located in the source ---"
+              % len(provenance))
+        for path, kind, offset, snippet, count in provenance:
+            multi = "  (%d spans — ambiguous; the adversarial verifier should disambiguate)" % count \
+                if count > 1 else ""
+            snip = snippet if len(snippet) <= 60 else snippet[:57] + "…"
+            print("  %-12s %-26s @%-7d %r%s" % (kind, path, offset, snip, multi))
 
     # WEAK_CONTEXT is ADVISORY: it does NOT affect the exit code (it only APPROXIMATES wrong-span; role
     # is confirmed by the adversarial verifier, not this gate). The exit is driven by _FAIL_KINDS only.

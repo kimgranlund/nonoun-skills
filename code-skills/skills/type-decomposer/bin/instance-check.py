@@ -9,14 +9,16 @@ An illegal instance that validates is the signature failure: an illegal state IS
 This carries a JSON-Schema SUBSET validator big enough to express the tools that make illegal
 states unrepresentable — `oneOf` (tagged unions), `additionalProperties:false` (closed records),
 `const`/`enum`, `required`, `not`, `allOf`/`anyOf`, `if`/`then`/`else` (cross-field conditional
-legality), `pattern`, an asserting `format` set (email/uri/url/uuid/date/date-time), and local
-`$ref` into `#/$defs`/`#/definitions` — then runs a spec of legal/illegal instances against it.
+legality), `patternProperties` (name-keyed subschemas), `dependentRequired` (presence-triggered
+required), the array `contains` (at-least-one-element), `pattern`, an asserting `format` set
+(email/uri/url/uuid/date/date-time), and local `$ref` into `#/$defs`/`#/definitions` — then runs a
+spec of legal/illegal instances against it.
 
-DEFAULT-DENY: this is a SUBSET, so any keyword it does not understand (`patternProperties`,
-`dependentRequired`, `propertyNames`, `contains`, `prefixItems`, tuple-`items`, a remote `$ref`, …)
-raises and surfaces as an UNSUPPORTED_SCHEMA finding — a LOUD failure — rather than being silently
-ignored. A silent ignore would drop a real constraint and let an illegal instance false-green; the
-gate's whole value is being a trustworthy rejecter.
+DEFAULT-DENY: this is a SUBSET, so any keyword it does not understand (`propertyNames`,
+`unevaluatedProperties`, `dependentSchemas`, `minContains`/`maxContains`, `prefixItems`,
+tuple-`items`, a remote `$ref`, …) raises and surfaces as an UNSUPPORTED_SCHEMA finding — a LOUD
+failure — rather than being silently ignored. A silent ignore would drop a real constraint and let
+an illegal instance false-green; the gate's whole value is being a trustworthy rejecter.
 
 Type-aware scalar equality (const/enum/uniqueItems): a JSON `bool` is a distinct value class from
 int/float (`true != 1`), while `1 == 1.0`; a float with zero fractional part satisfies `integer`
@@ -140,12 +142,14 @@ _FORMAT = {
 }
 
 # Keywords this subset validator UNDERSTANDS. Anything else (a remote $ref, a tuple-form items,
-# patternProperties, contains, dependentRequired, …) must FAIL LOUD via default-deny — never be
-# silently ignored, which would drop a real constraint and false-green an illegal instance.
+# propertyNames, dependentSchemas, minContains/maxContains, unevaluatedProperties, …) must FAIL
+# LOUD via default-deny — never be silently ignored, which would drop a real constraint and
+# false-green an illegal instance.
 _KNOWN = frozenset({
     "type", "const", "enum", "minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",
     "multipleOf", "minLength", "maxLength", "pattern", "format", "minItems", "maxItems",
-    "uniqueItems", "items", "properties", "required", "additionalProperties",
+    "uniqueItems", "items", "contains", "properties", "patternProperties", "required",
+    "dependentRequired", "additionalProperties",
     "allOf", "anyOf", "oneOf", "not", "if", "then", "else",
     # definition containers — hold subschemas reached via $ref; carry no constraint themselves
     "$defs", "definitions",
@@ -266,19 +270,49 @@ def validate(v, schema, path="$", root=None):
                 raise SchemaError("%s: tuple-form `items` (array) is unsupported" % path)
             for i, item in enumerate(v):
                 errs += validate(item, schema["items"], "%s[%d]" % (path, i), root)
+        if "contains" in schema:
+            # At LEAST one element must validate against the subschema (the existence keyword).
+            # The element subschema reuses validate(), so type-aware equality / format / $ref /
+            # required all apply inside it. minContains/maxContains are INTENTIONALLY left out of
+            # _KNOWN: a schema relying on them default-denies (UNSUPPORTED_SCHEMA) rather than being
+            # silently downgraded to the plain ≥1 semantics this implements.
+            if not any(not validate(item, schema["contains"], path, root) for item in v):
+                errs.append("%s: no element matches `contains`" % path)
     if kind == "object":
         props = schema.get("properties", {})
+        pat_props = schema.get("patternProperties", {})
         for k in schema.get("required", []):
             if k not in v:
                 errs.append("%s: missing required '%s'" % (path, k))
         ap = schema.get("additionalProperties", True)
+        # Pre-compile the patternProperties regexes once. JSON Schema uses re.search (the pattern is
+        # NOT implicitly anchored), so `^x-` matches a leading `x-` and a bare `x-` matches anywhere
+        # in the name — anchor explicitly in the pattern if a full-name match is intended.
+        pat_compiled = [(re.compile(p), sub) for p, sub in pat_props.items()]
         for k, val in v.items():
+            covered = False
             if k in props:
                 errs += validate(val, props[k], "%s.%s" % (path, k), root)
-            elif ap is False:
+                covered = True
+            # Every property whose NAME matches a patternProperties regex must validate against that
+            # subschema (independent of, and combinable with, `properties` — a key can be governed by
+            # both). A property covered by neither is unconstrained unless additionalProperties bites.
+            for rx, sub in pat_compiled:
+                if rx.search(k):
+                    errs += validate(val, sub, "%s.%s" % (path, k), root)
+                    covered = True
+            if covered:
+                continue
+            if ap is False:
                 errs.append("%s: additional property '%s' not allowed (closed record)" % (path, k))
             elif isinstance(ap, dict):
                 errs += validate(val, ap, "%s.%s" % (path, k), root)
+        # dependentRequired: if the trigger property is present, every listed dependent must be too.
+        for trigger, deps in schema.get("dependentRequired", {}).items():
+            if trigger in v:
+                for dep in deps:
+                    if dep not in v:
+                        errs.append("%s: '%s' present but dependent '%s' missing" % (path, trigger, dep))
 
     if "allOf" in schema:
         for sub in schema["allOf"]:
@@ -397,11 +431,12 @@ REF_SPEC = {
     "illegal": [{"kind": "zzz"}],  # was silently ACCEPTED when $ref was ignored
 }
 # B2 (default-deny LOUD): an UNSUPPORTED keyword must surface as UNSUPPORTED_SCHEMA, never as a
-# silent green. `patternProperties` is not in the subset.
+# silent green. `propertyNames` is not in the subset (patternProperties was the witness here until it
+# joined the supported set — propertyNames is still out).
 UNSUPPORTED_SPEC = {
-    "schema": {"type": "object", "patternProperties": {"^x": {"type": "string"}}},
+    "schema": {"type": "object", "propertyNames": {"pattern": "^x"}},
     "legal": [{"x1": "ok"}],
-    "illegal": [{"x1": 5}],
+    "illegal": [{"yy": 5}],
 }
 # M1 (5.0 ⊨ integer): a float with zero fractional part is a legal integer instance.
 FLOAT_INTEGER = {
@@ -518,12 +553,67 @@ NOT = {
     "legal": [{"ok": 1}, {"banned": False}],
     "illegal": [{"banned": True}],  # is the forbidden shape → rejected
 }
-# C6 (default-deny PRESERVED): a still-unknown keyword (`contains`) must STILL raise
-# UNSUPPORTED_SCHEMA — adding if/then/else + composition did NOT open the gate to everything.
+# C6 (default-deny PRESERVED): a still-unknown keyword (`propertyNames`) must STILL raise
+# UNSUPPORTED_SCHEMA — adding patternProperties/contains/dependentRequired did NOT open the gate to
+# everything. (`contains` USED to be the witness here; now that it's supported, propertyNames is.)
 STILL_UNSUPPORTED = {
+    "schema": {"type": "object", "propertyNames": {"pattern": "^[a-z]+$"}},
+    "legal": [{"ok": 1}],
+    "illegal": [{"X": 1}],
+}
+# D1 (patternProperties): every property whose NAME matches the regex must validate against the
+# subschema. An `x-foo: "ok"` (string) passes; `x-foo: 5` (number) is rejected; a property NOT
+# matching the pattern (`y`) is unaffected. Combines with `properties`/`required` as usual.
+PATTERN_PROPERTIES = {
+    "schema": {"type": "object", "patternProperties": {"^x-": {"type": "string"}}},
+    "legal": [
+        {"x-foo": "ok"},                  # matches ^x- and is a string → valid
+        {"x-foo": "ok", "y": 5},          # `y` does not match the pattern → unconstrained
+        {"y": 5},                         # nothing matches → vacuously valid
+    ],
+    "illegal": [
+        {"x-foo": 5},                     # matches ^x- but is a number → rejected
+        {"x-foo": "ok", "x-bar": 7},      # x-bar matches ^x- but is a number → rejected
+    ],
+}
+# D1b (patternProperties + closed record): a key matched by patternProperties is "covered", so
+# additionalProperties:false must NOT flag it. A key matched by NEITHER properties NOR a pattern is
+# still an illegal extra field on a closed record.
+PATTERN_PROPERTIES_CLOSED = {
+    "schema": {"type": "object", "additionalProperties": False,
+               "required": ["name"],
+               "properties": {"name": {"type": "string"}},
+               "patternProperties": {"^x-": {"type": "string"}}},
+    "legal": [
+        {"name": "a"},                    # only the declared property
+        {"name": "a", "x-trace": "id1"},  # x-trace matched by patternProperties → allowed
+    ],
+    "illegal": [
+        {"name": "a", "other": 1},        # `other` matches neither → closed-record violation
+        {"name": "a", "x-trace": 9},      # matched by pattern but wrong type → rejected
+    ],
+}
+# D2 (contains): the array must have AT LEAST ONE element validating against the subschema.
+# [1,2,"x"] has integers → passes; ["a","b"] has none → rejected. minContains/maxContains are NOT
+# in the subset (left unknown → default-denied); only the plain ≥1 existence semantics ship.
+CONTAINS = {
     "schema": {"type": "array", "contains": {"type": "integer"}},
-    "legal": [[1, 2]],
-    "illegal": [["x"]],
+    "legal": [[1, 2, "x"], [5], ["a", 3]],
+    "illegal": [["a", "b"], [], [1.5, "x"]],  # no integer element (1.5 is not an integer)
+}
+# D3 (dependentRequired): if the trigger property is present, every listed dependent must be too.
+# {credit_card, billing_address} passes; {credit_card} alone is rejected; {} (no trigger) passes.
+DEPENDENT_REQUIRED = {
+    "schema": {"type": "object",
+               "dependentRequired": {"credit_card": ["billing_address"]}},
+    "legal": [
+        {"credit_card": "4111", "billing_address": "1 Main St"},  # trigger + dependent present
+        {},                                                       # no trigger → no obligation
+        {"billing_address": "1 Main St"},                         # dependent without trigger → fine
+    ],
+    "illegal": [
+        {"credit_card": "4111"},                                  # trigger present, dependent missing
+    ],
 }
 
 
@@ -589,10 +679,33 @@ def selftest():
     f, _ = check_spec(NOT)
     if f:
         errs.append("NOT not clean — 'not' did not reject the forbidden shape: %s" % f)
-    # C6 — DEFAULT-DENY PRESERVED: a still-unknown keyword must FAIL LOUD, not be silently allowed.
+    # C6 — DEFAULT-DENY PRESERVED: a still-unknown keyword (`propertyNames`) must FAIL LOUD, not be
+    # silently allowed — proof the three new keywords didn't open the gate to everything.
     f, _ = check_spec(STILL_UNSUPPORTED)
     if not any(k == "UNSUPPORTED_SCHEMA" for k, _ in f):
         errs.append("STILL_UNSUPPORTED did not fail loud — default-deny was opened too wide: %s" % f)
+
+    # D1 — patternProperties: name-matched props validate against the subschema; non-matching props
+    # are unaffected. CLEAN.
+    f, _ = check_spec(PATTERN_PROPERTIES)
+    if f:
+        errs.append("PATTERN_PROPERTIES not clean — patternProperties not enforced by name: %s" % f)
+    # D1b — a patternProperties-matched key is "covered", so additionalProperties:false must not flag
+    # it; a key matched by neither is still a closed-record violation. CLEAN.
+    f, _ = check_spec(PATTERN_PROPERTIES_CLOSED)
+    if f:
+        errs.append("PATTERN_PROPERTIES_CLOSED not clean — pattern key wrongly flagged / closed "
+                    "record not enforced: %s" % f)
+    # D2 — contains: at least one element must match the subschema; an array with none is rejected.
+    # CLEAN.
+    f, _ = check_spec(CONTAINS)
+    if f:
+        errs.append("CONTAINS not clean — `contains` at-least-one semantics wrong: %s" % f)
+    # D3 — dependentRequired: trigger present → dependents required; no trigger → no obligation.
+    # CLEAN.
+    f, _ = check_spec(DEPENDENT_REQUIRED)
+    if f:
+        errs.append("DEPENDENT_REQUIRED not clean — presence-triggered required not enforced: %s" % f)
 
     # validator spot-checks
     if validate(True, {"type": "integer"}) == []:
@@ -630,9 +743,10 @@ def selftest():
     # minor: pattern trailing $ must not match before a trailing newline (ECMA vs Python)
     if validate("ab\n", {"type": "string", "pattern": "^ab$"}) == []:
         errs.append("pattern $ wrongly matched before trailing newline")
-    # B2 default-deny: an unsupported keyword raises rather than silently validating
+    # B2 default-deny: an unsupported keyword raises rather than silently validating. `propertyNames`
+    # is still outside the subset (patternProperties used to be the witness here — now it's supported).
     try:
-        validate({"x1": "ok"}, {"type": "object", "patternProperties": {"^x": {"type": "string"}}})
+        validate({"x1": "ok"}, {"type": "object", "propertyNames": {"pattern": "^x"}})
         errs.append("unsupported keyword did not raise (silent false-green)")
     except SchemaError:
         pass
@@ -658,10 +772,39 @@ def selftest():
     # bare then/else with no `if` is inert (annotation-only), must not constrain
     if validate({}, {"then": {"required": ["x"]}, "else": {"required": ["y"]}}):
         errs.append("bare then/else (no if) wrongly constrained the instance")
-    # default-deny still fires for a genuinely unknown keyword (gate not opened to everything)
+    # patternProperties: a name-matched property is validated against the subschema; a non-matching
+    # name is unconstrained. Use re.search (pattern is not auto-anchored).
+    if validate({"x-a": "ok"}, {"type": "object", "patternProperties": {"^x-": {"type": "string"}}}):
+        errs.append("patternProperties rejected a matching string property")
+    if validate({"x-a": 5}, {"type": "object", "patternProperties": {"^x-": {"type": "string"}}}) == []:
+        errs.append("patternProperties accepted a wrong-typed matching property")
+    if validate({"y": 5}, {"type": "object", "patternProperties": {"^x-": {"type": "string"}}}):
+        errs.append("patternProperties wrongly constrained a non-matching property")
+    # patternProperties-matched key is "covered" → additionalProperties:false must not flag it
+    if validate({"x-a": "ok"}, {"type": "object", "additionalProperties": False,
+                                 "patternProperties": {"^x-": {"type": "string"}}}):
+        errs.append("patternProperties key wrongly flagged by additionalProperties:false")
+    if validate({"z": 1}, {"type": "object", "additionalProperties": False,
+                           "patternProperties": {"^x-": {"type": "string"}}}) == []:
+        errs.append("closed record wrongly accepted a key matched by neither")
+    # contains: at least one element must match; an array with none is rejected
+    if validate([1, 2, "x"], {"type": "array", "contains": {"type": "integer"}}):
+        errs.append("contains rejected an array with a matching element")
+    if validate(["a", "b"], {"type": "array", "contains": {"type": "integer"}}) == []:
+        errs.append("contains accepted an array with no matching element")
+    # dependentRequired: trigger present → dependents required; absent trigger → no obligation
+    _dep = {"type": "object", "dependentRequired": {"credit_card": ["billing_address"]}}
+    if validate({"credit_card": "x", "billing_address": "y"}, _dep):
+        errs.append("dependentRequired rejected a satisfied dependency")
+    if validate({"credit_card": "x"}, _dep) == []:
+        errs.append("dependentRequired accepted a present trigger with a missing dependent")
+    if validate({}, _dep):
+        errs.append("dependentRequired wrongly required a dependent with no trigger present")
+    # default-deny still fires for a genuinely unknown keyword (gate not opened to everything).
+    # `contains` USED to be the witness here; now that it's supported, `propertyNames` is.
     try:
-        validate([1], {"type": "array", "contains": {"type": "integer"}})
-        errs.append("unknown keyword `contains` did not raise after adding if/then/else")
+        validate({"a": 1}, {"type": "object", "propertyNames": {"pattern": "^a$"}})
+        errs.append("unknown keyword `propertyNames` did not raise after adding the 3 new keywords")
     except SchemaError:
         pass
     return errs

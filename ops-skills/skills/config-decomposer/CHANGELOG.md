@@ -3,6 +3,33 @@
 Versioned independently of the `ops-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.3 — beta
+
+Added an **opt-in allowlist / baseline** to `bin/config-lint.py` so a reviewed, accepted finding can be
+suppressed without disabling the smell globally. **Additive and default-off**: with no `--ignore` flag
+and no discovered `.config-lint-ignore`, behavior is **byte-identical to 0.2.2** — all 10 smells and
+their false-positive guards are untouched. Locked with must-suppress / must-NOT-suppress / stale /
+malformed / no-allowlist-regression selftest fixtures (run over real temp trees through `main()`).
+
+- **`--ignore <file>` + auto-discovery.** Pass an explicit allowlist with `--ignore <file>`, or drop a
+  `.config-lint-ignore` in the scanned dir (or the CWD) — it is auto-discovered like a `.gitignore`
+  (an explicit `--ignore` wins). A matching finding is suppressed: not printed, not counted toward the
+  exit code.
+- **Format (line-based, `#` comments + blank lines ignored).** `KIND` suppresses all findings of that
+  kind; `KIND:path/to/file.yaml` suppresses that kind in that file; `KIND:path/to/file.yaml:LINE`
+  suppresses that kind at that exact line. Matching is **precise** so a too-broad entry can't silently
+  hide real findings: the KIND must match **exactly** (case-sensitive), the path (when given) matches
+  the finding's file as a **path SUFFIX on segment boundaries** (`app/db.yaml` matches `svc/app/db.yaml`,
+  not `myapp/db.yaml`; a bare `db.yaml` matches any `…/db.yaml`), and the LINE (when given) must equal
+  the finding's line.
+- **No silent caps (transparency).** A one-line `N finding(s) suppressed by allowlist` summary goes to
+  stderr whenever anything is suppressed; `--show-suppressed` additionally prints each dropped finding
+  (prefixed `SUPPRESSED`) so an over-broad allowlist is always visible.
+- **Anti-rot guards.** An allowlist entry that matches **nothing** emits `WARN: stale allowlist entry
+  'X' (matched nothing)` so a stale baseline is caught; a **malformed** line emits a `WARN` and is
+  skipped (never a crash) while the rest of the allowlist still applies. The matching ROADMAP
+  allowlist/baseline item is marked done; `references/secrets-and-safety.md` updated.
+
 ## 0.2.2 — beta
 
 Deepened the `bin/config-lint.py` safety floor from 7 smells to 10, with every new detection locked by

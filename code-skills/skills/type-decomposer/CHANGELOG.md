@@ -3,6 +3,15 @@
 Versioned independently of the `code-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.3 — beta
+
+**More JSON-Schema keywords** in `instance-check`: `patternProperties` (regex-keyed property schemas),
+`contains` (an array must hold ≥1 matching element), and `dependentRequired` (if property X is present,
+Y is required). Each validates through the same recursive `validate()` — type-aware equality, asserting
+`format`, and local `$ref` all apply inside — and the default-deny is intact: a still-unknown keyword
+(`propertyNames`, `dependentSchemas`, `minContains`) still raises `UNSUPPORTED_SCHEMA`. Legal/illegal
+instance fixtures lock each.
+
 ## 0.2.2 — beta
 
 `bin/instance-check.py` now validates **conditional + composition schemas** (closes the ROADMAP

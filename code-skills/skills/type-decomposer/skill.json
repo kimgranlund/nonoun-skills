@@ -1,6 +1,6 @@
 {
   "name": "type-decomposer",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "status": "beta",
   "target": "both",
   "description": "Decompose, design, and grade a type or schema (domain model, JSON Schema, protobuf, SQL DDL) on two crossing axes — MODEL (domain → state-space → sums vs products → invariants → evolution) and VALIDITY (well-formed → sound → instances → round-trip → migration) — scored separately around 'make illegal states unrepresentable', proven by a JSON-Schema-subset validator that runs a legal instance set (all must validate) and an illegal instance set (all must be rejected), plus a model-smell linter.",

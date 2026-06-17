@@ -25,8 +25,28 @@ Smell kinds:
 
   python3 bin/config-lint.py selftest
   python3 bin/config-lint.py <file | dir>
+  python3 bin/config-lint.py --ignore <allowlist> <file | dir>
+  python3 bin/config-lint.py --show-suppressed <file | dir>
 
 Nonzero exit on any finding. Python 3.8+.
+
+ALLOWLIST / BASELINE (opt-in; default behavior is byte-identical to no allowlist) -------------------
+A reviewed, accepted finding can be suppressed without disabling the smell globally. Pass an explicit
+allowlist with `--ignore <file>`, or drop a `.config-lint-ignore` file in the scanned directory (or
+the CWD) — it is auto-discovered like a `.gitignore`. A suppressed finding is NOT printed and does NOT
+count toward the exit code; the count of what was dropped is always surfaced to stderr (no silent
+caps). `--show-suppressed` additionally prints each suppressed finding (prefixed `SUPPRESSED`).
+
+Allowlist format (line-based; blank lines and `#` comments ignored). Each entry is one of:
+  KIND                          suppress ALL findings of that kind  (e.g. `NO_RESOURCE_LIMITS`)
+  KIND:path/to/file.yaml        suppress that kind in that file
+  KIND:path/to/file.yaml:LINE   suppress that kind at that exact line in that file
+Matching is deliberately precise so a too-broad entry can't silently hide real findings: the KIND
+must match the finding's kind EXACTLY (case-sensitive), and the path (when given) must match the
+finding's file as a path SUFFIX on path-segment boundaries — `app/db.yaml` matches `svc/app/db.yaml`
+but not `myapp/db.yaml`; a bare filename `db.yaml` matches any `…/db.yaml`. The LINE (when given) must
+equal the finding's line. An entry that matches NOTHING is reported as a `WARN: stale allowlist entry`
+so the baseline doesn't rot; a malformed line is reported as a `WARN` and skipped (never a crash).
 """
 import os
 import re
@@ -595,6 +615,159 @@ def selftest():
             errs.append("directory walk skipped api.Dockerfile (got %s)" % scanned)
         elif "UNPINNED_VERSION" not in {k for k, _, _ in lint_text(open(fp, encoding="utf-8").read())}:
             errs.append("api.Dockerfile content not linted for :latest")
+
+    errs.extend(_selftest_allowlist())
+    return errs
+
+
+# --- ALLOWLIST selftest: a two-finding config + an allowlist suppressing exactly one ---------------
+# `infra.yaml`: two distinct findings on two distinct lines.
+#   line 2: UNPINNED_VERSION (image: nginx:latest)
+#   line 4: OPEN_NETWORK     (0.0.0.0/0)
+ALLOW_TWO_FINDINGS = 'svc:\n  image: nginx:latest\nnet:\n  cidr: "0.0.0.0/0"\n'
+
+
+def _run(target, ignore_path=None, show_suppressed=False):
+    """Invoke main() over a real temp tree, capturing stdout/stderr + the exit code."""
+    import io
+    import contextlib
+    argv = []
+    if ignore_path is not None:
+        argv += ["--ignore", ignore_path]
+    if show_suppressed:
+        argv += ["--show-suppressed"]
+    argv += [target]
+    out, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        rc = main(argv)
+    return rc, out.getvalue(), err.getvalue()
+
+
+def _selftest_allowlist():
+    import tempfile
+    errs = []
+
+    # The config has 2 distinct findings; confirm lint_text agrees before we test suppression.
+    base_kinds = {k for k, _, _ in lint_text(ALLOW_TWO_FINDINGS)}
+    if base_kinds != {"UNPINNED_VERSION", "OPEN_NETWORK"}:
+        errs.append("allowlist fixture setup wrong: expected 2 findings, got %s" % sorted(base_kinds))
+        return errs
+
+    with tempfile.TemporaryDirectory() as d:
+        cfg = os.path.join(d, "infra.yaml")
+        with open(cfg, "w", encoding="utf-8") as fh:
+            fh.write(ALLOW_TWO_FINDINGS)
+
+        # (d-regression) NO allowlist present ⇒ both findings reported, FAIL (rc=1), no suppression noise.
+        rc, out, err = _run(cfg)
+        if rc != 1:
+            errs.append("allowlist regression: no-allowlist run should FAIL (rc=1), got rc=%d" % rc)
+        if "UNPINNED_VERSION" not in out or "OPEN_NETWORK" not in out:
+            errs.append("allowlist regression: no-allowlist run should report both findings; out=%r" % out)
+        if "suppressed" in err or "allowlist" in err:
+            errs.append("allowlist regression: no-allowlist run emitted allowlist noise: %r" % err)
+
+        # (a) an allowlist suppressing exactly ONE kind ⇒ only the other is reported; exit reflects only
+        #     the unsuppressed one (still FAIL); the suppressed count is surfaced to stderr.
+        ig = os.path.join(d, "allow.txt")
+        with open(ig, "w", encoding="utf-8") as fh:
+            fh.write("# accepted: this is a public ALB, reviewed 2026-06\nOPEN_NETWORK\n")
+        rc, out, err = _run(cfg, ignore_path=ig)
+        if rc != 1:
+            errs.append("allowlist (a): one finding remains ⇒ should FAIL (rc=1), got rc=%d" % rc)
+        if "OPEN_NETWORK" in out:
+            errs.append("allowlist (a): suppressed OPEN_NETWORK still printed: %r" % out)
+        if "UNPINNED_VERSION" not in out:
+            errs.append("allowlist (a): unsuppressed UNPINNED_VERSION missing from output: %r" % out)
+        if "1 finding(s) suppressed by allowlist" not in err:
+            errs.append("allowlist (a): suppressed-count summary missing from stderr: %r" % err)
+
+        # suppress BOTH ⇒ clean OK (rc=0), the suppressed count noted on the OK line + stderr.
+        ig2 = os.path.join(d, "allow_both.txt")
+        with open(ig2, "w", encoding="utf-8") as fh:
+            fh.write("OPEN_NETWORK\nUNPINNED_VERSION\n")
+        rc, out, err = _run(cfg, ignore_path=ig2)
+        if rc != 0:
+            errs.append("allowlist: suppressing all findings ⇒ should be OK (rc=0), got rc=%d (out=%r err=%r)"
+                        % (rc, out, err))
+        if "2 finding(s) suppressed by allowlist" not in err:
+            errs.append("allowlist: both-suppressed count missing from stderr: %r" % err)
+
+        # (b) a `KIND:file:line` entry suppresses PRECISELY one (the OPEN_NETWORK at its exact line),
+        #     while a `KIND` line would suppress all of that kind. Here only line 4 is targeted.
+        ig3 = os.path.join(d, "allow_precise.txt")
+        with open(ig3, "w", encoding="utf-8") as fh:
+            fh.write("OPEN_NETWORK:infra.yaml:4\n")
+        rc, out, err = _run(cfg, ignore_path=ig3)
+        if "OPEN_NETWORK" in out:
+            errs.append("allowlist (b): KIND:file:line did not suppress the targeted finding: %r" % out)
+        if "1 finding(s) suppressed by allowlist" not in err:
+            errs.append("allowlist (b): precise-entry suppressed count missing: %r" % err)
+        # the SAME entry pointed at the WRONG line must NOT suppress (precision guard) — and is stale.
+        ig4 = os.path.join(d, "allow_wrongline.txt")
+        with open(ig4, "w", encoding="utf-8") as fh:
+            fh.write("OPEN_NETWORK:infra.yaml:99\n")
+        rc, out, err = _run(cfg, ignore_path=ig4)
+        if "OPEN_NETWORK" not in out:
+            errs.append("allowlist (b): wrong-line entry wrongly suppressed the finding: %r" % out)
+        if "stale allowlist entry" not in err:
+            errs.append("allowlist (b): wrong-line entry should be flagged stale: %r" % err)
+
+        # the WRONG file path must NOT suppress (path precision guard).
+        ig5 = os.path.join(d, "allow_wrongfile.txt")
+        with open(ig5, "w", encoding="utf-8") as fh:
+            fh.write("OPEN_NETWORK:other.yaml\n")
+        rc, out, err = _run(cfg, ignore_path=ig5)
+        if "OPEN_NETWORK" not in out:
+            errs.append("allowlist: wrong-file path entry wrongly suppressed the finding: %r" % out)
+        if "stale allowlist entry" not in err:
+            errs.append("allowlist: wrong-file entry should be flagged stale: %r" % err)
+
+        # (c) a STALE entry (a kind that doesn't occur here) ⇒ WARN, baseline doesn't rot.
+        ig6 = os.path.join(d, "allow_stale.txt")
+        with open(ig6, "w", encoding="utf-8") as fh:
+            fh.write("OPEN_NETWORK\nWORLD_WRITABLE\n")   # WORLD_WRITABLE matches nothing here
+        rc, out, err = _run(cfg, ignore_path=ig6)
+        if "stale allowlist entry 'WORLD_WRITABLE'" not in err:
+            errs.append("allowlist (c): stale entry WORLD_WRITABLE not warned: %r" % err)
+        if "stale allowlist entry 'OPEN_NETWORK'" in err:
+            errs.append("allowlist (c): a USED entry (OPEN_NETWORK) wrongly flagged stale: %r" % err)
+
+        # a MALFORMED line ⇒ WARN + skip, never crash; the rest of the allowlist still applies.
+        ig7 = os.path.join(d, "allow_malformed.txt")
+        with open(ig7, "w", encoding="utf-8") as fh:
+            fh.write("not a valid kind!!!\nOPEN_NETWORK\n")
+        rc, out, err = _run(cfg, ignore_path=ig7)
+        if "malformed allowlist line" not in err:
+            errs.append("allowlist: malformed line not warned: %r" % err)
+        if "OPEN_NETWORK" in out:
+            errs.append("allowlist: a malformed line broke the valid entry below it: %r" % out)
+
+        # --show-suppressed prints the dropped finding (prefixed SUPPRESSED) for transparency.
+        rc, out, err = _run(cfg, ignore_path=ig, show_suppressed=True)
+        if "SUPPRESSED" not in out or "OPEN_NETWORK" not in out:
+            errs.append("allowlist: --show-suppressed did not print the dropped finding: %r" % out)
+
+        # AUTO-DISCOVERY: a `.config-lint-ignore` dropped in the scanned dir is picked up without --ignore.
+        disc = os.path.join(d, IGNORE_FILENAME)
+        with open(disc, "w", encoding="utf-8") as fh:
+            fh.write("OPEN_NETWORK\n")
+        rc, out, err = _run(cfg)
+        if "OPEN_NETWORK" in out:
+            errs.append("allowlist: auto-discovered .config-lint-ignore not applied: %r" % out)
+        if "1 finding(s) suppressed by allowlist" not in err:
+            errs.append("allowlist: auto-discovery did not surface the suppressed count: %r" % err)
+        os.remove(disc)
+
+    # path-suffix matching unit checks (segment-boundary precision).
+    if not _path_suffix_match("app/db.yaml", "svc/app/db.yaml"):
+        errs.append("path-suffix: 'app/db.yaml' should match 'svc/app/db.yaml'")
+    if _path_suffix_match("app/db.yaml", "myapp/db.yaml"):
+        errs.append("path-suffix: 'app/db.yaml' must NOT match 'myapp/db.yaml' (segment boundary)")
+    if not _path_suffix_match("db.yaml", "a/b/c/db.yaml"):
+        errs.append("path-suffix: bare 'db.yaml' should match any '…/db.yaml'")
+    if _path_suffix_match("svc/app/db.yaml", "app/db.yaml"):
+        errs.append("path-suffix: an over-long entry must NOT match a shorter finding path")
     return errs
 
 
@@ -613,6 +786,137 @@ def _iter_files(path):
         yield path
 
 
+# --- ALLOWLIST / BASELINE (opt-in; absent ⇒ behavior byte-identical to no allowlist) ----------------
+IGNORE_FILENAME = ".config-lint-ignore"
+
+
+def _path_suffix_match(entry_path, finding_path):
+    """True if `entry_path` matches `finding_path` as a path SUFFIX on segment boundaries.
+
+    `app/db.yaml` matches `svc/app/db.yaml` but NOT `myapp/db.yaml`; a bare `db.yaml` matches any
+    `…/db.yaml`. Both sides are normalized to `/` separators so a Windows-style entry still matches.
+    Comparison is exact when the entry has as many segments as the finding (a full-path entry).
+    """
+    def norm(p):
+        return [seg for seg in p.replace("\\", "/").strip("/").split("/") if seg]
+    e = norm(entry_path)
+    f = norm(finding_path)
+    if not e or len(e) > len(f):
+        return False
+    return f[len(f) - len(e):] == e
+
+
+class _Entry:
+    """One parsed allowlist entry. `matched` flips True the first time it suppresses a finding."""
+    __slots__ = ("raw", "kind", "path", "line", "matched")
+
+    def __init__(self, raw, kind, path, line):
+        self.raw = raw
+        self.kind = kind
+        self.path = path        # None ⇒ match any file
+        self.line = line        # None ⇒ match any line
+        self.matched = False
+
+    def matches(self, fkind, fline, fpath):
+        if fkind != self.kind:                       # KIND must match EXACTLY (case-sensitive)
+            return False
+        if self.line is not None and fline != self.line:
+            return False
+        if self.path is not None and not _path_suffix_match(self.path, fpath or ""):
+            return False
+        return True
+
+
+class Allowlist:
+    """A parsed `.config-lint-ignore`. `parse_lines` builds it; `suppress(finding, path)` tells whether
+    a finding is allowlisted (and marks the matching entry); `warnings()` returns the malformed-line and
+    stale-entry WARNs. An empty allowlist (no entries) suppresses nothing — the no-allowlist path."""
+
+    def __init__(self):
+        self.entries = []
+        self._malformed = []     # (lineno, raw) of lines that didn't parse
+
+    @classmethod
+    def parse_lines(cls, lines):
+        al = cls()
+        for n, raw in enumerate(lines, 1):
+            line = raw.split("#", 1)[0].strip()
+            if not line:
+                continue
+            # split into at most KIND : PATH : LINE — the path may itself contain ':' only on the LINE
+            # tail, so split from the RIGHT for the optional trailing numeric line.
+            kind, path, lineno = None, None, None
+            parts = line.split(":")
+            kind = parts[0].strip()
+            if not kind or not re.match(r"^[A-Z][A-Z0-9_]*$", kind):
+                al._malformed.append((n, raw.rstrip("\n")))
+                continue
+            rest = parts[1:]
+            if rest:
+                # if the final segment is a bare integer, it's the LINE; the rest (rejoined) is the path
+                if len(rest) >= 1 and re.match(r"^\d+$", rest[-1].strip()):
+                    lineno = int(rest[-1].strip())
+                    path = ":".join(rest[:-1]).strip() or None
+                    if path is None:
+                        # `KIND::LINE` or `KIND:LINE` with no path is malformed — a line needs a file
+                        al._malformed.append((n, raw.rstrip("\n")))
+                        continue
+                else:
+                    path = ":".join(rest).strip() or None
+                    if path is None:
+                        al._malformed.append((n, raw.rstrip("\n")))
+                        continue
+            al.entries.append(_Entry(raw.rstrip("\n"), kind, path, lineno))
+        return al
+
+    @classmethod
+    def from_file(cls, fp):
+        with open(fp, encoding="utf-8") as fh:
+            return cls.parse_lines(fh.read().splitlines())
+
+    def is_empty(self):
+        return not self.entries and not self._malformed
+
+    def suppress(self, finding, path):
+        """True if `finding` (kind, line, detail) at `path` is allowlisted — marks the matching entry."""
+        kind, line = finding[0], finding[1]
+        hit = False
+        for e in self.entries:
+            if e.matches(kind, line, path):
+                e.matched = True
+                hit = True                            # mark ALL matching entries (don't short-circuit
+                                                       # — a broad KIND entry and a precise one can co-cover)
+        return hit
+
+    def warnings(self):
+        warns = []
+        for n, raw in self._malformed:
+            warns.append("WARN: malformed allowlist line %d: %r (skipped)" % (n, raw))
+        for e in self.entries:
+            if not e.matched:
+                warns.append("WARN: stale allowlist entry %r (matched nothing)" % e.raw)
+        return warns
+
+
+def _discover_ignore_file(scan_path):
+    """Auto-discover a `.config-lint-ignore`: prefer one in the scanned dir (or the file's dir), then
+    fall back to the CWD. Returns a path or None. An explicit `--ignore` always wins over this."""
+    candidates = []
+    base = scan_path if os.path.isdir(scan_path) else os.path.dirname(os.path.abspath(scan_path))
+    if base:
+        candidates.append(os.path.join(base, IGNORE_FILENAME))
+    candidates.append(os.path.join(os.getcwd(), IGNORE_FILENAME))
+    seen = set()
+    for c in candidates:
+        rc = os.path.realpath(c)
+        if rc in seen:
+            continue
+        seen.add(rc)
+        if os.path.isfile(c):
+            return c
+    return None
+
+
 def main(argv):
     if not argv or argv[0] == "selftest":
         errs = selftest()
@@ -624,10 +928,56 @@ def main(argv):
         print("config-lint: OK — 10 safety smells (plaintext + URL-embedded + base64 + heredoc secrets, "
               "unpinned, open-net, wildcard grant, no-limits, k8s-unsafe, world-writable) caught; "
               "reference/placeholder/whole-key/stringData/non-Secret/non-secret-key + non-k8s + "
-              "safe-mode false-positive guards + api.Dockerfile scan verified")
+              "safe-mode false-positive guards + api.Dockerfile scan + allowlist suppress/stale/"
+              "no-allowlist-regression verified")
         return 0
-    total, n = 0, 0
-    for fp in _iter_files(argv[0]):
+
+    # parse the opt-in allowlist flags (additive — no flag + no discovered file ⇒ legacy behavior)
+    ignore_path = None
+    show_suppressed = False
+    rest = []
+    i = 0
+    while i < len(argv):
+        a = argv[i]
+        if a == "--ignore":
+            if i + 1 >= len(argv):
+                sys.stderr.write("config-lint: --ignore needs a file argument\n")
+                return 2
+            ignore_path = argv[i + 1]
+            i += 2
+            continue
+        if a.startswith("--ignore="):
+            ignore_path = a[len("--ignore="):]
+            i += 1
+            continue
+        if a == "--show-suppressed":
+            show_suppressed = True
+            i += 1
+            continue
+        rest.append(a)
+        i += 1
+    if not rest:
+        sys.stderr.write("config-lint: no path to scan\n")
+        return 2
+    target = rest[0]
+
+    # resolve the allowlist: explicit --ignore wins; otherwise auto-discover .config-lint-ignore.
+    allow = None
+    allow_source = None
+    if ignore_path is not None:
+        if not os.path.isfile(ignore_path):
+            sys.stderr.write("config-lint: --ignore file not found: %s\n" % ignore_path)
+            return 2
+        allow = Allowlist.from_file(ignore_path)
+        allow_source = ignore_path
+    else:
+        discovered = _discover_ignore_file(target)
+        if discovered is not None:
+            allow = Allowlist.from_file(discovered)
+            allow_source = discovered
+
+    total, n, suppressed = 0, 0, 0
+    for fp in _iter_files(target):
         try:
             text = open(fp, encoding="utf-8", errors="replace").read()
         except OSError as e:
@@ -635,12 +985,27 @@ def main(argv):
             continue
         n += 1
         for kind, line, detail in lint_text(text, fp):
+            if allow is not None and allow.suppress((kind, line, detail), fp):
+                suppressed += 1
+                if show_suppressed:
+                    print("  SUPPRESSED %s:%s  %-18s %s" % (os.path.relpath(fp), line, kind, detail))
+                continue
             total += 1
             print("  %s:%s  %-18s %s" % (os.path.relpath(fp), line, kind, detail))
+
+    # transparency: surface what the allowlist dropped, and any stale/malformed entries (no silent caps)
+    if allow is not None:
+        if suppressed:
+            sys.stderr.write("config-lint: %d finding(s) suppressed by allowlist (%s)\n"
+                             % (suppressed, os.path.relpath(allow_source)))
+        for w in allow.warnings():
+            sys.stderr.write("config-lint: %s\n" % w)
+
     if total:
         sys.stderr.write("config-lint: FAIL — %d safety smell(s) across %d file(s)\n" % (total, n))
         return 1
-    print("config-lint: OK — no safety smells in %d file(s)" % n)
+    print("config-lint: OK — no safety smells in %d file(s)%s"
+          % (n, (" (%d suppressed by allowlist)" % suppressed) if suppressed else ""))
     return 0
 
 

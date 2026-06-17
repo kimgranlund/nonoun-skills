@@ -28,13 +28,13 @@ extraction-report card, the inversion doctrine). Everything below is additive.
       `unicodedata.digit` before numeric/date key extraction, on both the source and the value. Both
       are additive (all-ASCII text is byte-identical; an impossible date key never matched anything).
       Locked with must-GROUND + must-NOT-ground (FP-guard) selftest fixtures.
-- [ ] **Configurable weak-grounding floor** — `MIN_TOKENS`/`MIN_CHARS` are currently constants; expose
-      them so a high-recall corpus can tighten or loosen the WEAK_GROUNDING band.
+- [x] **Configurable weak-grounding floor** (0.2.3) — `MIN_TOKENS`/`MIN_CHARS` exposed as
+      `--min-tokens`/`--min-chars` so a high-recall corpus can tighten or loosen the WEAK_GROUNDING band.
 - [ ] **Fuzzy / derivable grounding** — a configurable similarity threshold for near-verbatim spans
       (OCR noise, hyphenation, ligatures), and arithmetic derivation (a `total` that is the *sum* of
       grounded line items, grounded by computation rather than appearance).
-- [ ] **Span emission** — for each grounded scalar, emit the source offset/snippet that grounded it,
-      so a green run also produces A5 provenance instead of only a pass/fail.
+- [x] **Span emission** (0.2.3) — `--spans` emits, for each grounded scalar, the source offset/snippet
+      that grounded it, so a green run also produces A5 provenance instead of only a pass/fail.
 - [ ] **Wrong-span detection (partial)** — when a value grounds at multiple spans, surface the
       ambiguity for the adversarial verifier instead of silently passing the first match.
 - [x] More date/number locales — DD.MM.YYYY-dominant regions (0.2.2), non-ASCII digits (0.2.2), and
