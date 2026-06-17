@@ -1,0 +1,22 @@
+{
+  "schema": {
+    "oneOf": [
+      { "type": "object", "additionalProperties": false, "required": ["tag"],
+        "properties": { "tag": { "const": "loading" } } },
+      { "type": "object", "additionalProperties": false, "required": ["tag", "data"],
+        "properties": { "tag": { "const": "ready" }, "data": { "type": "string" } } },
+      { "type": "object", "additionalProperties": false, "required": ["tag", "error"],
+        "properties": { "tag": { "const": "failed" }, "error": { "type": "string" } } }
+    ]
+  },
+  "legal": [
+    { "tag": "loading" },
+    { "tag": "ready", "data": "ok" },
+    { "tag": "failed", "error": "timed out" }
+  ],
+  "illegal": [
+    { "tag": "loading", "error": "timed out" },
+    { "tag": "ready", "data": "ok", "error": "timed out" },
+    { "tag": "loading", "data": "ok" }
+  ]
+}

@@ -16,6 +16,9 @@
     "references/policy.md",
     "bin/execution-harness.py",
     "bin/test-vacuity-check.py",
+    "examples/walkthrough.md",
+    "examples/test_cart_red.py",
+    "examples/test_cart_green.py",
     "CHANGELOG.md",
     "ROADMAP.md"
   ]

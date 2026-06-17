@@ -16,6 +16,9 @@
     "bin/instance-check.py",
     "bin/model-smells.py",
     "type-decomposer.corpus.json",
+    "examples/walkthrough.md",
+    "examples/request-state.red.json",
+    "examples/request-state.green.json",
     "CHANGELOG.md",
     "ROADMAP.md"
   ]

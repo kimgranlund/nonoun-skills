@@ -1,0 +1,13 @@
+{
+  "component": "x-button",
+  "size": "2XL",
+  "slots": ["icon", "label", "caret"],
+  "height": 64,
+  "icon": 28,
+  "caret": 18,
+  "pad_lead": 18,
+  "pad_trail": 23,
+  "justify": "center",
+  "radius": "pill",
+  "radius_px": 32
+}

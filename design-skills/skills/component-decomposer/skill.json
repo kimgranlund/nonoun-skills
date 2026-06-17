@@ -16,6 +16,9 @@
     "references/family-overlays.md",
     "bin/geometry-check.py",
     "bin/component-contract-check.py",
+    "examples/walkthrough.md",
+    "examples/button-2xl.red.json",
+    "examples/button-2xl.green.json",
     "CHANGELOG.md",
     "ROADMAP.md"
   ]

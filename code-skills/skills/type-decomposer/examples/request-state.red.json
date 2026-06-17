@@ -1,0 +1,19 @@
+{
+  "schema": {
+    "type": "object",
+    "properties": {
+      "loading": { "type": "boolean" },
+      "error":   { "type": "string" },
+      "data":    { "type": "string" }
+    }
+  },
+  "legal": [
+    { "loading": true },
+    { "error": "timed out" },
+    { "data": "ok" }
+  ],
+  "illegal": [
+    { "loading": true, "error": "timed out" },
+    { "data": "ok", "error": "timed out" }
+  ]
+}
