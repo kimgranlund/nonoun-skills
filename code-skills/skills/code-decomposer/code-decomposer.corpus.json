@@ -1,0 +1,38 @@
+{
+  "skill": "code-decomposer",
+  "_note": "Checked-in routing corpus for code-decomposer. CAVEAT: routing-eval measures LEXICAL TOKEN OVERLAP ONLY — it is a legibility aid, not a verdict. The indirect/paraphrase positives (the last 2–3) are deliberately low-overlap to test recall; a lexical miss on them is a PROXY artifact (B4-blindness), NOT a description defect. The negatives are ADVERSARIAL: each is a real trigger for a NAMED confusable sibling. Every *-decomposer here shares the 'decompose / design / grade on two crossing axes' vocabulary, so the family collides on surface tokens by construction. The sharpest collision is component-decomposer (which also says 'design this', 'grade this', 'is it production-ready') — it owns a ZERO-DEP WEB COMPONENT (Custom Element, geometry, FACE), where this skill owns a UNIT OF CODE (function/module/change, SPEC×EXECUTION, tests, the toolchain). query/type/regex-decomposer own SQL/schemas/patterns; the slash-command peers (/code-review, /verify, /simplify) and arch-system own diff-time bug hunting, running the app, quality cleanup, and architecture — all explicitly fenced. The negatives surface exactly these collisions; re-derive when the neighbourhood changes.",
+  "siblings_in_repo": ["component-decomposer", "query-decomposer", "type-decomposer", "regex-decomposer", "layout-decomposer", "config-decomposer", "proof-decomposer", "extraction-decomposer"],
+  "global_peers": ["skills-studio"],
+  "positives": [
+    "decompose and grade this function on the spec and execution axes",
+    "is this parse_duration implementation done and correct",
+    "grade this unit of code against its contract",
+    "are these tests real or are they vacuous",
+    "this module compiles and CI is green but it might solve the wrong problem",
+    "harden the test suite — find the no-assert and mock-only tests",
+    "recover the contract for this code and run the execution ladder",
+    "did the typecheck and test gates actually run green or was it read off",
+    "run a mutation pass and tell me which mutants survive on contract behavior",
+    "specify this change — problem, contract, cases, then declare the execution plan",
+    "probe this spec adversarially for an input that violates the contract",
+    "decide whether this implementation is right before I keep writing it",
+    "is this code green but wrong",
+    "the test suite passes but I don't trust that it pins the actual behavior"
+  ],
+  "negatives": [
+    "design our button component with an icon, label, and caret across sizes",
+    "is this web component production-ready or are the pixels off the ramp",
+    "grade this custom select on the compose and realize axes",
+    "check the geometry of this control against the XS–2XL ramp",
+    "grade this SQL query for grain and read its execution plan",
+    "design a type or schema so it can't admit illegal states",
+    "score this regex for correctness against its test cases",
+    "review this diff for bugs",
+    "run the app and verify this change actually works",
+    "clean up and simplify this code for readability",
+    "architect the system boundaries and data model for this service",
+    "decompose this UI layout into regions and groups",
+    "decompose this Terraform config for drift and safety",
+    "grade a proof on its logic and rigor axes"
+  ]
+}

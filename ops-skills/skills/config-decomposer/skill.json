@@ -15,6 +15,7 @@
     "references/policy.md",
     "bin/config-lint.py",
     "bin/config-harness.py",
+    "config-decomposer.corpus.json",
     "CHANGELOG.md",
     "ROADMAP.md"
   ]

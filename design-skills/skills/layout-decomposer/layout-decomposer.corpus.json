@@ -1,0 +1,38 @@
+{
+  "skill": "layout-decomposer",
+  "_note": "This skill's checked-in routing corpus. Positives cover the invocation families (imperative / diagnostic / object-first / indirect-paraphrase). routing-eval measures LEXICAL TOKEN OVERLAP ONLY — it is a legibility aid, not a verdict. The 3 indirect/paraphrase positives (low lexical overlap: e.g. 'the eye doesn't know where to land', 'a tool you work in vs an app you navigate', 'every button is buried three menus deep') are deliberately low-surface-word; the proxy may score them recall-0 — that is a measurement limit (B4 robustness), NOT a description defect. Negatives are ADVERSARIAL: every *-decomposer sibling shares the 'decompose / design / grade on two axes / regions' vocabulary, so each negative is a REAL request belonging to a NAMED sibling, chosen to surface routing COLLISIONS — plus a few near-misses (visual/color, CSS, copy) and one clearly out-of-domain. Re-derive when the neighbourhood changes.",
+  "siblings_in_repo": ["mermaid-decomposer", "component-decomposer", "code-decomposer", "type-decomposer", "config-decomposer", "query-decomposer", "regex-decomposer", "color-science", "typography-lettering", "figma-plugins"],
+  "global_peers": ["skills-studio"],
+  "positives": [
+    "decompose this UI screenshot into regions",
+    "name the regions in this dashboard mockup",
+    "design an app shell for my editor",
+    "wireframe a saas dashboard layout",
+    "which archetype fits this marketing site",
+    "grade whether this layout is right on both axes",
+    "is this app-shell layout correct",
+    "scaffold the macro-layout for a mobile app with tabs and sheets",
+    "what shell is this — productivity tool or navigated app",
+    "this dashboard — is the frame and region grammar right",
+    "why does this layout feel off and hard to scan",
+    "the eye doesn't know where to land on this screen",
+    "every action works but it all stacks in one unreadable column",
+    "map where each verb lives and whether it has one obvious surface"
+  ],
+  "negatives": [
+    "create a mermaid architecture diagram of these services",
+    "why won't my mermaid sankey diagram render",
+    "decompose and grade this web component's API and geometry",
+    "build a zero-dependency custom select control",
+    "grade this unit of code against its contract and tests",
+    "score this regex for correctness and ReDoS safety",
+    "grade this SQL query for grain and the plan",
+    "decompose this type so it can't admit illegal states",
+    "decompose a Terraform config for secrets and drift",
+    "design a perceptually uniform color palette for this UI",
+    "pick a typeface pairing and tune the lettering",
+    "write the production CSS for this component layout",
+    "build a figma plugin that exports these frames",
+    "rewrite the hero headline copy to convert better"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "skill": "mermaid-decomposer",
+  "_note": "This skill's checked-in routing corpus. Positives cover the invocation families (imperative / diagnostic / object-first / indirect-paraphrase). routing-eval measures LEXICAL TOKEN OVERLAP ONLY — it is a legibility aid, not a verdict. The 3 indirect/paraphrase positives (low lexical overlap: e.g. 'show how these services connect in our deployment', 'this draws but it's faking the wrong relationship', 'the chart claims a flow but the data is really set overlap') are deliberately low-surface-word and may not name 'mermaid' at all; the proxy may score them recall-0 — that is a measurement limit (B4 robustness), NOT a description defect. Negatives are ADVERSARIAL: every *-decomposer sibling shares the 'create / decompose / grade on two axes' vocabulary, so each negative is a REAL request belonging to a NAMED sibling, chosen to surface routing COLLISIONS — plus near-misses (non-mermaid diagramming graphviz/plantuml/d2, rendering-engine hosting, visual taste) and one clearly out-of-domain. Re-derive when the neighbourhood changes.",
+  "siblings_in_repo": ["layout-decomposer", "component-decomposer", "code-decomposer", "type-decomposer", "config-decomposer", "query-decomposer", "regex-decomposer", "color-science", "typography-lettering", "figma-plugins"],
+  "global_peers": ["skills-studio"],
+  "positives": [
+    "create a mermaid sankey diagram for this flow",
+    "which mermaid diagram type fits this data",
+    "make a gantt chart of the project schedule in mermaid",
+    "write an erDiagram for this schema",
+    "make an architecture-beta diagram of our deployment",
+    "why won't my mermaid diagram render in strict mode",
+    "fix this mermaid sankey that won't draw",
+    "is this diagram the right type for what it shows",
+    "decompose this mermaid diagram and grade it on both axes",
+    "this wardley map mermaid — is the type and syntax right",
+    "show how these services connect in our deployment",
+    "this draws fine but it's faking the wrong relationship",
+    "the chart claims a flow but the data is really set overlap",
+    "pick the diagram type then author it render-safe and verify it"
+  ],
+  "negatives": [
+    "decompose this UI screenshot into regions and grade the layout",
+    "design an app shell and wireframe a dashboard",
+    "decompose and grade this web component's API and geometry",
+    "build a zero-dependency custom select control",
+    "grade this unit of code against its contract and tests",
+    "score this regex for correctness and ReDoS safety",
+    "grade this SQL query for grain and the plan",
+    "decompose this type so it can't admit illegal states",
+    "decompose a Terraform config for secrets and drift",
+    "render this graphviz dot file to svg",
+    "convert my plantuml sequence to a d2 diagram",
+    "stand up a server that hosts and renders diagrams for users",
+    "pick a color palette and visual style for this chart",
+    "rewrite this paragraph to be more concise"
+  ]
+}

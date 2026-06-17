@@ -1,0 +1,36 @@
+{
+  "skill": "config-decomposer",
+  "_note": "config-decomposer's checked-in routing corpus. This is a LEXICAL-OVERLAP legibility aid, NOT a verdict — routing-eval.py measures token overlap between a phrase and the description only. Positives span the invocation families (imperative 'review/grade this config', diagnostic 'is this terraform/k8s/Dockerfile right', symptom 'plaintext secrets / wide-open permissions / surprise destroy', object-first 'this manifest', plus 2-3 indirect paraphrases). The indirect/paraphrase positives are deliberately low-overlap and MAY score recall 0 here — that is a proxy limit, not a description defect. Negatives are drawn ADVERSARIALLY from CONFUSABLE in-repo siblings: config collides with code-decomposer (it is NOT application code), type-decomposer (a schema is not a config artifact), and query-decomposer (SQL/DDL), plus near-misses for live-behavior, architecture, and cleanup that the skill explicitly hands off. Each negative belongs to a NAMED sibling or fenced peer. Re-derive when the neighbourhood changes.",
+  "siblings_in_repo": ["code-decomposer", "type-decomposer", "query-decomposer", "proof-decomposer", "routing-decomposer"],
+  "global_peers": ["arch-system", "verify", "simplify"],
+  "positives": [
+    "is this terraform config right",
+    "review this k8s manifest",
+    "is this Dockerfile correct and safe to use",
+    "grade this IaC artifact on the two axes",
+    "will this terraform plan cleanly",
+    "what will this plan actually change when I apply it",
+    "are there plaintext secrets in this config",
+    "this security group has wide-open 0.0.0.0/0 permissions — flag it",
+    "review this config for safety smells",
+    "decompose this CI workflow and tell me if it's right",
+    "is this going to surprise-destroy my database when I apply it",
+    "the image is pinned to :latest and the IAM grant is a wildcard",
+    "I'm not sure this YAML provisions what I actually intended",
+    "is re-applying this manifest idempotent or does it churn"
+  ],
+  "negatives": [
+    "decompose and grade a unit of application code against its contract",
+    "is this function right — check it against the spec",
+    "grade a type or schema so it can't admit illegal states",
+    "check this JSON schema is correct",
+    "grade this SQL query for performance",
+    "review this DDL migration / CREATE TABLE statement",
+    "decompose and grade a deductive argument on two axes",
+    "grade my skill's description for routing precision and recall",
+    "run the system and confirm the feature actually works live",
+    "design the system architecture and pick the right boundaries",
+    "clean up and simplify this code for quality",
+    "score this regex for correctness against test cases"
+  ]
+}

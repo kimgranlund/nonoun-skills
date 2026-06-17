@@ -15,6 +15,7 @@
     "references/policy.md",
     "bin/query-harness.py",
     "bin/sql-lint.py",
+    "query-decomposer.corpus.json",
     "CHANGELOG.md",
     "ROADMAP.md"
   ]

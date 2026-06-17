@@ -11,6 +11,7 @@
     "references/advanced-mermaid-reference.md",
     "references/mermaid-rubric.md",
     "bin/mermaid-render-check.py",
+    "mermaid-decomposer.corpus.json",
     "CHANGELOG.md",
     "ROADMAP.md"
   ]

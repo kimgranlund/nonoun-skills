@@ -15,6 +15,7 @@
     "references/policy.md",
     "bin/groundedness-check.py",
     "bin/schema-check.py",
+    "extraction-decomposer.corpus.json",
     "CHANGELOG.md",
     "ROADMAP.md"
   ]

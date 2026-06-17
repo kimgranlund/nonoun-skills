@@ -1,0 +1,38 @@
+{
+  "skill": "component-decomposer",
+  "_note": "Checked-in routing corpus for component-decomposer. CAVEAT: routing-eval measures LEXICAL TOKEN OVERLAP ONLY — it is a legibility aid, not a verdict. The indirect/paraphrase positives (the last 2–3) are deliberately low-overlap to test recall; a lexical miss on them is a PROXY artifact (B4-blindness), NOT a description defect. The negatives are ADVERSARIAL: each is a real trigger for a NAMED confusable sibling. Every *-decomposer in this repo shares the 'decompose / design / grade on two crossing axes' vocabulary, so the family collides on surface tokens by construction. The sharpest collision is code-decomposer (which also says 'design this', 'grade this', 'is it production-ready') — it owns a UNIT OF CODE (function/module, SPEC×EXECUTION, tests), where this skill owns a ZERO-DEP WEB COMPONENT (Custom Element, geometry, FACE, COMPOSE×REALIZE). layout-decomposer owns the app shell, query/type/regex own SQL/schemas/patterns, and ui-build-components owns the actual code emission. The negatives surface exactly these collisions; re-derive when the neighbourhood changes.",
+  "siblings_in_repo": ["code-decomposer", "layout-decomposer", "mermaid-decomposer", "query-decomposer", "type-decomposer", "regex-decomposer", "config-decomposer", "proof-decomposer"],
+  "global_peers": ["skills-studio"],
+  "positives": [
+    "design our button component with an icon, a label, and a caret across sizes",
+    "decompose this custom select into its parts, API, and geometry",
+    "grade this web component on the compose and realize axes",
+    "is this component production-ready or are the pixels off the ramp",
+    "what are this component's anatomy and API surface",
+    "are the paddings on this button right",
+    "design a zero-dependency modal card with header, body, and actions",
+    "build a custom combobox with no native form element",
+    "is this control form-associated and does it expose ElementInternals",
+    "this switch dies in forced-colors mode and the focus ring is gone",
+    "the icon-only button isn't square — check the geometry against the ramp",
+    "we're standing up a component library and need the layering and contract for each control",
+    "this element sets its own outer margin and it's rotting the whole library",
+    "our popover ignores anchor positioning and the keyboard map is incomplete"
+  ],
+  "negatives": [
+    "decompose and grade this function against its contract on the spec and execution axes",
+    "is this parse_duration implementation done and are the tests real",
+    "grade this code unit — it compiles and CI is green but might solve the wrong problem",
+    "harden this test suite and check for vacuous mock-only tests",
+    "decompose this UI layout into regions and groups and name the shell",
+    "design an app shell and wireframe a saas dashboard",
+    "grade this SQL query for grain and read the execution plan",
+    "design a type or schema so it can't admit illegal states",
+    "score this regex for correctness against its test cases",
+    "decompose this mermaid diagram and grade its layout and semantics",
+    "decompose this Terraform config for drift and safety",
+    "write the actual Lit code for this button component",
+    "extract a color palette and tune the contrast tokens",
+    "grade a proof on its logic and rigor axes"
+  ]
+}

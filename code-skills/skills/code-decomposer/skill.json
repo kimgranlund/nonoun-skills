@@ -7,6 +7,7 @@
   "keywords": ["code-review", "test-quality", "mutation-testing", "test-vacuity", "spec", "contract", "execution", "toolchain", "definition-of-done", "decomposition", "code-rubric", "tdd", "adversarial-verification"],
   "files": [
     "SKILL.md",
+    "code-decomposer.corpus.json",
     "references/decomposition-method.md",
     "references/spec-axis.md",
     "references/execution-axis.md",

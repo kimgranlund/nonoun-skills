@@ -1,0 +1,38 @@
+{
+  "skill": "query-decomposer",
+  "_note": "This skill's checked-in routing corpus. LEXICAL-OVERLAP ONLY — a legibility aid (lists phrase-level routing misses), NOT a verdict on the description: a green F1 here is gameable and a red one may be a proxy artifact. Positives cover the invocation families (imperative / diagnostic / object-first / indirect-paraphrase); the 2–3 indirect paraphrases are deliberately low-overlap and the lexical proxy may MISS them — a measurement limit, not a description defect. Negatives are drawn ADVERSARIALLY from the CONFUSABLE in-repo siblings that share the 'decompose / grade / is this right' vocabulary — chiefly code-decomposer (a unit of code: right + runs) and regex-decomposer (regex/text patterns), the two this skill explicitly fences, plus type-decomposer (the hard collision: schema/DDL design lives next door to SQL), component-decomposer, layout-decomposer, and the global peer skills-studio. Each negative belongs to a NAMED sibling and exists to surface a routing collision. Re-derive when the neighbourhood changes.",
+  "siblings_in_repo": ["code-decomposer", "regex-decomposer", "type-decomposer", "component-decomposer", "layout-decomposer"],
+  "global_peers": ["skills-studio"],
+  "positives": [
+    "write a SQL query for total paid revenue per customer last quarter",
+    "is this SQL query right",
+    "decompose this query and recover what question it actually answers",
+    "is the grain right or will this join fan out",
+    "why does this query return too many rows",
+    "this revenue-per-customer report doubles every number, prove the grain",
+    "grade this query on the semantics and execution axes",
+    "run EXPLAIN on this and read the plan for a cartesian explosion",
+    "does this query bind or did I hallucinate a column name",
+    "grade this query for performance and safety",
+    "is this aggregation at the right grain or is it double-counting",
+    "the dashboard total doesn't reconcile with the source numbers",
+    "check this SELECT for an implicit cross join and a missing WHERE on the DELETE",
+    "build a query-spec card with the question, grain, and tables for this report"
+  ],
+  "negatives": [
+    "decompose and grade a unit of code against its contract",
+    "is this function right and does it pass its tests",
+    "grade this implementation on the spec and execution axes",
+    "harden this test suite against vacuous green tests",
+    "decompose and grade a type or schema so it can't admit illegal states",
+    "grade this SQL DDL and the domain model it encodes",
+    "design the schema and tighten it so impossible states are unrepresentable",
+    "is this regex right and will it ReDoS",
+    "grade this regular expression's match safety",
+    "decompose and grade a web component's API and geometry",
+    "decompose this UI layout into regions and groups",
+    "design the system boundaries and data model for this service",
+    "author a whole new skill from scratch end to end",
+    "grade my skill's frontmatter description for routing accuracy"
+  ]
+}

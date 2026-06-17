@@ -1,0 +1,38 @@
+{
+  "skill": "type-decomposer",
+  "_note": "This skill's checked-in routing corpus. WHAT IT IS: a LEXICAL-OVERLAP legibility aid, NOT a verdict — routing-eval scores surface token overlap only (see meta-skills/skills/routing-decomposer). Positives span the invocation families (imperative / diagnostic 'is this sound' / symptom 'illegal state can exist' / object-first 'review this data model' / indirect-paraphrase 'make illegal states unrepresentable'); the indirect/paraphrase positives are deliberately low-overlap and the proxy MAY MISS them — that is a measurement limit, not a description defect. Negatives are drawn ADVERSARIALLY from CONFUSABLE in-repo siblings to surface precision collisions: type-decomposer collides hardest with query-decomposer (SQL/DDL — type also accepts SQL DDL as a target) and extraction-decomposer — NOTE EXPLICITLY: type AND extraction BOTH involve JSON Schema (type runs legal/illegal instance sets against a schema; extraction runs schema-check against an extraction), so a bare 'JSON Schema' request is a real collision and both fences must hold. type also brushes code-decomposer (a unit of code that USES the type) and arch-system (system boundaries). Re-derive when the neighbourhood changes.",
+  "siblings_in_repo": ["query-decomposer", "extraction-decomposer", "code-decomposer", "config-decomposer", "regex-decomposer", "proof-decomposer", "component-decomposer", "layout-decomposer"],
+  "global_peers": ["skills-studio", "arch-system"],
+  "positives": [
+    "is this type sound",
+    "is this schema sound",
+    "can an illegal state exist here",
+    "review this data model",
+    "make illegal states unrepresentable",
+    "grade this domain model",
+    "tighten this type so impossible states can't exist",
+    "does this type model only the legal states",
+    "design a domain model for this",
+    "decompose this schema into the state space it admits",
+    "this type has two booleans and two optionals — is the state space too wide",
+    "prove no illegal instance validates against this schema",
+    "my RequestState type allows loading and error at the same time, fix the model",
+    "is this protobuf modelling the domain or just bagging optional fields"
+  ],
+  "negatives": [
+    "grade this SQL query for performance",
+    "decompose this SELECT and its join logic",
+    "is this DDL query plan efficient",
+    "is this extraction faithful to the source document",
+    "did the LLM invent values in this JSON extraction",
+    "grade this extracted JSON against the source document",
+    "decompose and grade a unit of code against its contract",
+    "review this function for bugs and edge cases",
+    "score this regex for correctness against test cases",
+    "decompose a Terraform config for drift and safety",
+    "design the system boundaries and where this state should live",
+    "decompose this UI layout into regions and groups",
+    "author a whole new skill from scratch end to end",
+    "grade this mermaid diagram for layout and readability"
+  ]
+}

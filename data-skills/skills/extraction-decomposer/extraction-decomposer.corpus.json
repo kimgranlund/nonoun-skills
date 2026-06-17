@@ -1,0 +1,38 @@
+{
+  "skill": "extraction-decomposer",
+  "_note": "This skill's checked-in routing corpus. WHAT IT IS: a LEXICAL-OVERLAP legibility aid, NOT a verdict — routing-eval scores surface token overlap only (see meta-skills/skills/routing-decomposer). Positives span the invocation families (imperative / diagnostic 'is this extraction faithful' / symptom 'the model invented values' / object-first 'grade this JSON against the document' / indirect-paraphrase 'is this structured output hallucinated'); the indirect/paraphrase positives are deliberately low-overlap and the proxy MAY MISS them — a measurement limit, not a description defect. Negatives are drawn ADVERSARIALLY from CONFUSABLE in-repo siblings to surface precision collisions: extraction-decomposer collides hardest with type-decomposer — NOTE EXPLICITLY: extraction AND type BOTH involve JSON Schema (extraction runs schema-check against an LLM extraction; type runs legal/illegal instance sets against a schema to make illegal states unrepresentable), so a bare 'JSON Schema' or 'validate this against the schema' request is a real collision and both fences must hold. extraction also collides with query-decomposer (SQL/DDL) and code-decomposer (a unit of code). Re-derive when the neighbourhood changes.",
+  "siblings_in_repo": ["type-decomposer", "query-decomposer", "code-decomposer", "config-decomposer", "regex-decomposer", "proof-decomposer", "component-decomposer", "layout-decomposer"],
+  "global_peers": ["skills-studio"],
+  "positives": [
+    "is this extraction faithful to the source",
+    "did the model invent values",
+    "grade this JSON against the document",
+    "is this structured output hallucinated",
+    "are any fields in this extraction made up",
+    "decompose this extraction against its source document",
+    "is this extracted invoice data grounded in the source",
+    "design an extraction schema with the allow-null-over-hallucinate rule",
+    "hunt the hallucinated fields in this extracted JSON",
+    "is this extraction production-ready",
+    "the LLM pulled a name the document never mentions, catch it",
+    "every value here looks plausible but is it actually in the document",
+    "grade this LLM's structured output for groundedness",
+    "the schema check passes but is the data true to the source"
+  ],
+  "negatives": [
+    "is this type sound and does it make illegal states unrepresentable",
+    "review this data model for impossible states",
+    "validate these instances against the JSON schema",
+    "tighten this schema so a boolean-blind state can't exist",
+    "grade this SQL query for performance",
+    "decompose this SELECT and its join logic",
+    "is this DDL query plan efficient",
+    "decompose and grade a unit of code against its contract",
+    "review this function for bugs and edge cases",
+    "score this regex for correctness against test cases",
+    "decompose a Terraform config for drift and safety",
+    "decompose this UI layout into regions and groups",
+    "author a whole new skill from scratch end to end",
+    "audit our stored database records for stale rows"
+  ]
+}

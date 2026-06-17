@@ -1,0 +1,38 @@
+{
+  "skill": "typography-lettering",
+  "_note": "This skill's checked-in routing corpus. NOTE: typography-lettering is a REFERENCE skill — it ANSWERS, compares, and explains type questions and points at peers (ui-compose-typography for tokens/scale math, ui-verify-i18n for locale) for output; it does NOT generate tokens or grade on two axes. Its frontmatter uses ## Invocation + domain sections, not the decomposer template, but the corpus still applies: does the description route on real typography questions and hold against siblings? Positives span the invocation families (classification, anatomy/metrics, scripts/diacritics, modern CSS text surface + OpenType/variable axes, legibility/accessibility, pairing) plus 2-3 indirect/symptom paraphrases. Negatives are drawn ADVERSARIALLY from real in-repo siblings — component-decomposer (web-component API/geometry, explicitly NOT type), layout-decomposer (UI structure), color-science (the sister reference skill — color, not type) — plus GENERATE/grade requests that a builder or decomposer owns (a reference skill answers; it does not emit a type scale, build a token sheet, or grade two axes). IMPORTANT: routing-eval measures LEXICAL TOKEN OVERLAP only — it is a legibility aid, not a verdict. The indirect/symptom positives deliberately share few surface words and may score recall 0.000; that is a proxy limit (paraphrase-blindness), not a description defect. Re-derive when the neighbourhood changes.",
+  "siblings_in_repo": ["color-science", "layout-decomposer", "component-decomposer", "mermaid-decomposer"],
+  "global_peers": ["skills-studio", "ui-compose-typography", "ui-verify-i18n"],
+  "positives": [
+    "what classification is this typeface — Vox-ATypI or Bringhurst category",
+    "explain the difference between x-height and cap-height",
+    "which script needs special handling — Arabic contextual forms or Devanagari conjuncts",
+    "what diacritics and niqqud rules apply when setting Hebrew",
+    "should I use text-wrap pretty or balance for this paragraph",
+    "how do I wire the variable-font wght wdth and opsz axes",
+    "which OpenType features turn on small caps and oldstyle figures",
+    "how do I build a metric-compatible fallback stack with font-size-adjust",
+    "is this body type accessible for dyslexic and low-vision readers",
+    "how should I pair a serif heading with a sans body font",
+    "why does my fallback font cause a layout shift on swap",
+    "what's the right measure or characters-per-line for readability",
+    "what does leading-trim or text-box-trim actually do",
+    "explain optical size and when font-optical-sizing auto matters"
+  ],
+  "negatives": [
+    "decompose and grade this web component's prop API and geometry (component-decomposer)",
+    "decompose this UI layout into regions and groups (layout-decomposer)",
+    "design an app shell and wireframe a dashboard (layout-decomposer)",
+    "what color space for perceptual palette manipulation — OKLCH or CIELAB (color-science)",
+    "is this contrast accessible under APCA and simulate it for color blindness (color-science)",
+    "generate a modular type scale and emit it as design tokens (ui-compose-typography / generate)",
+    "build me a token sheet of font-size custom properties (ui-build-tokens / generate)",
+    "format these dates and numbers for the de-DE locale (ui-verify-i18n / generate)",
+    "grade this skill's frontmatter description for routing precision and recall (routing-decomposer)",
+    "render a mermaid diagram of the font-loading pipeline (mermaid-decomposer)",
+    "score this regex for correctness against test cases (regex-decomposer)",
+    "author a whole new skill from scratch end to end (skills-studio)",
+    "decompose and grade a unit of code against its contract (code-decomposer)",
+    "convert OKLCH to sRGB and check the gamut (color-science)"
+  ]
+}

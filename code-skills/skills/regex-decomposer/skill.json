@@ -14,6 +14,7 @@
     "references/dialects.md",
     "references/policy.md",
     "bin/regex-check.py",
+    "regex-decomposer.corpus.json",
     "CHANGELOG.md",
     "ROADMAP.md"
   ]

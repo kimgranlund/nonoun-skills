@@ -1,0 +1,35 @@
+{
+  "skill": "proof-decomposer",
+  "_note": "proof-decomposer's checked-in routing corpus. This is a LEXICAL-OVERLAP legibility aid, NOT a verdict — routing-eval.py measures token overlap between a phrase and the description only. Positives span the invocation families (imperative 'state/grade this proof', diagnostic 'is this valid', symptom 'circular step / find a counterexample', object-first 'this argument', plus 2-3 indirect paraphrases). The indirect/paraphrase positives are deliberately low-overlap and MAY score recall 0 here — that is a proxy limit, not a description defect. Negatives are drawn ADVERSARIALLY from CONFUSABLE in-repo siblings: proof shares 'is this right / check this / decompose & grade on two axes' with code-decomposer (a unit of code) and type-decomposer (types/schemas) but is otherwise distinct, plus a math-but-out-of-scope item (theorem-proving / primality search) the skill explicitly DEFERS — it grades a GIVEN argument, never searches for one. Each negative belongs to a NAMED sibling. Re-derive when the neighbourhood changes.",
+  "siblings_in_repo": ["code-decomposer", "type-decomposer", "config-decomposer", "query-decomposer", "regex-decomposer", "routing-decomposer"],
+  "positives": [
+    "is this proof valid",
+    "check this argument — does it actually prove the claim",
+    "state and plan a proof that n(n+1) is even for all n",
+    "grade this deductive argument on the two axes",
+    "decompose this proof and tell me if it's rigorous",
+    "is there a circular step in this proof",
+    "this step cites a lemma that was never proved",
+    "find a counterexample to this claim",
+    "does this proof prove a weaker statement than it claims",
+    "is the citation graph of this proof acyclic and does it reach the goal",
+    "the induction base case looks shaky — check it",
+    "is this proof by contradiction actually deriving a contradiction",
+    "every step reads fine but I don't trust the conclusion — verify it",
+    "I think the proof quietly dropped a hypothesis somewhere"
+  ],
+  "negatives": [
+    "decompose and grade a unit of code against its contract",
+    "is this function right — check it against the spec",
+    "grade a type or schema so it can't admit illegal states",
+    "check this type definition is correct",
+    "score this regex for correctness against test cases",
+    "grade this SQL query for performance and correctness",
+    "decompose a Terraform config for drift and safety",
+    "grade my skill's description for routing precision and recall",
+    "prove that 2^61 - 1 is prime for me",
+    "search for and produce a proof of this open conjecture",
+    "run a theorem prover / SMT solver on these constraints",
+    "is this code function's execution correct"
+  ]
+}

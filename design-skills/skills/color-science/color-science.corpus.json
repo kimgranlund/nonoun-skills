@@ -1,0 +1,38 @@
+{
+  "skill": "color-science",
+  "_note": "This skill's checked-in routing corpus. NOTE: color-science is a REFERENCE skill — it ANSWERS color questions and points at a peer (ui-verify-color) for output; it does NOT generate palettes/tokens or grade on two axes. Its frontmatter uses ## Invocation + domain sections, not the decomposer template, but the corpus still applies: does the description route on real color questions and hold against siblings? Positives span the invocation families (color spaces/conversions, accessibility/contrast, palettes, CSS color, perception/CVD, naming, pigment/history) plus 2-3 indirect/symptom paraphrases. Negatives are drawn ADVERSARIALLY from real in-repo siblings — component-decomposer (web-component API/geometry, explicitly NOT color), layout-decomposer (UI structure), typography-lettering (the sister reference skill — type, not color) — plus GENERATE/grade requests that a builder or decomposer owns (a reference skill answers; it does not build a palette component, extract tokens, or grade two axes). IMPORTANT: routing-eval measures LEXICAL TOKEN OVERLAP only — it is a legibility aid, not a verdict. The indirect/symptom positives deliberately share few surface words and may score recall 0.000; that is a proxy limit (paraphrase-blindness), not a description defect. Re-derive when the neighbourhood changes.",
+  "siblings_in_repo": ["typography-lettering", "layout-decomposer", "component-decomposer", "mermaid-decomposer"],
+  "global_peers": ["skills-studio", "ui-verify-color"],
+  "positives": [
+    "what color space should I use for perceptual palette manipulation",
+    "convert this OKLCH color to sRGB",
+    "is this text-on-background contrast accessible under APCA",
+    "does this color pair pass WCAG 2.2 AA for body text",
+    "what's the difference between chroma and saturation",
+    "why do these two colors clash when I put them side by side",
+    "simulate this palette for protanopia and deuteranopia color blindness",
+    "what's the gamut-aware way to pick colors like HSL but perceptually uniform",
+    "which CSS color syntax should I use — color-mix in oklab or relative color",
+    "explain how Kubelka-Munk pigment mixing differs from RGB averaging",
+    "what is the ISCC-NBS or Munsell name for this hex value",
+    "why does my gradient look muddy in the middle",
+    "are these brand colors readable for low-vision users",
+    "what's the modern standard for contrast — APCA versus the legal floor"
+  ],
+  "negatives": [
+    "decompose and grade this web component's prop API and geometry (component-decomposer)",
+    "decompose this UI layout into regions and groups (layout-decomposer)",
+    "design an app shell and wireframe a dashboard (layout-decomposer)",
+    "what's this typeface classification — is it humanist or geometric sans (typography-lettering)",
+    "explain x-height versus cap-height and metric-compatible fallback stacks (typography-lettering)",
+    "build me a reusable color-palette picker component (ui-build-components / generate)",
+    "extract the design tokens from this screenshot as CSS custom properties (extract-ui-css / generate)",
+    "generate an OKLCH ramp and emit it as a token sheet (ui-build-tokens / generate)",
+    "grade this skill's frontmatter description for routing precision and recall (routing-decomposer)",
+    "render a mermaid diagram of our color pipeline (mermaid-decomposer)",
+    "score this regex for correctness against test cases (regex-decomposer)",
+    "author a whole new skill from scratch end to end (skills-studio)",
+    "decompose and grade a unit of code against its contract (code-decomposer)",
+    "wire the variable-font wght and opsz axes for this heading (typography-lettering)"
+  ]
+}

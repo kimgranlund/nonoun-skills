@@ -15,6 +15,7 @@
     "references/policy.md",
     "bin/proof-structure-check.py",
     "bin/numeric-spotcheck.py",
+    "proof-decomposer.corpus.json",
     "CHANGELOG.md",
     "ROADMAP.md"
   ]

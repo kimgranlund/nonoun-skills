@@ -1,0 +1,38 @@
+{
+  "skill": "regex-decomposer",
+  "_note": "This skill's checked-in routing corpus. LEXICAL-OVERLAP ONLY — a legibility aid (lists phrase-level routing misses), NOT a verdict on the description: a green F1 here is gameable and a red one may be a proxy artifact. Positives cover the invocation families (imperative / diagnostic / object-first / indirect-paraphrase); the 2–3 indirect paraphrases are deliberately low-overlap and the lexical proxy may MISS them — that is a measurement limit, not a description defect. Negatives are drawn ADVERSARIALLY from the CONFUSABLE in-repo siblings that share the 'decompose / grade / is this right' vocabulary — chiefly code-decomposer (a unit of code: right + runs) and query-decomposer (SQL), the two this skill explicitly fences, plus type-decomposer (types/schemas), component-decomposer, layout-decomposer, and the global peer skills-studio. Each negative belongs to a NAMED sibling and exists to surface a routing collision. Re-derive when the neighbourhood changes.",
+  "siblings_in_repo": ["code-decomposer", "query-decomposer", "type-decomposer", "component-decomposer", "layout-decomposer"],
+  "global_peers": ["skills-studio"],
+  "positives": [
+    "write a regex that matches an ISO date",
+    "is this regex right",
+    "grade this regular expression on both axes",
+    "decompose this pattern and recover what it matches",
+    "will this pattern ReDoS on a crafted input",
+    "harden this regex against catastrophic backtracking",
+    "does this pattern accept strings the spec forbids",
+    "is my regex anchored or is it over-matching a substring",
+    "what does this regex even match",
+    "grade this pattern's safety against nested quantifiers",
+    "check this pattern compiles and matches every example",
+    "this regex passes my examples but I think it means the wrong language",
+    "the email validation keeps hanging on long inputs, can you look at it",
+    "build a pattern-spec card with positives and negatives for this matcher"
+  ],
+  "negatives": [
+    "decompose and grade a unit of code against its contract",
+    "is this function right and does it pass its tests",
+    "grade this implementation on the spec and execution axes",
+    "harden this test suite against vacuous green tests",
+    "is this SQL query right",
+    "grade this query for performance and check the grain",
+    "why does this query return too many rows",
+    "decompose and grade a type or schema so it can't admit illegal states",
+    "tighten this JSON Schema so impossible states are unrepresentable",
+    "grade this SQL DDL and the domain model it encodes",
+    "decompose and grade a web component's API and geometry",
+    "decompose this UI layout into regions and groups",
+    "author a whole new skill from scratch end to end",
+    "grade my skill's frontmatter description for routing accuracy"
+  ]
+}

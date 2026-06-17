@@ -15,6 +15,7 @@
     "references/policy.md",
     "bin/instance-check.py",
     "bin/model-smells.py",
+    "type-decomposer.corpus.json",
     "CHANGELOG.md",
     "ROADMAP.md"
   ]
