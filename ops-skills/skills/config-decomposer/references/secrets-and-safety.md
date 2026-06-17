@@ -38,6 +38,13 @@ Run it: `python3 bin/config-lint.py <file|dir>` — nonzero exit on any finding.
 is a policy engine (`checkov`, `conftest`/OPA, `tfsec`, `kube-score`) wired as the harness `policy`
 phase.
 
+Add `--json` (parse-anywhere; composes with `--ignore`) for a machine-readable report — the shared
+`{tool, ok, summary, findings:[{kind, severity, location, message}]}` object GRADE/CI folds into the
+report card's `safety_findings[]`. Security smells report at severity `fail`, advisory smells
+(`UNPINNED_VERSION`/`NO_RESOURCE_LIMITS`) and stale-allowlist WARNs at `warn`. A finding **suppressed by
+the allowlist is not in `findings`** (as in the human mode) but its **count rides in `summary`**. The
+flag prints only the JSON to stdout and leaves the exit code unchanged.
+
 ### The reference / placeholder guard (why it isn't noisy)
 
 The plaintext-secret check fires only on a **literal** value. It explicitly does *not* flag a value

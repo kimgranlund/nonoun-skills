@@ -1,6 +1,6 @@
 {
   "name": "config-decomposer",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "status": "beta",
   "target": "both",
   "description": "Decompose, design, and grade a configuration / infrastructure-as-code artifact (YAML/HCL/JSON/TOML — CI configs, Terraform, k8s manifests, Dockerfiles, app config) on two crossing axes — INTENT (desired-state → contract → cases → drift → fit) and VALIDITY (parse → schema → plan → safety → observability) — scored separately so a config that validates can't hide one that provisions the wrong thing. Doctrine: the PLAN is the contract — a config's behavior is its diff against current state, not its text. VALIDITY routes to the tool's own validate/plan; a missing tool is a SKIP, not a pass. Mechanizable safety smells — plaintext secrets, :latest, 0.0.0.0/0, wildcard grants, missing limits — route to a static linter. Use when authoring a config, grading an IaC artifact, or catching a surprise-destroy / valid-but-wrong drift. NOT for application code (code-decomposer), a correct JSON Schema / type / data model (type-decomposer), a deductive argument / proof (proof-decomposer), /verify, arch-system, /simplify.",

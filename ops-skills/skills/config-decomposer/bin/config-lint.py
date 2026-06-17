@@ -27,8 +27,21 @@ Smell kinds:
   python3 bin/config-lint.py <file | dir>
   python3 bin/config-lint.py --ignore <allowlist> <file | dir>
   python3 bin/config-lint.py --show-suppressed <file | dir>
+  python3 bin/config-lint.py --json <file | dir>          # machine-readable report (composes with --ignore)
 
 Nonzero exit on any finding. Python 3.8+.
+
+MACHINE-READABLE REPORT (--json; additive reporting flag, parse-anywhere, composes with --ignore) -----
+`--json` prints ONE report object to stdout and NOTHING else there — the shared schema every lint bin
+emits, so GRADE/CI can fold structured safety findings into the report card's `safety_findings[]`:
+  {"tool": "config-lint", "ok": <bool>, "summary": "<one line>",
+   "findings": [{"kind", "severity": fail|warn, "location": "line:N", "message"}, ...]}
+`ok` is true iff no un-suppressed finding (the exact condition that gives exit 0 in human mode). A
+security smell (plaintext/URL/base64/heredoc secret, open-net, wildcard grant, k8s-unsafe,
+world-writable) maps to severity `fail`; an advisory smell (unpinned version, no-resource-limits) and a
+stale-allowlist WARN map to `warn`. A finding SUPPRESSED by the allowlist is NOT in `findings` (exactly
+as in human mode) but its count is reported in `summary`. The exit code is UNCHANGED by --json (it is a
+reporting flag, not a behavior change). Without --json, output + exit are byte-identical to before.
 
 ALLOWLIST / BASELINE (opt-in; default behavior is byte-identical to no allowlist) -------------------
 A reviewed, accepted finding can be suppressed without disabling the smell globally. Pass an explicit
@@ -48,6 +61,7 @@ but not `myapp/db.yaml`; a bare filename `db.yaml` matches any `…/db.yaml`. Th
 equal the finding's line. An entry that matches NOTHING is reported as a `WARN: stale allowlist entry`
 so the baseline doesn't rot; a malformed line is reported as a `WARN` and skipped (never a crash).
 """
+import json
 import os
 import re
 import sys
@@ -617,6 +631,107 @@ def selftest():
             errs.append("api.Dockerfile content not linted for :latest")
 
     errs.extend(_selftest_allowlist())
+    errs.extend(_selftest_json())
+    return errs
+
+
+def _selftest_json():
+    """The --json report path: run a dirty + a clean fixture through the report builder + the stdout
+    path, json.loads it back, and assert the shared schema. Also exercises allowlist suppression
+    composing with --json (a suppressed finding is NOT in `findings`, its count rides in `summary`)."""
+    import io
+    import contextlib
+    import tempfile
+    errs = []
+
+    def _capture(target, ignore_path=None):
+        """Run main(['--json', ...]) over a real target, capturing stdout, and json.loads it."""
+        argv = ["--json"]
+        if ignore_path is not None:
+            argv += ["--ignore", ignore_path]
+        argv += [target]
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            rc = main(argv)
+        return rc, out.getvalue()
+
+    def _assert_schema(rep, want_ok, want_nonempty, label):
+        if not isinstance(rep, dict):
+            errs.append("--json %s: report is not a dict" % label); return
+        if rep.get("tool") != "config-lint":
+            errs.append("--json %s: tool=%r, want 'config-lint'" % (label, rep.get("tool")))
+        if rep.get("ok") is not want_ok:
+            errs.append("--json %s: ok=%r, want %r" % (label, rep.get("ok"), want_ok))
+        if not isinstance(rep.get("summary"), str) or not rep["summary"]:
+            errs.append("--json %s: summary missing/empty" % label)
+        f = rep.get("findings")
+        if not isinstance(f, list):
+            errs.append("--json %s: findings not a list" % label); return
+        if want_nonempty and not f:
+            errs.append("--json %s: findings should be non-empty" % label)
+        if not want_nonempty and f:
+            errs.append("--json %s: findings should be [] on clean input, got %s" % (label, f))
+        for fd in f:
+            if not isinstance(fd, dict) or any(k not in fd for k in ("kind", "severity", "location", "message")):
+                errs.append("--json %s: a finding is missing a required key: %r" % (label, fd))
+            elif fd["severity"] not in ("fail", "warn", "advisory"):
+                errs.append("--json %s: bad severity %r" % (label, fd["severity"]))
+
+    with tempfile.TemporaryDirectory() as d:
+        # dirty: BAD_SECRET ⇒ a PLAINTEXT_SECRET (a security smell ⇒ severity fail), ok false, exit 1.
+        dirty = os.path.join(d, "secrets.yaml")
+        with open(dirty, "w", encoding="utf-8") as fh:
+            fh.write(BAD_SECRET)
+        rc, out = _capture(dirty)
+        try:
+            rep = json.loads(out)
+        except ValueError as e:
+            errs.append("--json dirty: stdout is not valid JSON (%s): %r" % (e, out)); rep = {}
+        _assert_schema(rep, False, True, "dirty")
+        if rc != 1:
+            errs.append("--json dirty: exit code should match human mode (1), got %d" % rc)
+        if rep and not any(fd["kind"] == "PLAINTEXT_SECRET" and fd["severity"] == "fail"
+                           for fd in rep.get("findings", [])):
+            errs.append("--json dirty: expected a PLAINTEXT_SECRET fail finding, got %s"
+                        % rep.get("findings"))
+
+        # clean: CLEAN ⇒ no findings, ok true, exit 0, findings [].
+        clean = os.path.join(d, "clean.yaml")
+        with open(clean, "w", encoding="utf-8") as fh:
+            fh.write(CLEAN)
+        rc, out = _capture(clean)
+        try:
+            rep = json.loads(out)
+        except ValueError as e:
+            errs.append("--json clean: stdout is not valid JSON (%s): %r" % (e, out)); rep = {}
+        _assert_schema(rep, True, False, "clean")
+        if rc != 0:
+            errs.append("--json clean: exit code should match human mode (0), got %d" % rc)
+
+        # advisory severity: a `:latest` image (UNPINNED_VERSION) maps to severity `warn`, not `fail`.
+        latest = os.path.join(d, "Dockerfile")
+        with open(latest, "w", encoding="utf-8") as fh:
+            fh.write(BAD_LATEST)
+        rc, out = _capture(latest)
+        rep = json.loads(out)
+        sev = {fd["kind"]: fd["severity"] for fd in rep["findings"]}
+        if sev.get("UNPINNED_VERSION") != "warn":
+            errs.append("--json advisory: UNPINNED_VERSION should map to severity 'warn', got %r"
+                        % sev.get("UNPINNED_VERSION"))
+
+        # composes with --ignore: an allowlist suppressing the only finding ⇒ ok true, findings [],
+        # exit 0, and the suppressed COUNT appears in `summary` (not in `findings`).
+        ig = os.path.join(d, "allow.txt")
+        with open(ig, "w", encoding="utf-8") as fh:
+            fh.write("PLAINTEXT_SECRET\n")
+        rc, out = _capture(dirty, ignore_path=ig)
+        rep = json.loads(out)
+        _assert_schema(rep, True, False, "suppressed")
+        if rc != 0:
+            errs.append("--json suppressed: exit should be 0 when the only finding is suppressed, got %d" % rc)
+        if "suppressed by allowlist" not in rep.get("summary", ""):
+            errs.append("--json suppressed: the suppressed count must appear in summary, got %r"
+                        % rep.get("summary"))
     return errs
 
 
@@ -917,6 +1032,65 @@ def _discover_ignore_file(scan_path):
     return None
 
 
+# --- machine-readable report (--json) ----------------------------------------------------------
+# ONE shared schema across every lint bin: {tool, ok, summary, findings:[{kind, severity, location,
+# message}]}. severity = `fail` for the security smells, `warn` for the advisory smells + stale-allowlist
+# WARNs. A finding suppressed by the allowlist is NOT in `findings` (as in human mode); its count rides
+# in `summary`. `ok` is true iff no un-suppressed finding (the exact exit-0 condition of human mode).
+_ADVISORY_KINDS = frozenset({"UNPINNED_VERSION", "NO_RESOURCE_LIMITS"})
+
+
+def _severity_for(kind):
+    """`warn` for the advisory (reproducibility / coarse) smells, `fail` for the security smells."""
+    return "warn" if kind in _ADVISORY_KINDS else "fail"
+
+
+def build_config_report(reported, suppressed, stale_warns):
+    """Build the JSON report. `reported` is the list of (kind, line, detail) findings that were NOT
+    suppressed (the ones human mode prints); `suppressed` is the count dropped by the allowlist;
+    `stale_warns` is the list of stale/malformed allowlist WARN strings (each a `warn` finding with a
+    null location). `ok` is true iff there is no un-suppressed finding — matching the human exit code."""
+    out = []
+    for kind, line, detail in reported:
+        out.append({"kind": kind, "severity": _severity_for(kind),
+                    "location": "line:%d" % line, "message": detail})
+    for w in stale_warns:
+        out.append({"kind": "STALE_ALLOWLIST", "severity": "warn", "location": None, "message": w})
+    ok = not reported          # advisory allowlist WARNs do not block; only real findings do
+    smell_n = len(reported)
+    if smell_n:
+        summary = "%d safety smell(s)" % smell_n
+    else:
+        summary = "no safety smells"
+    if suppressed:
+        summary += " (%d suppressed by allowlist)" % suppressed
+    if stale_warns:
+        summary += " (%d stale/malformed allowlist entr%s)" % (len(stale_warns),
+                                                               "y" if len(stale_warns) == 1 else "ies")
+    return {"tool": "config-lint", "ok": ok, "summary": summary, "findings": out}
+
+
+def _run_json(target, allow):
+    """`--json` mode: scan `target`, apply `allow` (an Allowlist or None), emit ONE report object to
+    stdout, and return the human exit code (1 if any un-suppressed finding, else 0). Composes with the
+    resolved allowlist exactly as the human path does — suppressed findings are dropped, not reported."""
+    reported, suppressed = [], 0
+    for fp in _iter_files(target):
+        try:
+            text = open(fp, encoding="utf-8", errors="replace").read()
+        except OSError:
+            continue
+        for kind, line, detail in lint_text(text, fp):
+            if allow is not None and allow.suppress((kind, line, detail), fp):
+                suppressed += 1
+                continue
+            reported.append((kind, line, detail))
+    stale_warns = allow.warnings() if allow is not None else []
+    rep = build_config_report(reported, suppressed, stale_warns)
+    print(json.dumps(rep, indent=2))
+    return 0 if rep["ok"] else 1
+
+
 def main(argv):
     if not argv or argv[0] == "selftest":
         errs = selftest()
@@ -935,6 +1109,7 @@ def main(argv):
     # parse the opt-in allowlist flags (additive — no flag + no discovered file ⇒ legacy behavior)
     ignore_path = None
     show_suppressed = False
+    as_json = False
     rest = []
     i = 0
     while i < len(argv):
@@ -952,6 +1127,10 @@ def main(argv):
             continue
         if a == "--show-suppressed":
             show_suppressed = True
+            i += 1
+            continue
+        if a == "--json":           # parse-anywhere reporting flag; composes with --ignore
+            as_json = True
             i += 1
             continue
         rest.append(a)
@@ -975,6 +1154,10 @@ def main(argv):
         if discovered is not None:
             allow = Allowlist.from_file(discovered)
             allow_source = discovered
+
+    # --json: emit the shared report object (composes with the resolved allowlist) and exit as human mode.
+    if as_json:
+        return _run_json(target, allow)
 
     total, n, suppressed = 0, 0, 0
     for fp in _iter_files(target):

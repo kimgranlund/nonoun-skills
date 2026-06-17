@@ -215,7 +215,17 @@ python3 bin/groundedness-check.py selftest                                 # pro
 python3 bin/groundedness-check.py extraction.json source.txt               # nonzero exit on any ungrounded scalar
 python3 bin/groundedness-check.py extraction.json source.txt cues.json [--window N]
                                                                            # + opt-in proximity (WEAK_CONTEXT advisory)
+python3 bin/groundedness-check.py extraction.json source.txt --json        # machine-readable report (composes with the above)
 ```
+
+`--json` (parse-anywhere; composes with `cues.json` / `--window` / `--spans` / `--min-chars` /
+`--min-tokens`) prints the shared `{tool, ok, summary, findings:[{kind, severity, location, message}]}`
+object GRADE/CI folds into the report card's `groundedness_findings[]` — one finding per scalar with
+`location` = its `$.path`. `UNGROUNDED`/`EMPTY` report at severity `fail`, `WEAK_GROUNDING`/`WEAK_CONTEXT`
+at `advisory`; `ok` is true iff no `UNGROUNDED`/`EMPTY`. With `--spans`, a `provenance[]` list carries a
+`span` field per grounded scalar. The flag prints only the JSON to stdout and leaves the exit code
+unchanged (it still fails on any `UNGROUNDED`/`WEAK_GROUNDING`/`EMPTY`, so the `--json` `ok` and the
+process exit can legitimately differ on a WEAK-only run).
 
 The output lists every finding with its kind, JSON path, and value: `UNGROUNDED` (no rung matched —
 a likely hallucination), `WEAK_GROUNDING` (a short value that token-matched — verify manually),

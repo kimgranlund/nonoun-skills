@@ -81,7 +81,20 @@ spans emits the FIRST and notes the count. Without --spans, output and exit are 
 --min-tokens N / --min-chars N (ADDITIVE, OPT-IN): the WEAK_GROUNDING floor — a string value whose only
 grounding is below BOTH floors (< N tokens AND < N chars) is surfaced as WEAK_GROUNDING rather than
 passed. Defaults are unchanged (2 tokens, 4 chars), so a call without these flags behaves exactly as
-before; a high-recall corpus can tighten or loosen the band. Python 3.8+.
+before; a high-recall corpus can tighten or loosen the band.
+
+--json (ADDITIVE reporting flag; parse-anywhere; composes with cues.json / --window / --spans /
+--min-chars / --min-tokens): print ONE machine-readable report object to stdout and NOTHING else there —
+the shared schema every lint bin emits, so GRADE/CI can fold structured findings into the report card's
+`groundedness_findings[]`:
+  {"tool": "groundedness-check", "ok": <bool>, "summary": "<one line>",
+   "findings": [{"kind", "severity": fail|advisory, "location": "$.path", "message"}, ...]}
+One finding per non-grounded / weak scalar: UNGROUNDED / EMPTY map to severity `fail`; WEAK_GROUNDING /
+WEAK_CONTEXT map to severity `advisory`. `ok` is true iff there is NO UNGROUNDED and NO EMPTY finding (a
+WEAK_* advisory does not flip `ok`). With --spans, each GROUNDED scalar's provenance row additionally
+carries a "span" field (offset + snippet) under a separate `provenance[]` list — the core `findings`
+schema is unchanged. The exit code is UNCHANGED by --json (it is a reporting flag, not a behavior
+change; exit still fails on any UNGROUNDED/WEAK_GROUNDING/EMPTY, exactly as the human mode). Python 3.8+.
 """
 import json
 import re
@@ -591,6 +604,70 @@ def check(extraction, source, cues=None, window=DEFAULT_CUE_WINDOW,
     return findings, n
 
 
+# --- machine-readable report (--json) ----------------------------------------------------------
+# ONE shared schema across every lint bin: {tool, ok, summary, findings:[{kind, severity, location,
+# message}]}. severity = `fail` for UNGROUNDED / EMPTY (a likely hallucination / asserts-nothing value),
+# `advisory` for WEAK_GROUNDING / WEAK_CONTEXT (a short match or a possible wrong-span — verify). `ok` is
+# true iff there is NO UNGROUNDED and NO EMPTY finding (a WEAK_* advisory does not flip ok). The exit
+# code is UNCHANGED by --json — it still fails on any _FAIL_KIND, exactly as the human mode.
+_OK_BLOCKERS = frozenset({"UNGROUNDED", "EMPTY"})    # the kinds whose presence makes ok=False
+_FAIL_SEVERITY = frozenset({"UNGROUNDED", "EMPTY"})  # the kinds reported at severity `fail`
+
+
+def _finding_severity(kind):
+    """`fail` for UNGROUNDED / EMPTY; `advisory` for WEAK_GROUNDING / WEAK_CONTEXT."""
+    return "fail" if kind in _FAIL_SEVERITY else "advisory"
+
+
+def _message_for(path, value, kind):
+    """A one-line human message for a finding, mirroring the human-mode notes."""
+    v = repr(value)
+    v = v if len(v) <= 60 else v[:57] + "..."
+    note = {
+        "UNGROUNDED": "value not grounded in the source — a likely (not certain) hallucination",
+        "WEAK_GROUNDING": "short token match — verify manually (fragment-hit zone)",
+        "EMPTY": "empty / whitespace-only value — asserts nothing",
+        WEAK_CONTEXT: "grounded but not near a '%s' cue — possible wrong-span; verify the role via "
+                      "adversarial cross-check" % _leaf_field(path),
+    }.get(kind, "")
+    return "%s: %s" % (note, v) if note else v
+
+
+def build_groundedness_report(findings, n, provenance=None):
+    """Build the JSON report. `findings` is check()'s (path, value, kind) list; `n` is the scalar count;
+    `provenance` (optional, from --spans) is the (path, kind, offset, snippet, count) list. UNGROUNDED /
+    EMPTY → severity `fail`; WEAK_GROUNDING / WEAK_CONTEXT → `advisory`. `ok` is true iff no UNGROUNDED
+    and no EMPTY finding. When provenance is given, a `provenance[]` list carries one row per grounded
+    scalar with a `span` field — the core `findings` schema is unchanged."""
+    out = []
+    blockers = 0
+    for path, value, kind in findings:
+        if kind in _OK_BLOCKERS:
+            blockers += 1
+        out.append({"kind": kind, "severity": _finding_severity(kind),
+                    "location": path, "message": _message_for(path, value, kind)})
+    ok = blockers == 0
+    n_fail = sum(1 for f in out if f["severity"] == "fail")
+    n_adv = len(out) - n_fail
+    if not out:
+        summary = "all %d scalar value(s) grounded in the source" % n
+    else:
+        parts = []
+        if n_fail:
+            parts.append("%d not cleanly grounded (verify each)" % n_fail)
+        if n_adv:
+            parts.append("%d advisory (weak match / possible wrong-span)" % n_adv)
+        summary = "%d of %d scalar(s) flagged — %s" % (len(out), n, "; ".join(parts))
+    report = {"tool": "groundedness-check", "ok": ok, "summary": summary, "findings": out}
+    if provenance is not None:
+        report["provenance"] = [
+            {"location": path, "kind": kind,
+             "span": {"offset": offset, "snippet": snippet, "count": count}}
+            for path, kind, offset, snippet, count in provenance
+        ]
+    return report
+
+
 # --- selftest fixtures -------------------------------------------------------------------------
 SOURCE = """\
 INVOICE
@@ -952,6 +1029,85 @@ def selftest():
     for a, b in [("12,000", "12000"), ("$12000.00", "12000"), ("3.0", "3"), ("-5.50", "-5.5")]:
         if _num_key(a) != _num_key(b):
             errs.append("num_key(%r)=%r != num_key(%r)=%r" % (a, _num_key(a), b, _num_key(b)))
+
+    # 6. --json report selftest (the shared schema). Run a dirty + a clean extraction through the report
+    #    builder and the stdout path, json.loads it back, and assert the shared contract.
+    import io
+    import contextlib
+
+    def _capture(report):
+        """Round-trip a report dict through the stdout JSON path and json.loads it back, asserting
+        nothing but the JSON object lands on stdout (json.dumps(indent=2), as main() emits)."""
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            print(json.dumps(report, indent=2))
+        return json.loads(buf.getvalue())
+
+    def _assert_schema(rep, want_ok, want_nonempty, label):
+        if not isinstance(rep, dict):
+            errs.append("--json %s: report is not a dict" % label); return
+        if rep.get("tool") != "groundedness-check":
+            errs.append("--json %s: tool=%r, want 'groundedness-check'" % (label, rep.get("tool")))
+        if rep.get("ok") is not want_ok:
+            errs.append("--json %s: ok=%r, want %r" % (label, rep.get("ok"), want_ok))
+        if not isinstance(rep.get("summary"), str) or not rep["summary"]:
+            errs.append("--json %s: summary missing/empty" % label)
+        f = rep.get("findings")
+        if not isinstance(f, list):
+            errs.append("--json %s: findings not a list" % label); return
+        if want_nonempty and not f:
+            errs.append("--json %s: findings should be non-empty" % label)
+        if not want_nonempty and f:
+            errs.append("--json %s: findings should be [] on a clean extraction, got %s" % (label, f))
+        for fd in f:
+            if not isinstance(fd, dict) or any(k not in fd for k in ("kind", "severity", "location", "message")):
+                errs.append("--json %s: a finding is missing a required key: %r" % (label, fd))
+            elif fd["severity"] not in ("fail", "warn", "advisory"):
+                errs.append("--json %s: bad severity %r" % (label, fd["severity"]))
+
+    # dirty: the INVENTED extraction (UNGROUNDED scalars) ⇒ ok false, findings non-empty, each fail-kind
+    # at severity fail. location is the "$.path".
+    df, dn = check(INVENTED, SOURCE)
+    dirty_rep = _capture(build_groundedness_report(df, dn))
+    _assert_schema(dirty_rep, False, True, "dirty")
+    if not any(fd["location"].startswith("$.") for fd in dirty_rep["findings"]):
+        errs.append("--json dirty: a finding location should be a '$.path', got %s"
+                    % [fd["location"] for fd in dirty_rep["findings"]])
+    if not any(fd["kind"] == "UNGROUNDED" and fd["severity"] == "fail" for fd in dirty_rep["findings"]):
+        errs.append("--json dirty: expected an UNGROUNDED fail finding, got %s" % dirty_rep["findings"])
+
+    # clean: the FAITHFUL extraction ⇒ ok true, findings [].
+    cf, cn = check(FAITHFUL, SOURCE)
+    _assert_schema(_capture(build_groundedness_report(cf, cn)), True, False, "clean")
+
+    # ok = no UNGROUNDED/EMPTY: a WEAK_GROUNDING-only report is advisory-severity ⇒ ok stays TRUE even
+    # though the human exit code would be 1 (a WEAK is in _FAIL_KINDS). The --json `ok` follows the
+    # per-bin contract (no UNGROUNDED/EMPTY), the EXIT CODE is unchanged (still 1 on a WEAK).
+    weak_rep = build_groundedness_report([("$.x", "net", "WEAK_GROUNDING")], 1)
+    if weak_rep["ok"] is not True:
+        errs.append("--json: a WEAK_GROUNDING-only report should have ok=true (no UNGROUNDED/EMPTY)")
+    if weak_rep["findings"][0]["severity"] != "advisory":
+        errs.append("--json: WEAK_GROUNDING should map to severity 'advisory'")
+    # an EMPTY-only report blocks ok (severity fail).
+    empty_rep = build_groundedness_report([("$.x", "", "EMPTY")], 1)
+    if empty_rep["ok"] is not False or empty_rep["findings"][0]["severity"] != "fail":
+        errs.append("--json: an EMPTY report should have ok=false and severity fail")
+
+    # --spans composes: a `provenance[]` list with a `span` field per grounded scalar; the core findings
+    # schema is unchanged (still []), ok still true on a faithful extraction.
+    sprov = []
+    sf, sn = check(FAITHFUL, SOURCE, spans=True, provenance_out=sprov)
+    span_rep = build_groundedness_report(sf, sn, provenance=sprov)
+    _assert_schema(span_rep, True, False, "spans")
+    if "provenance" not in span_rep or not isinstance(span_rep["provenance"], list) or not span_rep["provenance"]:
+        errs.append("--json --spans: a non-empty provenance[] list should be present")
+    else:
+        prow = span_rep["provenance"][0]
+        if any(k not in prow for k in ("location", "kind", "span")):
+            errs.append("--json --spans: a provenance row is missing location/kind/span: %r" % prow)
+        elif any(k not in prow["span"] for k in ("offset", "snippet", "count")):
+            errs.append("--json --spans: a span is missing offset/snippet/count: %r" % prow["span"])
+
     return errs
 
 
@@ -969,13 +1125,14 @@ def main(argv):
         return 0
 
     # parse args: <extraction.json> <source.txt> [cues.json] [--window N] [--spans]
-    #             [--min-tokens N] [--min-chars N] — order-flexible for the flags.
+    #             [--min-tokens N] [--min-chars N] [--json] — order-flexible for the flags.
     window = DEFAULT_CUE_WINDOW
     min_tokens = MIN_TOKENS
     min_chars = MIN_CHARS
     spans = False
+    as_json = False
     positional = []
-    # integer-valued flags share one parser (both --flag N and --flag=N forms); --spans is a bare bool.
+    # integer-valued flags share one parser (both --flag N and --flag=N forms); --spans/--json are bools.
     _int_flags = {"--window": "window", "--min-tokens": "min_tokens", "--min-chars": "min_chars"}
     int_vals = {"window": window, "min_tokens": min_tokens, "min_chars": min_chars}
     i = 0
@@ -983,6 +1140,8 @@ def main(argv):
         a = argv[i]
         if a == "--spans":
             spans = True
+        elif a == "--json":
+            as_json = True
         elif a in _int_flags:
             i += 1
             if i >= len(argv) or not argv[i].lstrip("-").isdigit():
@@ -1029,6 +1188,15 @@ def main(argv):
     findings, n = check(extraction, source, cues=cues, window=window,
                         min_tokens=min_tokens, min_chars=min_chars,
                         spans=spans, provenance_out=provenance)
+
+    # --json: emit ONE report object to stdout and nothing else; exit is UNCHANGED (still driven by
+    # _FAIL_KINDS below, computed identically). --spans adds a `provenance[]` list; the core schema is
+    # untouched. We compute the exit code the same way the human path does so the flag never alters it.
+    if as_json:
+        report = build_groundedness_report(findings, n, provenance=provenance if spans else None)
+        print(json.dumps(report, indent=2))
+        return 1 if any(f[2] in _FAIL_KINDS for f in findings) else 0
+
     for path, value, kind in findings:
         v = repr(value)
         note = {"UNGROUNDED": "", "WEAK_GROUNDING": "  (short match — verify manually)",

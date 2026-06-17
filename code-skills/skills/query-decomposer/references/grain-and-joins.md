@@ -82,6 +82,11 @@ Run it: `python3 bin/sql-lint.py <file|dir>`. Findings are *signals*, not proof 
 grain check at the weak spots. A clean lint does **not** mean the grain is right; only the
 row-count/uniqueness check proves that.
 
+Add `--json` (parse-anywhere; honored by both `<file|dir>` and the `plan` subcommand) for a
+machine-readable report — the shared `{tool, ok, summary, findings:[{kind, severity, location,
+message}]}` object GRADE/CI folds into the plan report card. It prints **only** the JSON to stdout and
+leaves the exit code unchanged; SQL-source smells report at severity `fail`.
+
 The same tool reads the *plan* the query produced, not just its source:
 `python3 bin/sql-lint.py plan <explain.json>` parses a Postgres `EXPLAIN (FORMAT JSON)` document (a
 file — **no live DB needed**) and flags the EXECUTION-axis (B3/B4) smells the SQL read can't see — a

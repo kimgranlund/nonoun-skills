@@ -40,7 +40,14 @@ extraction-report card, the inversion doctrine). Everything below is additive.
 - [x] More date/number locales — DD.MM.YYYY-dominant regions (0.2.2), non-ASCII digits (0.2.2), and
       scientific notation (0.2.1), each behind its own fixtures. (Further locales — e.g. RTL date
       ordering, two-digit years, locale-specific month names — remain future work.)
-- [ ] A machine-readable (`--json`) report so GRADE can fold `groundedness_findings[]` into the card.
+- [x] A machine-readable (`--json`) report so GRADE can fold `groundedness_findings[]` into the card.
+      *Shipped 0.2.4 (parse-anywhere; composes with `cues.json`/`--window`/`--spans`/`--min-chars`/
+      `--min-tokens`): prints the shared `{tool, ok, summary, findings:[{kind, severity, location,
+      message}]}` object to stdout and nothing else there, exit code unchanged. One finding per scalar,
+      `location` = its `$.path`; `UNGROUNDED`/`EMPTY` → severity `fail`, `WEAK_GROUNDING`/`WEAK_CONTEXT` →
+      `advisory`; `ok` = no `UNGROUNDED`/`EMPTY`. `--spans` adds a `provenance[]` list with a `span`
+      field per grounded scalar (core `findings` schema unchanged). Locked with dirty+clean+WEAK/EMPTY+
+      spans selftest fixtures.*
 
 ## `bin/schema-check.py`
 

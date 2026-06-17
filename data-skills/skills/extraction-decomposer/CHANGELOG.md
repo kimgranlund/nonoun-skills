@@ -3,6 +3,31 @@
 Versioned independently of the `data-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.4 — beta
+
+Added a **machine-readable report mode** (`--json`) to `bin/groundedness-check.py` — the shared schema
+every lint bin in the marketplace emits (`{tool, ok, summary, findings:[{kind, severity, location,
+message}]}`), so GRADE/CI can fold the groundedness findings into the report card's
+`groundedness_findings[]`. **Additive and reporting-only**: `--json` parses **anywhere** in argv,
+composes with `cues.json` / `--window` / `--spans` / `--min-tokens` / `--min-chars`, prints **only** the
+JSON object (`json.dumps(indent=2)`) to stdout, and leaves the **exit code unchanged**. Without `--json`,
+output + exit are byte-identical to 0.2.3.
+
+- **One finding per non-grounded / weak scalar.** `location` is the scalar's `$.path`. `UNGROUNDED` /
+  `EMPTY` map to severity **`fail`**; `WEAK_GROUNDING` / `WEAK_CONTEXT` map to **`advisory`**. `ok` is
+  true iff there is **no `UNGROUNDED` and no `EMPTY`** finding (a `WEAK_*` advisory does not flip `ok`).
+  The **exit code is unchanged** — it still fails on any `UNGROUNDED`/`WEAK_GROUNDING`/`EMPTY`, exactly
+  as the human mode, so `--json`'s `ok` and the process exit can legitimately differ on a WEAK-only run.
+- **`--spans` composes.** Each grounded scalar's provenance is emitted under a separate `provenance[]`
+  list, each row carrying a `span` field (`{offset, snippet, count}`); the core `findings` schema is
+  unchanged.
+- **Selftest** runs the INVENTED extraction through the report builder + the stdout path, `json.loads` it
+  back, and asserts it parses, `tool` is `groundedness-check`, `ok` is false, and `findings` is a
+  non-empty list of objects each carrying kind/severity/location/message — plus a clean (FAITHFUL)
+  fixture (`ok:true`, `findings:[]`), the WEAK-vs-EMPTY `ok`/severity contract, and `--spans` provenance
+  shape. The ROADMAP machine-readable-report item is marked done; `references/groundedness.md` notes the
+  flag.
+
 ## 0.2.3 — beta
 
 **Span emission (provenance) + a configurable weak-grounding floor** — two additive, opt-in CLI flags:

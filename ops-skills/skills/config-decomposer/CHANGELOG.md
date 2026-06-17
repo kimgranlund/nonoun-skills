@@ -3,6 +3,29 @@
 Versioned independently of the `ops-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.4 — beta
+
+Added a **machine-readable report mode** (`--json`) to `bin/config-lint.py` — the shared schema every
+lint bin in the marketplace emits (`{tool, ok, summary, findings:[{kind, severity, location, message}]}`),
+so GRADE/CI can fold the safety findings into the report card's `safety_findings[]`. **Additive and
+reporting-only**: `--json` parses **anywhere** in argv, prints **only** the JSON object
+(`json.dumps(indent=2)`) to stdout, and leaves the **exit code unchanged**. Without `--json`, output +
+exit are byte-identical to 0.2.3.
+
+- **Severity split.** A security smell (plaintext / URL-embedded / base64 / heredoc secret, open-net,
+  wildcard grant, k8s-unsafe, world-writable) maps to severity **`fail`**; an advisory smell
+  (`UNPINNED_VERSION`, `NO_RESOURCE_LIMITS`) and a stale/malformed-allowlist WARN map to **`warn`**.
+  `ok` is true iff no un-suppressed finding — the exact condition that gives exit 0.
+- **Composes with `--ignore` / auto-discovery.** A finding **suppressed** by the allowlist is **not** in
+  `findings` (exactly as in human mode); its **count rides in `summary`** (`… (N suppressed by
+  allowlist)`), so stdout stays pure JSON with no stderr side-channel.
+- **Selftest** runs a dirty fixture through `main(['--json', …])` over a real temp tree, `json.loads` the
+  stdout, and asserts it parses, `tool` is `config-lint`, `ok` is false, the exit code matches human
+  mode, and each finding carries kind/severity/location/message — plus a clean fixture (`ok:true`,
+  `findings:[]`), the `warn`-severity advisory mapping, and allowlist-suppression composing with `--json`
+  (suppressed not in `findings`, count in `summary`). The ROADMAP machine-readable-report item is marked
+  done; `references/secrets-and-safety.md` notes the flag.
+
 ## 0.2.3 — beta
 
 Added an **opt-in allowlist / baseline** to `bin/config-lint.py` so a reviewed, accepted finding can be

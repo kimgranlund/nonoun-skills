@@ -18,7 +18,12 @@ cards, the dialect playbooks). Everything below is additive.
       `JOIN ... ON` predicate wrapping a column in a function or arithmetic, or a leading-wildcard
       `LIKE '%x'` ⇒ advisory flag. A fn/arith on the literal side, an anchored `LIKE 'x%'`, a bare
       `col = 'lit'`, and `HAVING` aggregates are out of scope and don't flag.*
-- [ ] Emit a machine-readable report (JSON) so GRADE can fold smell signals into the plan report card.
+- [x] Emit a machine-readable report (JSON) so GRADE can fold smell signals into the plan report card.
+      *Shipped 0.2.4 as `--json` (parse-anywhere; honored by both `<file|dir>` and `plan`): prints the
+      shared `{tool, ok, summary, findings:[{kind, severity, location, message}]}` object to stdout and
+      nothing else there, exit code unchanged. SQL-source smells → severity `fail`; plan smells reuse the
+      blocking/advisory split (`NESTED_LOOP_NO_INDEX`/`ROW_ESTIMATE_BLOWUP` → `fail`,
+      `SEQ_SCAN`/`HIGH_COST_SORT` → `advisory`). Locked with dirty+clean selftest fixtures for both modes.*
 - [x] **Plan parsing** — read the `EXPLAIN` output and flag a `Nested Loop` over a `Seq Scan` /
       a row-estimate blowup automatically, instead of leaving the plan read to the human. *Shipped
       0.2.3 as `sql-lint.py plan <explain.json>`: parses a Postgres `EXPLAIN (FORMAT JSON)` document

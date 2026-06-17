@@ -3,6 +3,28 @@
 Versioned independently of the `code-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.4 — beta
+
+Added a **machine-readable report mode** (`--json`) to `bin/sql-lint.py` — the shared schema every lint
+bin in the marketplace emits (`{tool, ok, summary, findings:[{kind, severity, location, message}]}`), so
+GRADE/CI can fold the smell signals into the plan report card. **Additive and reporting-only**: `--json`
+parses **anywhere** in argv, prints **only** the JSON object (`json.dumps(indent=2)`) to stdout, and
+leaves the **exit code unchanged** (it is a reporting flag, not a behavior change). Without `--json`,
+output + exit are byte-identical to 0.2.3.
+
+- **Both modes honor it.** `sql-lint.py --json <file|dir>` reports the SQL-source smells; `sql-lint.py
+  plan --json <explain.json>` reports the plan smells (the flag composes with the `plan` subcommand in
+  either order). `ok` is true iff no blocking finding — the exact condition that gives exit 0.
+- **Severity mapping reuses the tool's existing blocking-vs-advisory split.** In the SQL-source mode
+  every smell is advisory-by-doctrine but exit-1-blocking, so each maps to severity **`fail`**. In
+  `plan` mode a blocking smell (`NESTED_LOOP_NO_INDEX`, `ROW_ESTIMATE_BLOWUP`) is **`fail`** and an
+  advisory one (`SEQ_SCAN`, `HIGH_COST_SORT`) is **`advisory`** — an advisory-only plan keeps `ok:true`.
+- **Selftest** runs the dirty fixture through the `--json` path, `json.loads` the stdout, and asserts it
+  parses, `tool` is `sql-lint`, `ok` is false, and `findings` is a non-empty list of objects each
+  carrying kind/severity/location/message — plus a clean fixture yielding `ok:true` with `findings:[]`,
+  for both the SQL-source and the plan mode. The ROADMAP machine-readable-report item is marked done;
+  `references/grain-and-joins.md` + `references/execution-axis.md` note the flag.
+
 ## 0.2.3 — beta
 
 Deepened `bin/sql-lint.py` with a **plan-smell parser** — a new `plan` subcommand that reads a Postgres

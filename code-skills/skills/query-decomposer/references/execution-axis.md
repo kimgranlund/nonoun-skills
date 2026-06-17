@@ -81,7 +81,10 @@ python3 bin/sql-lint.py plan plan.json
 
 It flags four B3/B4 plan smells. **Exit convention matches the linter:** any *blocking* smell ⇒ exit 1,
 advisory-only ⇒ exit 0 (warnings still printed); a malformed / empty / no-`Plan` document ⇒ exit 2 with
-a clean error, never a crash.
+a clean error, never a crash. Add `--json` (`sql-lint.py plan --json plan.json`) for the shared
+machine-readable report — the blocking smells map to severity `fail`, the advisory ones to `advisory`,
+and `ok` is true iff no blocking smell. The flag prints only the JSON object and leaves the exit code
+unchanged.
 
 | Plan smell | Trigger in the EXPLAIN-JSON tree | Why it matters | Severity |
 |---|---|---|---|

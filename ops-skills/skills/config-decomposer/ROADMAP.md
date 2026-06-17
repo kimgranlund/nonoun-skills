@@ -45,8 +45,13 @@ plan-verdict cards, the plan-and-drift centerpiece). Everything below is additiv
       line WARNs and is skipped, and the suppressed count is always surfaced to stderr (`--show-suppressed`
       prints each dropped finding) — no silent caps. Default-off: absent an allowlist, behavior is
       byte-identical to 0.2.2.
-- [ ] Emit a machine-readable report (JSON) so GRADE can fold safety findings into the report card's
-      `safety_findings[]`.
+- [x] Emit a machine-readable report (JSON) so GRADE can fold safety findings into the report card's
+      `safety_findings[]`. *Shipped 0.2.4 as `--json` (parse-anywhere; composes with `--ignore`): prints
+      the shared `{tool, ok, summary, findings:[{kind, severity, location, message}]}` object to stdout
+      and nothing else there, exit code unchanged. Security smells → severity `fail`; advisory smells
+      (`UNPINNED_VERSION`/`NO_RESOURCE_LIMITS`) + stale-allowlist → `warn`. A finding suppressed by the
+      allowlist is NOT in `findings` (as in human mode) but its count rides in `summary`. Locked with
+      dirty+clean+advisory-severity+allowlist-suppression selftest fixtures.*
 
 ## `bin/config-harness.py`
 

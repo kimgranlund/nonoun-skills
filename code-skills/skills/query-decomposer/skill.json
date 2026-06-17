@@ -1,6 +1,6 @@
 {
   "name": "query-decomposer",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "status": "beta",
   "target": "both",
   "description": "Decompose, design, and grade a SQL query on two crossing axes — SEMANTICS (question → grain → joins/filters → aggregation → fit) and EXECUTION (parses → binds → plan/run → performance → safety) — scored separately, with EXECUTION routed to the real EXPLAIN/dry-run (a self-tested harness) and the wrong-grain / fan-out failure routed to a static SQL smell linter + a row-count/uniqueness grain check. Backed by a gated rubric, a query-spec card + plan-report protocol, and dialect playbooks (Postgres/MySQL/SQLite/BigQuery/Snowflake). NOT for a unit of application code — a function or implementation graded on its spec (code-decomposer); a regular expression / regex pattern (regex-decomposer); or schema design (arch-system).",

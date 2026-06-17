@@ -30,10 +30,22 @@ live DB needed) and flags EXECUTION-axis (B3/B4) plan smells the static SQL read
   python3 bin/sql-lint.py selftest
   python3 bin/sql-lint.py <file | dir>            # lint .sql source
   python3 bin/sql-lint.py plan <explain.json>     # lint a Postgres EXPLAIN (FORMAT JSON) plan
+  python3 bin/sql-lint.py [--json] <file | dir>   # machine-readable report (also: plan --json)
 
 Exit convention (shared by both modes): any non-advisory smell ⇒ exit 1; otherwise exit 0. In the
 SQL-source mode every smell is advisory-by-doctrine but still returns exit 1 so CI/automation keys on
 it. The `plan` mode mirrors that: any plan smell ⇒ exit 1 (advisory findings are still printed).
+
+`--json` (additive reporting flag; parse-anywhere in argv) prints ONE machine-readable report object to
+stdout and NOTHING else there — the shared schema every lint bin emits, so GRADE/CI can fold structured
+findings into the report card:
+  {"tool": "sql-lint", "ok": <bool>, "summary": "<one line>",
+   "findings": [{"kind", "severity": fail|advisory, "location": "line:N", "message"}, ...]}
+`ok` is true iff no blocking finding (the exact condition that gives exit 0 in human mode). In the
+SQL-source mode every finding is `fail` (advisory-by-doctrine but exit-1-blocking); in `plan` mode a
+blocking smell is `fail` and an advisory one (SEQ_SCAN / HIGH_COST_SORT) is `advisory`. The exit code is
+UNCHANGED by --json (it is a reporting flag, not a behavior change). Without --json, output + exit are
+byte-identical to before.
 
 Python 3.8+.
 """
@@ -615,6 +627,85 @@ def _run_plan(path):
     return 1 if blocking else 0
 
 
+# --- machine-readable report (--json) ----------------------------------------------------------
+# ONE shared schema across every lint bin: {tool, ok, summary, findings:[{kind, severity, location,
+# message}]}. `ok` is true iff no blocking finding (the same condition that gives exit 0 in human mode).
+# Printed via json.dumps(indent=2); nothing else goes to stdout under --json.
+def _report_json(tool, ok, summary, findings):
+    """Emit the shared report object to stdout (and nothing else). `findings` is a list of dicts already
+    in {kind, severity, location, message} shape. Returns the dict so callers/selftests can reuse it."""
+    report = {"tool": tool, "ok": ok, "summary": summary, "findings": findings}
+    print(json.dumps(report, indent=2))
+    return report
+
+
+def build_sql_report(findings):
+    """Build the JSON report for the SQL-SOURCE mode. `findings` is analyze_sql()'s (kind, line, detail)
+    list. Every SQL-source smell is advisory-by-doctrine but exit-1-blocking, so each maps to severity
+    `fail` and `ok` is true iff there are none — mirroring the human mode's exit (any smell ⇒ exit 1)."""
+    out = []
+    for kind, line, detail in findings:
+        out.append({"kind": kind, "severity": "fail", "location": "line:%d" % line, "message": detail})
+    ok = not out
+    if ok:
+        summary = "no SQL smells"
+    else:
+        summary = "%d SQL smell(s) — verify grain with COUNT(*) vs COUNT(DISTINCT key)" % len(out)
+    return {"tool": "sql-lint", "ok": ok, "summary": summary, "findings": out}
+
+
+def build_plan_report(findings):
+    """Build the JSON report for the `plan` mode. `findings` is analyze_plan()'s (kind, label, why,
+    advisory) list: a blocking smell → severity `fail`, an advisory one (SEQ_SCAN/HIGH_COST_SORT) →
+    `advisory`. `ok` is true iff no BLOCKING smell — the exact exit-0 condition of `_run_plan`."""
+    out, blocking = [], 0
+    for kind, label, why, advisory in findings:
+        if not advisory:
+            blocking += 1
+        out.append({"kind": kind, "severity": "advisory" if advisory else "fail",
+                    "location": label, "message": why})
+    ok = blocking == 0
+    if not out:
+        summary = "no plan smells"
+    else:
+        summary = ("%d plan finding(s) (%d blocking, %d advisory) — confirm against the live plan/schema"
+                   % (len(out), blocking, len(out) - blocking))
+    return {"tool": "sql-lint", "ok": ok, "summary": summary, "findings": out}
+
+
+def _run_sql_json(path):
+    """`--json` SQL-source mode: lint .sql files under `path`, emit ONE report object, exit as human mode
+    (1 if any smell, else 0). Unreadable files are skipped (mirroring the human mode's per-file warn)."""
+    files = []
+    if os.path.isdir(path):
+        for dp, _, fns in os.walk(path):
+            files += [os.path.join(dp, fn) for fn in sorted(fns) if _is_sql_file(fn)]
+    else:
+        files = [path]
+    findings = []
+    for fp in files:
+        try:
+            src = open(fp, encoding="utf-8").read()
+        except OSError:
+            continue
+        findings += analyze_sql(src)
+    rep = build_sql_report(findings)
+    _report_json(rep["tool"], rep["ok"], rep["summary"], rep["findings"])
+    return 0 if rep["ok"] else 1
+
+
+def _run_plan_json(path):
+    """`--json` plan mode: lint one EXPLAIN (FORMAT JSON) file, emit ONE report object, exit as human
+    mode (2 on a malformed/empty/no-Plan document, 1 on any blocking smell, else 0)."""
+    finds, err = lint_plan_file(path)
+    if err is not None:
+        sys.stderr.write("sql-lint plan: %s: %s\n" % (path, err))
+        return 2
+    rep = build_plan_report(finds)
+    _report_json(rep["tool"], rep["ok"], rep["summary"], rep["findings"])
+    return 0 if rep["ok"] else 1
+
+
 # --- selftest fixtures -------------------------------------------------------------------------
 SQL_CLEAN = """
 SELECT c.id, SUM(o.amount) AS revenue
@@ -947,6 +1038,73 @@ def selftest():
             errs.append("expected a clean error (not a crash/finding) on %s" % label)
         if finds:
             errs.append("expected no findings on %s, got %s" % (label, finds))
+
+    # --- --json report selftest (the shared schema) -------------------------------------------
+    import io
+    import contextlib
+
+    def _capture_report(report_obj):
+        """Round-trip a report dict through _report_json's stdout path and json.loads it back, asserting
+        nothing but the JSON object lands on stdout."""
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            _report_json(report_obj["tool"], report_obj["ok"], report_obj["summary"],
+                         report_obj["findings"])
+        return json.loads(buf.getvalue())
+
+    def _assert_report(rep, tool, want_ok, want_nonempty, label):
+        if not isinstance(rep, dict):
+            errs.append("--json %s: report is not a dict" % label); return
+        if rep.get("tool") != tool:
+            errs.append("--json %s: tool=%r, want %r" % (label, rep.get("tool"), tool))
+        if rep.get("ok") is not want_ok:
+            errs.append("--json %s: ok=%r, want %r" % (label, rep.get("ok"), want_ok))
+        if not isinstance(rep.get("summary"), str) or not rep["summary"]:
+            errs.append("--json %s: summary missing/empty" % label)
+        f = rep.get("findings")
+        if not isinstance(f, list):
+            errs.append("--json %s: findings not a list" % label); return
+        if want_nonempty and not f:
+            errs.append("--json %s: findings should be non-empty" % label)
+        if not want_nonempty and f:
+            errs.append("--json %s: findings should be [] on clean input, got %s" % (label, f))
+        for fd in f:
+            if not isinstance(fd, dict) or any(k not in fd for k in ("kind", "severity", "location", "message")):
+                errs.append("--json %s: a finding is missing a required key: %r" % (label, fd))
+            elif fd["severity"] not in ("fail", "warn", "advisory"):
+                errs.append("--json %s: bad severity %r" % (label, fd["severity"]))
+
+    # SQL-source dirty fixture (SQL_STAR ⇒ SELECT_STAR) parses, tool right, ok false, findings non-empty
+    dirty_sql_rep = _capture_report(build_sql_report(analyze_sql(SQL_STAR)))
+    _assert_report(dirty_sql_rep, "sql-lint", False, True, "sql-source dirty")
+    if not any(fd["kind"] == "SELECT_STAR" for fd in dirty_sql_rep["findings"]):
+        errs.append("--json sql-source dirty: SELECT_STAR finding missing from report")
+    if not all(fd["severity"] == "fail" for fd in dirty_sql_rep["findings"]):
+        errs.append("--json sql-source: every SQL-source finding should be severity 'fail'")
+    # SQL-source clean fixture ⇒ ok true, findings []
+    _assert_report(_capture_report(build_sql_report(analyze_sql(SQL_CLEAN))), "sql-lint", True, False,
+                   "sql-source clean")
+
+    # plan dirty fixture (PLAN_FLAG ⇒ blocking NESTED_LOOP_NO_INDEX + advisory SEQ_SCAN): ok false,
+    # both severities present
+    pfinds, _ = _lint_plan_text(PLAN_FLAG)
+    dirty_plan_rep = _capture_report(build_plan_report(pfinds))
+    _assert_report(dirty_plan_rep, "sql-lint", False, True, "plan dirty")
+    sevs = {fd["kind"]: fd["severity"] for fd in dirty_plan_rep["findings"]}
+    if sevs.get("NESTED_LOOP_NO_INDEX") != "fail":
+        errs.append("--json plan: NESTED_LOOP_NO_INDEX should map to severity 'fail', got %r"
+                    % sevs.get("NESTED_LOOP_NO_INDEX"))
+    if sevs.get("SEQ_SCAN") != "advisory":
+        errs.append("--json plan: SEQ_SCAN should map to severity 'advisory', got %r" % sevs.get("SEQ_SCAN"))
+    # plan clean fixture ⇒ ok true, findings []
+    cfinds, _ = _lint_plan_text(PLAN_CLEAN)
+    _assert_report(_capture_report(build_plan_report(cfinds)), "sql-lint", True, False, "plan clean")
+    # an advisory-only plan (small filtered scan would be advisory) keeps ok TRUE: a plan whose only
+    # smell is advisory does not block, so ok stays true even with a non-empty findings list.
+    adv_only = build_plan_report([("SEQ_SCAN", "Seq Scan on t", "wide scan", True)])
+    if not adv_only["ok"]:
+        errs.append("--json plan: an advisory-only report should keep ok=true (advisory doesn't block)")
+
     return errs
 
 
@@ -963,11 +1121,20 @@ def main(argv):
               "OUTER_JOIN_DEMOTED / NON_SARGABLE detectors verified; plan smells "
               "SEQ_SCAN / NESTED_LOOP_NO_INDEX / HIGH_COST_SORT / ROW_ESTIMATE_BLOWUP verified")
         return 0
+    # --json is a parse-anywhere reporting flag — strip it out, remember it, leave everything else.
+    as_json = "--json" in argv
+    if as_json:
+        argv = [a for a in argv if a != "--json"]
+        if not argv:
+            sys.stderr.write("usage: sql-lint.py [--json] <file|dir>  |  plan [--json] <explain.json>\n")
+            return 2
     if argv[0] == "plan":
         if len(argv) < 2:
             sys.stderr.write("usage: sql-lint.py plan <explain.json>\n")
             return 2
-        return _run_plan(argv[1])
+        return _run_plan_json(argv[1]) if as_json else _run_plan(argv[1])
+    if as_json:
+        return _run_sql_json(argv[0])
     path = argv[0]
     files = []
     if os.path.isdir(path):
