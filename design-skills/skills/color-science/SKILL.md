@@ -1,6 +1,17 @@
 ---
 name: color-science
-description: Use when working with color naming, color theory, color spaces, color definitions, or any task involving color knowledge - palettes, ramps, gradients, conversions, accessibility, perceptual matching, pigment mixing, print-vs-screen color, CSS color syntax, or historical color terminology. Use this skill whenever the user is choosing, comparing, generating, naming, converting, or explaining colors, even if they do not explicitly ask for "color theory."
+description: >
+  Answers perceptual-color and color-science questions; points at a builder peer for output.
+  Use whenever choosing, comparing, converting, naming, or explaining color: color spaces and
+  conversions (OKLCH, sRGB, Lab/CIELAB, HSL, OKLab, CIECAM16), gamut mapping and
+  perceptually-uniform palette manipulation (gamut-aware picking like HSL but uniform), contrast
+  and accessibility (APCA modern standard, WCAG 2.2 AA legal floor, low-vision readable text),
+  harmony (why colors clash side by side, muddy gradients), saturation vs chroma, color
+  blindness / CVD simulation (protanopia, deuteranopia, Brettel/Machado), color naming (ISCC-NBS,
+  Munsell, hex), pigment mixing (Kubelka-Munk vs RGB averaging), print-vs-screen, CSS color
+  syntax (color-mix, oklab, relative color, light-dark). NOT for generating a ramp, theme, or
+  extracting design tokens / a token sheet — that is a builder peer (ui-build-tokens,
+  extract-ui-css); this ANSWERS perceptual-color questions, it does not generate.
 ---
 
 # Color Expert

@@ -6,12 +6,12 @@ description: >
   robustness → readability) — scored separately so a pattern that matches the examples can't hide one
   that means the wrong language, nor a clever one hide that it won't run or ReDoS. MATCH routes
   to a self-tested checker (bin/regex-check.py): it compiles the pattern, asserts every positive
-  matches and every negative does NOT under the full/partial mode, and runs a static ReDoS scan
-  (nested quantifiers, overlapping alternation, quadratic .*). The wrong-language defect routes to an
-  adversarial counter-example hunt — strings the spec implies but the examples forgot. Backed by a
+  matches and every negative does not, and runs a ReDoS scan (nested quantifiers, overlapping
+  alternation). The wrong-language defect routes to an adversarial counter-example hunt. Backed by a
   gated rubric and a pattern-spec card {pattern, flags, engine, positives, negatives}. Use when
   designing a regex, grading one, hardening against ReDoS, or recovering what it matches. NOT for host
-  code (code-decomposer) or SQL (query-decomposer).
+  code — a function graded on its spec (code-decomposer); a SQL query, its grain or performance
+  (query-decomposer); or a UI layout into regions (layout-decomposer).
 ---
 
 # regex-decomposer — grade a regular expression on two crossing axes

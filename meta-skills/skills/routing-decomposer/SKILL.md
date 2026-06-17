@@ -5,13 +5,13 @@ description: >
   crossing axes: INSTRUCTION (capability → scope → triggers → disambiguation → economy) and ROUTING
   (fires → holds → boundary → robustness → stability), scored separately so a description that reads
   well can't hide that it mis-routes. A description is a routing classifier, not prose: ROUTING uses a
-  deterministic eval (bin/routing-eval.py) over a labeled corpus to LIST the recall/precision holes by
-  name for a human to read (negatives drawn from siblings); INSTRUCTION gates on capability/scope
-  honesty the eval can't see, via bin/description-lint.py. Triggers on: "grade this skill's
-  description", "is my description routing correctly", "why doesn't my skill fire", "this skill
-  over-triggers", "score the routing precision/recall", "build a routing corpus". NOT for authoring a
-  whole skill (skills-studio, a global peer); NOT for grading layouts/code/components/types/configs
-  (the in-repo *-decomposer siblings).
+  deterministic eval (bin/routing-eval.py) over a labeled corpus, LISTs the recall/precision holes
+  for a human (negatives from siblings); INSTRUCTION gates capability/scope honesty the eval can't
+  see (bin/description-lint.py). Triggers on: "grade this skill's description", "why
+  doesn't my skill fire", "this skill over-triggers", "score the routing precision/recall", "build a
+  routing corpus". NOT for authoring or writing a whole skill end-to-end (skills-studio, a global
+  peer); NOT for grading a function on spec/execution (code-decomposer) or
+  layouts/components/types/configs/queries (the in-repo *-decomposer siblings).
 ---
 
 # routing-decomposer — grade a skill's routing surface on two crossing axes

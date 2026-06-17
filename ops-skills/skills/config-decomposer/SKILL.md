@@ -6,12 +6,12 @@ description: >
   (desired-state → contract → cases → drift → fit) and VALIDITY (parse → schema → plan → safety →
   observability) — scored separately so a config that validates can't hide one that provisions the
   wrong thing. Doctrine: the PLAN is the contract — a config's behavior is its diff against current
-  state, not its text. VALIDITY routes to the tool's own validate/plan via a self-tested adapter
-  (bin/config-harness.py); a missing tool is a SKIP, not a pass. Mechanizable safety smells —
-  plaintext secrets, :latest, 0.0.0.0/0, wildcard grants, missing limits — route to a static linter
-  (bin/config-lint.py). Use when authoring a config, grading an IaC artifact, or catching a
-  surprise-destroy / valid-but-wrong drift. NOT for application code (code-decomposer), live
-  behavior (/verify), architecture (arch-system), or cleanups (/simplify).
+  state, not its text. VALIDITY routes to the tool's own validate/plan; a missing tool is a SKIP, not
+  a pass. Mechanizable safety smells — plaintext secrets, :latest, 0.0.0.0/0, wildcard grants,
+  missing limits — route to a static linter. Use when authoring a config, grading an IaC artifact, or
+  catching a surprise-destroy / valid-but-wrong drift. NOT for application code (code-decomposer), a
+  correct JSON Schema / type / data model (type-decomposer), a deductive argument / proof
+  (proof-decomposer), /verify, arch-system, /simplify.
 ---
 
 # config-decomposer — grade a config on two crossing axes

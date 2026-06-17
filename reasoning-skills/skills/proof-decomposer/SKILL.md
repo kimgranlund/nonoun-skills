@@ -1,17 +1,18 @@
 ---
 name: proof-decomposer
 description: >
-  Decompose, design, and grade a mathematical proof or any rigorous deductive argument on two
-  crossing axes — ARGUMENT (claim → strategy → steps → coverage → rigor) and VERIFICATION
+  Decompose, design, and grade a mathematical proof or rigorous deductive argument on two crossing
+  axes — ARGUMENT (claim → strategy → steps → coverage → rigor) and VERIFICATION
   (well-formed → acyclic → checks → robustness → reproducibility) — scored separately so a valid-
   looking chain can't hide that it proves a different (often weaker) statement, nor a right claim
   hide an invalid or circular step. VERIFICATION routes to a self-tested structure check
   (bin/proof-structure-check.py: dangling-citation, circular-reasoning/DAG, goal-reachability) and a
-  safe counterexample search (bin/numeric-spotcheck.py). "Proves a neighbor" routes to an adversarial
-  claim probe. Backed by a gated rubric, a proof-skeleton card, and proof-method playbooks (induction,
-  contradiction, contrapositive, construction, pigeonhole). Use when planning a proof, checking whether
-  an argument is valid, or grading one. NOT a theorem prover — it grades a GIVEN argument, never
-  searches for one.
+  safe counterexample search. Backed by a gated rubric, a proof-skeleton
+  card, and proof-method playbooks (induction, contradiction, contrapositive). Use when planning a
+  proof, checking whether an argument is valid, or grading one — it only ever grades a GIVEN
+  argument, never invents one. NOT for a function or unit of code against its spec
+  (→ code-decomposer). NOT a theorem prover: does not search for or produce a proof, nor discover
+  one for an open conjecture.
 ---
 
 # proof-decomposer — grade a deductive argument on two crossing axes

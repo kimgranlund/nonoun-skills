@@ -2,15 +2,15 @@
 name: mermaid-decomposer
 description: >
   Create, decompose, and grade advanced Mermaid diagrams with the two-axis technique — INTENT (relationship → type
-  → skeleton → elements → labels: "is it the right diagram?") and RENDER (keyword → syntax → strict-safety →
-  legibility: "does it actually draw, here?") — backed by a gated rubric and a verbatim syntax catalog for the 11
-  advanced types (journey, gantt, erDiagram, sankey-beta, kanban, architecture-beta, treeView-beta, venn-beta,
-  ishikawa-beta, wardley-beta, eventmodeling). Use when picking a diagram type, authoring a Mermaid diagram,
-  debugging why one won't render, or grading whether a diagram is right. Triggers: "create a mermaid diagram",
-  "which mermaid diagram for this", "make a sankey / gantt / ERD / architecture diagram", "why won't my mermaid
-  render", "fix this mermaid", "is this diagram right", "decompose this diagram". NOT for non-Mermaid diagramming
-  (graphviz/plantuml/d2), hosting/rendering the engine, or visual-style taste (brand-forge) — diagram structure +
-  syntax + renderability only.
+  → skeleton → elements → labels: "right diagram?") and RENDER (keyword → syntax → strict-safety → legibility:
+  "does it draw, here?") — backed by a gated rubric and a verbatim syntax catalog for 11 advanced types (journey,
+  gantt, erDiagram, sankey-beta, kanban, architecture-beta, treeView-beta, venn-beta, ishikawa-beta, wardley-beta,
+  eventmodeling). Use when picking a diagram type, authoring a Mermaid diagram, debugging why one won't render, or
+  grading whether a diagram is right. Triggers: "make a sankey / gantt / ERD / architecture diagram", "why won't my
+  mermaid render", "fix this mermaid", "decompose this diagram". NOT for a UI layout / screenshot decomposed into
+  regions (layout-decomposer), a type graded for illegal states (type-decomposer), non-Mermaid diagramming
+  (graphviz/plantuml/d2), hosting/rendering the engine, or visual-style taste (brand-forge) — structure + syntax +
+  renderability only.
 ---
 
 # mermaid-decomposer — author a diagram on two crossing axes

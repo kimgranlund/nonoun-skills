@@ -2,7 +2,7 @@
   "$schema": "https://schemas.adia.ai/skill/v1.json",
   "name": "color-science",
   "version": "1.20.1",
-  "description": "Comprehensive color knowledge: color spaces, palette generation, accessibility with APCA as the modern contrast standard (WCAG 2.2 as the legal floor), perceptual matching, pigment mixing, print-vs-screen, CSS color syntax (Color 4/5/6 including contrast-color, light-dark, color-mix, relative color syntax), modern token systems (Tailwind v4 OKLCH, Radix Themes 3 P3, Material HCT), CIECAM16/CAM16-UCS, CVD simulation (Brettel/Vi\u00e9not/Machado), and historical color theory.",
+  "description": "Answers perceptual-color and color-science questions; points at a builder peer for output. Use whenever choosing, comparing, converting, naming, or explaining color: color spaces and conversions (OKLCH, sRGB, Lab/CIELAB, HSL, OKLab, CIECAM16), gamut mapping and perceptually-uniform palette manipulation (gamut-aware picking like HSL but uniform), contrast and accessibility (APCA modern standard, WCAG 2.2 AA legal floor, low-vision readable text), harmony (why colors clash side by side, muddy gradients), saturation vs chroma, color blindness / CVD simulation (protanopia, deuteranopia, Brettel/Machado), color naming (ISCC-NBS, Munsell, hex), pigment mixing (Kubelka-Munk vs RGB averaging), print-vs-screen, CSS color syntax (color-mix, oklab, relative color, light-dark). NOT for generating a ramp, theme, or extracting design tokens / a token sheet \u2014 that is a builder peer (ui-build-tokens, extract-ui-css); this ANSWERS perceptual-color questions, it does not generate.",
   "status": "external-with-local-additions",
   "authors": [
     "meodai"

@@ -1,17 +1,17 @@
 ---
 name: query-decomposer
 description: >
-  Decompose, design, and grade a SQL query (analytics or transactional) on two crossing axes —
-  SEMANTICS (question → grain → joins/filters → aggregation → fit) and EXECUTION (parses → binds →
-  plan/run → performance → safety) — scored separately so a query that returns rows can't hide that
-  it answers the wrong question or at the wrong grain, nor a correct idea hide a column that won't
-  bind. EXECUTION routes to the real EXPLAIN/dry-run via a self-tested harness
-  (bin/query-harness.py); the silent fan-out / wrong-grain failure routes to a static SQL smell
-  linter (bin/sql-lint.py: SELECT *, missing-WHERE DML, implicit cross join, unstable LIMIT) plus a
-  row-count/uniqueness grain check. Backed by a gated rubric, a query-spec card + plan-report
-  protocol, and dialect playbooks. Use when deciding whether a query is right, recovering what a
-  query actually answers, or proving its grain. NOT for surrounding application code
-  (code-decomposer), regex/text patterns (regex-decomposer), or schema design (arch-system).
+  Decompose, design, and grade a SQL query on two crossing axes — SEMANTICS (question → grain →
+  joins/filters → aggregation → fit) and EXECUTION (parses → binds → plan/run → performance →
+  safety) — scored separately so a query that returns rows can't hide that it answers the wrong
+  question or at the wrong grain, nor a correct idea hide a column that won't bind. EXECUTION routes
+  to the real EXPLAIN/dry-run via a self-tested harness (bin/query-harness.py); the wrong-grain /
+  fan-out failure routes to a static SQL smell linter (bin/sql-lint.py: implicit cross join,
+  missing-WHERE DML) plus a row-count/uniqueness grain check. Backed by a gated rubric, a query-spec
+  card + plan-report protocol, and dialect playbooks. Use when deciding whether a query is right,
+  recovering what it answers, or proving its grain. NOT for a unit of application code — a function
+  or implementation graded on its spec (code-decomposer); a regular expression / regex pattern
+  (regex-decomposer); or schema design (arch-system).
 ---
 
 # query-decomposer — grade a SQL query on two crossing axes

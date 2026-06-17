@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "status": "draft",
   "target": "both",
-  "description": "Decompose, design, and grade a regular expression on two crossing axes — LANGUAGE (target-set → anchoring → classes/quantifiers → groups → flags/dialect) and MATCH (compiles → examples → safety → robustness → readability) — scored separately, with MATCH routed to a self-tested checker that compiles the pattern, runs the example set under the full/partial mode, and statically scans for catastrophic backtracking, and the 'wrong language' failure routed to a fresh-context adversarial counter-example hunt. Backed by a gated rubric and a pattern-spec card {pattern, flags, engine, positives[], negatives[]}.",
+  "description": "Decompose, design, and grade a regular expression on two crossing axes — LANGUAGE (target-set → anchoring → classes/quantifiers → groups → flags/dialect) and MATCH (compiles → examples → safety → robustness → readability) — scored separately, with MATCH routed to a self-tested checker that compiles the pattern, runs the example set under the full/partial mode, and statically scans for catastrophic backtracking, and the 'wrong language' failure routed to a fresh-context adversarial counter-example hunt. Backed by a gated rubric and a pattern-spec card {pattern, flags, engine, positives[], negatives[]}. NOT for host code — a function graded on its spec (code-decomposer); a SQL query, its grain or performance (query-decomposer); or a UI layout into regions (layout-decomposer).",
   "keywords": ["regex", "regular-expression", "redos", "catastrophic-backtracking", "pattern-matching", "anchoring", "target-set", "example-set", "dialects", "pcre", "re2", "decomposition", "adversarial-verification", "definition-of-done"],
   "files": [
     "SKILL.md",

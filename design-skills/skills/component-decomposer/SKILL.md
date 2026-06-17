@@ -1,17 +1,17 @@
 ---
 name: component-decomposer
 description: >
-  Decompose, design, and grade zero-dependency web components (Custom Elements, signals, FACE, no
-  native form elements) on two crossing axes — COMPOSE (layer → anatomy → API → composition) and
-  REALIZE (geometry → element → semantics → interaction → fidelity) — scored separately so a clean
-  API can't hide a broken control. Backed by a gated rubric, a deterministic geometry engine (the
-  (height-glyph)/2 padding law, the XS–2XL ramp, square icon-only buttons), a contract-card linter,
-  and recipes for controls and overlays (modal cards, menus, custom selects, popovers). Carries the
-  June-2026 platform baseline: FACE/ElementInternals, anchor positioning, the Popover API, view
-  transitions, declarative-shadow-DOM SSR, and the native-parity budget. Use when designing a
-  component library, fixing a component's geometry/parts/API, building a pattern with no native form
-  element, or grading a component. NOT for code generation
-  (ui-build-components), app-shell layout (layout-decomposer), or token math (ui-build-tokens).
+  Decompose, design, and grade zero-dependency web components (Custom Elements, FACE, no native form
+  elements) on two crossing axes — COMPOSE (layer → anatomy → API → composition) and REALIZE
+  (geometry → element → semantics → interaction → fidelity) — scored separately so a clean API can't
+  hide a broken control. Backed by a gated rubric, a deterministic geometry engine ((height-glyph)/2
+  padding law, XS–2XL ramp, square icon-only buttons), a contract-card linter, recipes for controls
+  and overlays (modals, menus, selects, popovers), and the baseline FACE/ElementInternals, anchor
+  positioning, Popover API, declarative-shadow-DOM SSR. Use when designing a component library,
+  fixing a component's geometry/parts/API, building a no-native-form-element pattern, or grading a
+  component. NOT for a function graded on spec & execution axes (code-decomposer), a proof or
+  argument graded on its logic (proof-decomposer), code generation (ui-build-components), app-shell
+  layout (layout-decomposer), or token math (ui-build-tokens).
 ---
 
 # component-decomposer — design a component on two crossing axes

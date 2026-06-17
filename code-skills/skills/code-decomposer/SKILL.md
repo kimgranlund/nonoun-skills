@@ -4,14 +4,15 @@ description: >
   Decompose, design, and grade a unit of code (function, module, change) on two crossing axes —
   SPEC (problem → contract → cases → approach → fit) and EXECUTION (compile → types/lint → test →
   robustness → observability) — scored separately so a plausible implementation can't hide a broken
-  one, nor a green test suite hide the wrong behavior. EXECUTION routes to the real toolchain via a
-  self-tested harness (bin/execution-harness.py); the "green but wrong" failure routes to a
-  test-vacuity linter (bin/test-vacuity-check.py: no-assert, tautology, mock-only tests) plus
-  mutation testing and an adversarial spec probe. Backed by a gated rubric, a spec-card + execution
-  report protocol, and unit-family playbooks (pure, stateful, async, I/O, parser). Use when deciding
-  whether an implementation is right around writing it, grading a unit's contract, or hardening a
-  test suite. NOT for diff-time bug hunting (/code-review), running the app
-  (/verify), architecture blueprints (arch-system), or quality cleanups (/simplify).
+  one, nor a green test suite the wrong behavior. EXECUTION routes to the real toolchain via a
+  harness (bin/execution-harness.py); the "green but wrong" failure routes to a
+  test-vacuity linter (bin/test-vacuity-check.py: no-assert, tautology, mock-only) plus mutation and
+  an adversarial spec probe. Backed by a gated rubric, a spec-card + execution-
+  report protocol, and unit-family playbooks. Use when deciding whether an implementation is right,
+  grading a unit's contract, or hardening a test suite. NOT for diff-time bug hunting (/code-review),
+  running the app (/verify), architecture
+  blueprints (arch-system), quality cleanups (/simplify), or grading a proof / deductive argument on
+  its logic and rigor (→ proof-decomposer).
 ---
 
 # code-decomposer — grade a unit of code on two crossing axes

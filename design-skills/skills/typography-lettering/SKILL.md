@@ -1,6 +1,18 @@
 ---
 name: typography-lettering
-description: Use when working with typography at any level — choosing fonts, naming classifications, explaining anatomy or metrics, comparing approaches, pairing families, auditing legibility, specifying CSS text properties (text-wrap, text-box, initial-letter, leading-trim, font-size-adjust, metric overrides), deriving fallback stacks, applying OpenType features, wiring variable-font axes (wght/wdth/ital/slnt/opsz), handling non-Latin scripts (Arabic, CJK, Devanagari, Hebrew, Greek, Cyrillic, Thai, Hangul, Ethiopic), or reasoning about reading and legibility research-survey. Use whenever the user is choosing, comparing, pairing, explaining, or specifying type — even when they don't explicitly say "typography". Peers with ui-compose-typography (which generates scales and tokens) and ui-verify-i18n (which reasons about locale).
+description: >
+  Answers typography and lettering questions; points at a builder peer for output. Use when
+  choosing, comparing, pairing, explaining, classifying, or specifying type: type anatomy
+  (x-height, cap-height), classification (Vox-ATypI, Bringhurst, humanist vs geometric), font
+  metrics and metric-compatible fallback stacks (font-size-adjust, layout shift on swap), world
+  scripts and diacritics (Arabic contextual forms, Devanagari conjuncts, Hebrew niqqud, CJK),
+  OpenType features (small caps, oldstyle figures), variable-font axes (wght, wdth, opsz), CSS
+  text surface (text-wrap pretty/balance, leading-trim, text-box-trim, font-optical-sizing,
+  optical size), pairing serif with sans, measure / characters-per-line readability, text
+  accessibility (dyslexic, low-vision). NOT for generating a modular type scale, design tokens, a
+  token sheet of font-size custom properties, or building components (ui-compose-typography,
+  ui-build-tokens); NOT for locale date/number formatting (ui-verify-i18n). ANSWERS, does not
+  generate.
 ---
 
 # Typography Expert
