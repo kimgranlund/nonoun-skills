@@ -22,9 +22,11 @@ Gated items route to `bin/`; review items are 1–5 judgments. SHIPPABLE = the q
    move (division by possibly-zero, illegal limit swap) (≥4).
 6. **Well-formed ∧ acyclic ∧ reachable (B1/B2)** — `proof-structure-check.py` finds no DANGLING
    citation, no CYCLE (circular reasoning), and the goal is reachable from the premises/axioms.
-7. **Survives the checks (B3)** — `numeric-spotcheck.py` finds **no counterexample** over a
-   representative sample space (and, where available, a proof assistant accepts it); a non-arithmetic
-   claim with no assistant is a **SKIP**, recorded as such — never a silent pass.
+7. **Survives the checks (B3)** — B3 **applies only to parametric integer-arithmetic claims**: for
+   those, `numeric-spotcheck.py` finds **no counterexample** over a representative sample space. For
+   any other claim (topology, reals/sets, non-arithmetic logic) the tool does not apply — B3 is a
+   recorded **SKIP** (or a proof-assistant gate where one is installed). A SKIP is the *common* case
+   and is "no evidence", never a silent pass — but it is not a failure.
 8. **Robust (B4)** — boundary/degenerate instances hold (smallest n, empty/singleton, equality edge)
    (≥4).
 9. **Reproducible (B5)** — a careful reader/checker can follow each step unaided; every cited result

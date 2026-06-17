@@ -66,8 +66,9 @@ with zero gate failures**, reported as two separate axis scores plus the quadran
 - **B2 Examples `[gate, code]`** — matches **ALL** positives and rejects **ALL** negatives, under the
   declared full/partial **mode**. The example set is the contract; run it, don't eyeball it.
 - **B3 Safety `[gate, code]`** — no catastrophic backtracking (ReDoS) on adversarial input. The
-  static smell scan flags the constructs; an adversarial-input timing test proves it (see
-  `redos-and-safety.md`).
+  static smell scan is a lossy pre-filter (necessary, not sufficient — it can miss deeper nesting and
+  over-flag); it flags the constructs, but a **manual** adversarial-input timing test (not run by the
+  tool — on the ROADMAP) is what actually proves it (see `redos-and-safety.md`).
 - **B4 Robustness `[review]`** — Unicode (accented letters, surrogate pairs, normalization), the
   empty string, very long input, mixed line endings. Holds beyond the example set.
 - **B5 Readability `[review]`** — named groups over numbered, `x`/verbose mode with comments for any

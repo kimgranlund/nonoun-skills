@@ -12,7 +12,7 @@ it is the only evidence.
 |---|---|---|---|
 | **B1 Compiles** | `[gate]` | `re.compile` in the target engine | valid syntax: balanced groups, valid backrefs, no unsupported construct |
 | **B2 Examples** | `[gate]` | the example set under the declared mode | matches ALL positives, rejects ALL negatives (the contract) |
-| **B3 Safety** | `[gate]` | static ReDoS scan + adversarial-input timing | no catastrophic backtracking on a crafted string |
+| **B3 Safety** | `[gate]` | static ReDoS scan (tool) + a **manual** adversarial-input timing test | no catastrophic backtracking on a crafted string |
 | **B4 Robustness** | review | wider inputs | Unicode, empty string, very long input, line endings |
 | **B5 Readability** | review | the pattern itself | named groups, `x`/verbose mode, no needless cleverness |
 
@@ -86,8 +86,11 @@ A2 anchoring decision into a runnable assertion.
 
 A pattern can compile and pass every example and still **hang the process** on a crafted input.
 `bin/regex-check.py` runs a static **ReDoS-smell scan** flagging the three catastrophic-backtracking
-families — nested quantifiers `(\w+)+`, overlapping alternation `(a|ab)*`, quadratic `.*.*`. A flag
-is a **B3 gate failure** until cleared by an adversarial-input timing test or a rewrite. The full
+families — nested quantifiers `(\w+)+` (incl. bounded-outer forms like `(.*a){10}`), overlapping
+alternation `(a|ab)*`, quadratic `.*.*`. The scan is a **lossy pre-filter**: a clean result is
+necessary but not sufficient (it can miss deeper nesting and over-flag), so confirm a suspicion with
+a timing test. A flag is a **B3 gate failure** until cleared by an adversarial-input timing test —
+which is a **manual** step the tool does not run (it is on the ROADMAP) — or a rewrite. The full
 taxonomy, the why, and the fixes are in `redos-and-safety.md`.
 
 ## B4 Robustness & B5 Readability (reviews)

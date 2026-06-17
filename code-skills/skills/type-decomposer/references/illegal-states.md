@@ -65,6 +65,11 @@ id:    { type: "string", pattern: "^usr_[a-z0-9]{12}$" }
 validating constructor, so the invalid value has no inhabitant downstream. **An `Email` is not a
 `String`.**
 
+> `bin/instance-check.py` **asserts** `format` for `email`, `uri`, `url`, `uuid`, `date`, and
+> `date-time` (a non-email is rejected against `format:email`) — even though the JSON Schema spec
+> makes `format` non-asserting by default. For any *other* semantic constraint, express it as a
+> `pattern` (as the `id` field above does), or the instance check won't enforce it.
+
 ## 4. Open record → closed record
 
 An object without `additionalProperties:false` admits arbitrary extra fields — typos, stale keys,

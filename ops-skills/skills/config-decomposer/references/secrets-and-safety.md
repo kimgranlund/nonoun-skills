@@ -1,10 +1,15 @@
 # Secrets & safety — the mechanizable smells (B4)
 
-The B4 Safety review has a hard floor that is **deterministic, not a matter of taste**: a plaintext
-secret, an unpinned `:latest` image, a `0.0.0.0/0` ingress, a wildcard `"*"` IAM grant, a k8s
-container with no resource cap. These are caught by code — `bin/config-lint.py` is the always-available
-static pass — so they are **gate-grade findings**, not style nits. The judgment part of B4 (is this
-grant *minimal*? is this exposure *intended*?) stays a review; the smells below are the floor.
+The B4 Safety review has a hard floor whose findings are **gate-grade, not a matter of taste**: a
+plaintext secret, an unpinned `:latest` image, a `0.0.0.0/0` ingress, a wildcard `"*"` IAM grant, a k8s
+container with no resource cap. `bin/config-lint.py` is the always-available static pass that catches
+them. It is a **cheap, high-signal FIRST pass — not a complete floor**: a text-level regex over five
+formats will have a residual false-negative surface (a secret in a connection-string URL, a base64
+blob, an unusual key name, an indentation the heuristic doesn't model). So treat a clean run as
+*"none of the common shapes tripped,"* not *"provably secret-free"* — when the stakes are high, still
+read the diff, and wire the deeper policy engine (`checkov`/`conftest`) as the harness `policy` phase.
+The judgment part of B4 (is this grant *minimal*? is this exposure *intended*?) stays a review; the
+smells below are what the linter mechanizes.
 
 ## The smell taxonomy (what `config-lint.py` flags)
 
@@ -17,7 +22,7 @@ TOML (configs treated as text so one detector covers every format):
 | **UNPINNED_VERSION** | `:latest`, or a Dockerfile `FROM` / image with no tag or digest | the deploy is **not reproducible** — "latest" drifts under you; the build is unrepeatable |
 | **OPEN_NETWORK** | `0.0.0.0/0` or `::/0` in an ingress/egress/CIDR position | exposed to the **entire internet** — the default-deny posture is broken |
 | **WILDCARD_GRANT** | `"*"` in an `Action` / `Resource` / `Principal` / `permissions` position | over-broad permission — violates least-privilege; one compromised credential is total |
-| **NO_RESOURCE_LIMITS** | a k8s container with no `resources.requests`/`limits` | no cap on CPU/memory — a noisy neighbour can starve the node |
+| **NO_RESOURCE_LIMITS** | a k8s pod whose spec declares `containers:` but has **no `resources:` block anywhere in the document** (coarse, document-level) | no cap on CPU/memory — a noisy neighbour can starve the node |
 
 Run it: `python3 bin/config-lint.py <file|dir>` — nonzero exit on any finding. It is deliberately a
 *smell detector*, not a policy engine: it is the floor that needs **no tool install**. The deeper pass
@@ -28,9 +33,13 @@ phase.
 
 The plaintext-secret check fires only on a **literal** value. It explicitly does *not* flag a value
 that is a reference or a placeholder — `${DB_PASSWORD}`, `$(cmd)`, `{{ .Values.token }}`,
-`!Ref DbSecret`, `var.secret`, `secretKeyRef`, `<CHANGEME>`, `changeme`, `""`. Those are the *correct*
-shape (the secret is sourced elsewhere), so flagging them would be the false positive that trains
-people to ignore the linter. The smell is specifically *a real secret pasted in as a literal*.
+`!Ref DbSecret`, `var.secret`, the k8s `valueFrom: { secretKeyRef: … }` / `configMapKeyRef` shapes,
+`<CHANGEME>`, `changeme`, `""`. Those are the *correct* shape (the secret is sourced elsewhere), so
+flagging them would be the false positive that trains people to ignore the linter. The smell is
+specifically *a real secret pasted in as a literal*. The check also now matches a secret key **anywhere
+on the line** — an inline single-line JSON object, a trailing-comma key in pretty-printed JSON, a YAML
+list item (`- password: …`) — not only one flush against the indent. The wildcard-grant check spans
+the **multi-line** array shape too (`"Action": [` … `"*"` … `]`).
 
 ## Least-privilege (the B4 judgment, beyond the linter)
 
@@ -59,8 +68,10 @@ The linter catches the wildcard `"*"`; minimality needs a read:
 ## Resource limits & blast radius
 
 - **Limits present** — every k8s container declares `resources.requests` and `limits`; an unbounded
-  container is a node-level DoS waiting to happen (the linter flags the *missing block*; right-sizing
-  the numbers is the review).
+  container is a node-level DoS waiting to happen. The linter check is **coarse and document-level**:
+  it fires only when there is *no* `resources:` block anywhere in the manifest, so a sidecar that sets
+  limits **masks** a sibling app container that doesn't. The per-container audit (every container has
+  both requests *and* limits) and right-sizing the numbers are the B4 review beyond this floor.
 - **Blast radius (ties to B5)** — the change is **scoped** (this module/namespace, not the whole
   account), **reversible** (a destroy of stateful data is not), and **protected** where it must be
   (`deletion_protection`, `prevent_destroy`, a `PodDisruptionBudget`).

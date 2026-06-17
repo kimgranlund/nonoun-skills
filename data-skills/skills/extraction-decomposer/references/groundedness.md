@@ -26,14 +26,28 @@ ladder goes from strictest to most lenient; a value passes if **any** rung match
 
 | Rung | Matches when… | Example (source → value) |
 |---|---|---|
-| **EXACT** | the value is a verbatim substring of the source | `Acme Robotics Inc.` → `"Acme Robotics Inc."` |
-| **NORMALIZED** | matches after case-fold + whitespace-collapse + edge-punctuation trim | `"  ACME  Corp. "` → `"Acme Corp."` |
+| **EXACT** | the value's **token sequence** appears as a contiguous run of whole source tokens (case-sensitive) | `Acme Robotics Inc.` → `"Acme Robotics Inc."` |
+| **NORMALIZED** | the same **token-sequence** match after case-fold + edge-punctuation trim | `"  ACME  Corp. "` → `"Acme Corp."` |
 | **NUMERIC** | a source number is digits-and-sign equal (commas, currency, trailing zeros ignored) | `$12,000.00` → `12000` |
 | **DATE** | a source date appears in a common reformat (ISO ↔ slashed ↔ month-name, M/D and D/M both) | `June 16, 2026` → `"2026-06-16"` |
 
-These four rungs are exactly the **faithful normalizations** A3 permits — reformatting that preserves
-the asserted fact. Anything that survives none of them is **UNGROUNDED** and flagged as a likely
-hallucination. (Empty strings are vacuously grounded — they assert nothing about the source.)
+The string rungs (EXACT/NORMALIZED) are **token / word-boundary** matches, **not raw substring** tests.
+This is deliberate, and it is the fix for a real false-negative class (below): a raw-substring test
+grounds an invented `"Fran"` against `San Francisco` and `"Ware"` against `warehouse`. Tokenizing both
+sides and requiring the value's tokens to appear as a contiguous run of *whole* source tokens closes
+that — `fran` ≠ `francisco`, so the fragment no longer grounds. The four rungs are exactly the
+**faithful normalizations** A3 permits — reformatting that preserves the asserted fact.
+
+Two outcomes are **findings, not silent passes**:
+
+- **WEAK_GROUNDING** — a very short value (one token, ≤3 chars) that *does* token-match. A short token
+  is where a coincidental whole-token hit is most likely, so it is surfaced as `WEAK_GROUNDING — verify
+  manually` rather than passed. (`"net"` against "net 30" is real, but cheap enough to warrant a look.)
+- **EMPTY** — an empty / whitespace-only string. It asserts nothing about the source, but an empty value
+  where the source has content is usually a B4 "had to put *something*" defect, so it is reported as a
+  distinct `EMPTY` finding, not silently grounded.
+
+Anything that survives none of the four rungs is **UNGROUNDED** and flagged as a likely hallucination.
 
 ### Why booleans and nulls are skipped
 
@@ -46,14 +60,31 @@ of absent data (B4) — there's nothing to ground.
 ## The groundedness check is necessary, not sufficient
 
 `groundedness-check.py` catches the cleanest, most common hallucination: the value that appears
-**nowhere** in the source. It **cannot**, by construction, catch a value that *is* in the source but
-is **wrong** — because grounding is a containment test, not an alignment test. That gap is exactly why
-A2 also carries the **adversarial verifier** (`fidelity-axis.md`). The division of labor:
+**nowhere** in the source, **plus** the substring-fragment class below (invented values that are mere
+*fragments* of real source words). It **cannot**, by construction, catch a value that *is* a faithful
+span of the source but was attached to the **wrong field** — because grounding is a containment test,
+not an alignment test. That gap is exactly why A2 also carries the **adversarial verifier**
+(`fidelity-axis.md`). The division of labor:
 
 - **`groundedness-check.py`** — deterministic, cheap, runs everywhere; catches *invented* (absent)
-  values. Its green is a floor, not a ceiling.
+  values and fragment hits. Its green is a floor, not a ceiling.
 - **the adversarial cross-check** — judgment, fresh context; catches *wrong-span* and *mis-resolved*
   values that ground against the wrong part of the source.
+
+### The substring-fragment false negative (now mitigated, worth naming)
+
+The historical weakness of a naive grounding check is the **raw-substring test**: it asks "does this
+value appear *anywhere* as a substring?" and so grounds an invented value that is merely a *fragment*
+of a real source word — `"Fran"` against `San Francisco`, `"Ware"` against `warehouse`, an invented
+`"John Smith"` split into `"John"`/`"Smith"` against `Johnson`/`Smithfield`. Every value is invented,
+every value is a substring of something real, and a substring check reports them all grounded — a
+silent **false negative** of exactly the class this skill exists to catch. The current check **mitigates
+this** with **token / word-boundary matching** (require the value's whole tokens to appear as a
+contiguous run of whole source tokens) plus a **weak-grounding floor** (a one-token, ≤3-char match is
+surfaced for manual review, not passed). The class is not *eliminated* — a value that happens to be a
+real multi-token span of the source, copied into the wrong field, still grounds — but the cheap
+fragment hit no longer slips through. Read a green run accordingly: it means every scalar is *locatable
+as whole tokens*, not that every value is *correct*.
 
 ## The failure taxonomy
 
@@ -61,7 +92,7 @@ When grounding fails — or when the adversarial check fires — classify it; th
 
 | Failure | What it looks like | How it's caught | The fix |
 |---|---|---|---|
-| **Invented value** | a name/number/date in the extraction that is in the source **nowhere** | `groundedness-check.py` flags it (UNGROUNDED) | delete it; represent the field as `null` |
+| **Invented value** | a name/number/date in the extraction the source never states — absent entirely, **or** a mere fragment of a real source word (`"Fran"` from "Francisco") | `groundedness-check.py` flags it (UNGROUNDED; a short fragment that token-matches → WEAK_GROUNDING) | delete it; represent the field as `null` |
 | **Wrong-span** | a value that *is* in the source but copied from the wrong place (ship-to city into `bill_to.city`) | adversarial verifier (groundedness passes it) | re-extract from the correct span |
 | **Over-normalized** | a transform that distorted the fact — `13,020 → 13,000`, `"~50" → 50`, currency dropped | `groundedness-check.py` flags it if the distorted value no longer matches; else the adversarial verifier | re-normalize without distorting; keep the qualifier |
 | **Coerced-to-satisfy-required** | a `required` field the source omits, filled with a plausible guess | `groundedness-check.py` flags it (UNGROUNDED) **and** it's a B4 robustness defect | null the field; relax `required` in the schema (see `schema-design.md`) |
@@ -78,11 +109,14 @@ python3 bin/groundedness-check.py selftest                      # prove the ladd
 python3 bin/groundedness-check.py extraction.json source.txt    # nonzero exit on any ungrounded scalar
 ```
 
-The output lists every `UNGROUNDED` scalar with its JSON path and value. Read it honestly: an
-ungrounded scalar is a **likely** hallucination — verify each against the source before shipping, and
-classify it by the taxonomy above. A green run means every scalar is *locatable* in the source; it
-does **not** mean every value is *correct* (run the adversarial cross-check for that). These findings
-populate the report card's `groundedness_findings[]` (see `policy.md`).
+The output lists every finding with its kind, JSON path, and value: `UNGROUNDED` (no rung matched —
+a likely hallucination), `WEAK_GROUNDING` (a short value that token-matched — verify manually), and
+`EMPTY` (an empty/whitespace value). Read it honestly: an ungrounded scalar is a **likely**, not
+certain, hallucination — a locale or scientific-notation number can also be a false positive — so
+verify each against the source before shipping, and classify it by the taxonomy above. A green run
+means every scalar is *locatable as whole tokens* in the source; it does **not** mean every value is
+*correct*, nor that a wrong-span value was caught (run the adversarial cross-check for that). These
+findings populate the report card's `groundedness_findings[]` (see `policy.md`).
 
 ## What a faithful extraction looks like
 

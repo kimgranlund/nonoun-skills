@@ -9,9 +9,16 @@ counterexample is a disproof; "no counterexample in range" is corroboration, nev
 
 It does NOT call `eval`. The expression is parsed with the `ast` module and walked by a tiny
 whitelisted evaluator over: integer/bool literals, the declared variables, + - * (unary -), `//`,
-`%`, `**` (bounded exponent), comparisons (== != < <= > >=, chained), and `and`/`or`/`not`/
+`%`, `**` (bounded result magnitude), comparisons (== != < <= > >=, chained), and `and`/`or`/`not`/
 parentheses. Anything else — a name call, an attribute, a comprehension, `__import__` — is rejected
 at parse time.
+
+Two independent guards keep the "can't blow up / can't hang" guarantee. The sample-space cap bounds
+the number of evaluations. The result-magnitude cap bounds the SIZE of any intermediate integer:
+`**` is composable (`((n**64)**64)**64` stays under any per-exponent cap yet builds a ~500k-digit
+integer), so capping the exponent alone is not enough — we predict each power's bit-size
+(`base.bit_length() * exponent`) and reject it if it would exceed MAX_BITS *before* computing it. A
+wall-clock budget across the search loop is the belt-and-suspenders backstop.
 
 Claim (JSON):
   {"vars": ["n"], "expr": "n*(n+1) % 2 == 0", "range": [0, 100]}
@@ -29,13 +36,20 @@ import ast
 import itertools
 import json
 import sys
+import time
 
-MAX_POW = 64            # cap exponent so a**b can't blow up
-MAX_SAMPLES = 2_000_000  # cap the Cartesian product so a wide multi-var range can't hang
+MAX_POW = 64               # cap each exponent (a coarse first line of defence)
+MAX_BITS = 100_000         # cap the bit-size of ANY power result — bounds magnitude, not just exponent
+MAX_SAMPLES = 2_000_000    # cap the Cartesian product so a wide multi-var range can't hang
+WALLCLOCK_BUDGET_S = 10.0  # belt-and-suspenders: a hard ceiling on the whole search loop
 
 
 class UnsafeExpr(ValueError):
     """The expression uses a construct outside the whitelist."""
+
+
+class SearchBudgetExceeded(ValueError):
+    """The search loop blew its wall-clock budget — treat as an unsafe/oversized claim."""
 
 
 _BINOPS = {
@@ -118,6 +132,13 @@ def eval_node(node, env):
         if isinstance(node.op, ast.Pow):
             if not isinstance(b, int) or b < 0 or b > MAX_POW:
                 raise UnsafeExpr("exponent must be an int in [0, %d]" % MAX_POW)
+            # Bound the RESULT MAGNITUDE, not just the exponent: `**` is composable, so a chain of
+            # small exponents (((n**64)**64)**64) stays under MAX_POW yet builds a huge integer.
+            # Predict the result's bit-size before computing it; |a**b| has ~ a.bit_length()*b bits.
+            if isinstance(a, int) and a not in (-1, 0, 1) and b > 0:
+                if a.bit_length() * b > MAX_BITS:
+                    raise UnsafeExpr("power result would exceed %d bits (base %d ** exp %d) — "
+                                     "claim too large to spot-check safely" % (MAX_BITS, a, b))
             return a ** b
         return _BINOPS[type(node.op)](a, b)
     if isinstance(node, ast.Compare):
@@ -171,9 +192,16 @@ def search(doc):
     variables, tree, lo, hi = parse_claim(doc)
     domain = range(lo, hi + 1)
     checked = 0
+    deadline = time.monotonic() + WALLCLOCK_BUDGET_S
     for combo in itertools.product(domain, repeat=len(variables)):
         env = dict(zip(variables, combo))
         checked += 1
+        # belt-and-suspenders: even past the per-power magnitude cap, a pathological mix of large
+        # ops shouldn't let the loop run unbounded. Check the clock periodically (cheap).
+        if checked % 256 == 0 and time.monotonic() > deadline:
+            raise SearchBudgetExceeded(
+                "search exceeded %.0fs wall-clock budget after %d sample(s) — narrow the range or "
+                "simplify the claim" % (WALLCLOCK_BUDGET_S, checked))
         try:
             val = eval_node(tree, env)
         except ZeroDivisionError:
@@ -187,7 +215,14 @@ def search(doc):
 TRUE_CLAIM = {"vars": ["n"], "expr": "n*(n+1) % 2 == 0", "range": [0, 100]}
 TRUE_BINOMIAL = {"vars": ["a", "b"], "expr": "(a+b)**2 == a*a + 2*a*b + b*b", "range": [-15, 15]}
 FALSE_CLAIM = {"vars": ["n"], "expr": "n*n >= n+1", "range": [0, 100]}            # fails at n in {0,1}
-FALSE_PRIMES = {"vars": ["n"], "expr": "n*n - n + 41 > 1 and n < 41", "range": [0, 50]}  # the n=41 lie variant
+# A false ALGEBRAIC IDENTITY the tool genuinely falsifies — the cube of a sum is NOT the sum of cubes;
+# the cross terms 3*a*a*b + 3*a*b*b are missing, so it fails wherever a,b are both nonzero. (Note:
+# this tool cannot express primality — see M2 in verification-axis.md; the famous n²−n+41 prime story
+# is motivation only, and primality is OUT OF SCOPE here, routed to a proof assistant.)
+FALSE_IDENTITY = {"vars": ["a", "b"], "expr": "(a+b)**3 == a*a*a + b*b*b", "range": [-8, 8]}
+# B1 DoS fixture: `**` is composable, so this chains to exponent 64*64*64=262144 — under MAX_POW per
+# operator, but the result is ~500k digits. Must be REJECTED (raise UnsafeExpr), not hang.
+POW_BOMB = {"vars": ["n"], "expr": "(((n**64)**64)**64) >= 0", "range": [2, 200]}
 
 
 def selftest():
@@ -205,6 +240,19 @@ def selftest():
         errs.append("FALSE_CLAIM should yield a counterexample, got %s" % info)
     elif info["counterexample"]["n"] not in (0, 1):
         errs.append("FALSE_CLAIM counterexample should be n in {0,1}, got %s" % info["counterexample"])
+
+    # a false algebraic identity must be caught — (a+b)^3 != a^3 + b^3 wherever both are nonzero
+    holds, info = search(FALSE_IDENTITY)
+    if holds or "counterexample" not in info:
+        errs.append("FALSE_IDENTITY should yield a counterexample, got %s" % info)
+
+    # B1 DoS: the composed-power bomb must be REJECTED by the magnitude guard, never computed/hung
+    try:
+        holds, info = search(POW_BOMB)
+        errs.append("POW_BOMB should be REJECTED (magnitude guard), but search returned %s / %s"
+                    % (holds, info))
+    except UnsafeExpr:
+        pass  # correct: rejected before building the ~500k-digit integer
 
     # chained comparison semantics: 1 < n < 3 true only at n=2
     holds, info = search({"vars": ["n"], "expr": "1 < n < 3", "range": [2, 2]})

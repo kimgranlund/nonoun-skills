@@ -20,10 +20,13 @@ id that must be reached:
     "goal": "s2"
   }
 
-It asserts four structural properties, each a FAIL on violation:
-  DANGLING     every id in any `from` resolves to a premise, axiom, or earlier-defined step
-  CYCLE        the dependency graph is a DAG — no step (transitively) depends on itself
-  UNREACHABLE  the `goal` is reachable from premises/axioms through `from` edges
+It asserts five structural properties:
+  DANGLING     (FAIL) every id in any `from` resolves to a premise, axiom, or defined step
+  UNJUSTIFIED  (FAIL) a non-root step with an empty `from` — it asserts itself out of nothing yet
+               grounds VACUOUSLY (all([]) is True); a genuinely-assumed fact belongs in `premises`/
+               `axioms`, so an empty-from step is an unjustified assertion, never an axiom
+  CYCLE        (FAIL) the dependency graph is a DAG — no step (transitively) depends on itself
+  UNREACHABLE  (FAIL) the `goal` is reachable from premises/axioms through `from` edges
   IRRELEVANT   (advisory) a step that is not on any path to the goal — dead weight, often a tell
 
   python3 bin/proof-structure-check.py selftest
@@ -69,15 +72,29 @@ def parse_skeleton(doc):
 
 
 def find_dangling(roots, steps):
-    """Cited ids that resolve to nothing — undefined symbol / nonexistent lemma. Returns list of (step, id)."""
-    known = set(roots)
+    """Cited ids that resolve to nothing — undefined symbol / nonexistent lemma. Returns list of (step, id).
+
+    A citation is valid if it names any defined premise, axiom, or step (forward references are fine —
+    a proof skeleton is a DAG, not a sequential program, so a step may cite one defined later as long
+    as the graph stays acyclic; cycles are caught separately by find_cycle).
+    """
+    defined = set(roots) | {s["id"] for s in steps}
     dangling = []
     for s in steps:
         for cited in s["from"]:
-            if cited not in known and cited not in {t["id"] for t in steps}:
+            if cited not in defined:
                 dangling.append((s["id"], cited))
-        known.add(s["id"])
     return dangling
+
+
+def find_unjustified(roots, steps):
+    """Non-root steps that cite nothing (`from: []`). Returns list of step ids.
+
+    Such a step grounds VACUOUSLY (all([]) is True) — it would silently count toward goal-reachability
+    while asserting itself out of nowhere. A fact taken as given belongs in `premises`/`axioms`; a
+    step with an empty `from` is an unjustified assertion, which is a structural FAIL.
+    """
+    return [s["id"] for s in steps if not s["from"]]
 
 
 def find_cycle(roots, steps):
@@ -149,21 +166,27 @@ def check(doc):
     """Run all structural checks. Returns (ok:bool, report:dict)."""
     roots, steps, goal = parse_skeleton(doc)
     dangling = find_dangling(roots, steps)
+    unjustified = find_unjustified(roots, steps)
     cycle = find_cycle(roots, steps)
     grounded = reachable_from_roots(roots, steps)
     goal_reachable = goal in roots or goal in grounded
-    irrelevant = find_irrelevant(roots, steps, goal) if goal_reachable and not cycle else []
+    # irrelevance is a graph-walk back from the goal — well-defined whenever the goal is reachable,
+    # independent of whether some *other* part of the skeleton has a cycle.
+    irrelevant = find_irrelevant(roots, steps, goal) if goal_reachable else []
     fails = []
     if dangling:
         fails.append("DANGLING: " + ", ".join("%s cites missing %s" % (s, c) for s, c in dangling))
+    if unjustified:
+        fails.append("UNJUSTIFIED: " + ", ".join(
+            "step %s derived from nothing (move to premises/axioms if assumed)" % s for s in unjustified))
     if cycle:
         fails.append("CYCLE: circular reasoning " + " -> ".join(cycle))
     if not goal_reachable:
         fails.append("UNREACHABLE: goal %r is not grounded in the premises/axioms" % goal)
     report = {
         "roots": sorted(roots), "n_steps": len(steps), "goal": goal,
-        "dangling": dangling, "cycle": cycle, "goal_reachable": goal_reachable,
-        "irrelevant": irrelevant, "fails": fails,
+        "dangling": dangling, "unjustified": unjustified, "cycle": cycle,
+        "goal_reachable": goal_reachable, "irrelevant": irrelevant, "fails": fails,
     }
     return (not fails), report
 
@@ -212,6 +235,14 @@ IRRELEVANT = {   # valid + reaches goal, but s_dead is off any path to the goal
     ],
     "goal": "s2",
 }
+UNJUSTIFIED = {   # s_bare is a non-root step with empty `from` — asserts itself out of nothing
+    "premises": ["p1"], "axioms": [],
+    "steps": [
+        {"id": "s_bare", "from": [], "statement": "asserted with no citation — vacuously grounds"},
+        {"id": "s2", "from": ["s_bare"], "statement": "goal, leaning on the unjustified assertion"},
+    ],
+    "goal": "s2",
+}
 
 
 def selftest():
@@ -240,6 +271,11 @@ def selftest():
     if "s_dead" not in rep["irrelevant"]:
         errs.append("IRRELEVANT should flag s_dead as off-path, got %s" % rep["irrelevant"])
 
+    ok, rep = check(UNJUSTIFIED)
+    if ok or "s_bare" not in rep["unjustified"]:
+        errs.append("UNJUSTIFIED should FAIL (s_bare derived from nothing), got fails=%s unjustified=%s"
+                    % (rep["fails"], rep["unjustified"]))
+
     # parse_skeleton rejects malformed shapes
     for bad in ({}, {"steps": []}, {"steps": [{"from": []}]}, {"steps": [{"id": "a"}], "goal": "zzz"},
                 {"steps": [{"id": "a"}, {"id": "a"}], "goal": "a"}):
@@ -256,6 +292,8 @@ def _print_report(rep):
           % (rep["n_steps"], rep["goal"], ", ".join(rep["roots"])))
     print("  %-12s %s" % ("dangling", "none" if not rep["dangling"]
           else ", ".join("%s->%s" % (s, c) for s, c in rep["dangling"])))
+    print("  %-12s %s" % ("unjustified", "none" if not rep["unjustified"]
+          else ", ".join(rep["unjustified"])))
     print("  %-12s %s" % ("cycle", "none (DAG)" if not rep["cycle"] else " -> ".join(rep["cycle"])))
     print("  %-12s %s" % ("goal", "reachable" if rep["goal_reachable"] else "UNREACHABLE"))
     print("  %-12s %s" % ("irrelevant", "none" if not rep["irrelevant"] else ", ".join(rep["irrelevant"])))

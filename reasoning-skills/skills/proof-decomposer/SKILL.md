@@ -7,11 +7,11 @@ description: >
   looking chain can't hide that it proves a different (often weaker) statement, nor a right claim
   hide an invalid or circular step. VERIFICATION routes to a self-tested structure check
   (bin/proof-structure-check.py: dangling-citation, circular-reasoning/DAG, goal-reachability) and a
-  safe counterexample search (bin/numeric-spotcheck.py). The "proves a neighbor" failure routes to an
-  adversarial claim probe. Backed by a gated rubric, a proof-skeleton card, and proof-method
-  playbooks (induction, contradiction, contrapositive, construction, pigeonhole). Use when stating a
-  claim and planning a proof, checking whether an argument is valid, or grading a proof. NOT a general
-  theorem prover — it grades a GIVEN argument, it does not search for one.
+  safe counterexample search (bin/numeric-spotcheck.py). "Proves a neighbor" routes to an adversarial
+  claim probe. Backed by a gated rubric, a proof-skeleton card, and proof-method playbooks (induction,
+  contradiction, contrapositive, construction, pigeonhole). Use when planning a proof, checking whether
+  an argument is valid, or grading one. NOT a theorem prover — it grades a GIVEN argument, never
+  searches for one.
 ---
 
 # proof-decomposer — grade a deductive argument on two crossing axes
@@ -72,13 +72,15 @@ Load `references/decomposition-method.md` for the full method. The skeleton:
 | Axis | Direction | Levels (in order) | Asks |
 |---|---|---|---|
 | **A · Argument** | whole → part | **A1** Claim → **A2** Strategy → **A3** Steps → **A4** Coverage → **A5** Rigor | "Does it prove the *right statement*, soundly?" |
-| **B · Verification** | part → whole | **B1** Well-formed → **B2** Acyclic → **B3** Checks → **B4** Robustness → **B5** Reproducibility | "Does the argument *actually hold*, mechanically?" |
+| **B · Verification** | part → whole | **B1** Well-formed → **B2** Acyclic → **B3** Checks *(integer-arithmetic claims; else SKIP / proof-assistant)* → **B4** Robustness → **B5** Reproducibility | "Does the argument *actually hold*, mechanically?" |
 
 `A1 · A2` and `B1 · B2 · B3` are **`[gate]`s** (a failure cascades and BLOCKS the reviews below it on
 that axis). `A3–A5 · B4–B5` are **`[review]`s** (1–5). A shippable proof is **≥4 on every review with
-zero gate failures**, reported as two separate axis scores plus the defect quadrant. Three gates route
-to code: **B1/B2 structure** → `bin/proof-structure-check.py`; **B3 checks** →
-`bin/numeric-spotcheck.py`.
+zero gate failures**, reported as two separate axis scores plus the defect quadrant. The gates route
+to code: **B1/B2 structure** → `bin/proof-structure-check.py` (always); **B3 checks** →
+`bin/numeric-spotcheck.py` — but B3 **applies only to parametric integer-arithmetic claims**; for any
+other claim B3 is a recorded **SKIP** (or a proof-assistant gate where available), which is the common
+case, *not* a failure.
 
 ## The doctrine — gate where you can, adversarially verify where you can't
 

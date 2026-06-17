@@ -5,6 +5,9 @@ skeleton card, the proof-method playbooks). Everything below is additive.
 
 ## `bin/proof-structure-check.py`
 
+- [x] **UNJUSTIFIED gate** (landed) — a non-root step with empty `from` grounded vacuously
+      (`all([])` is True); now a FAIL with a "move to premises/axioms if assumed" hint, plus a
+      must-flag fixture. Forward references stay valid (a skeleton is a DAG, not a sequential program).
 - [ ] **Per-step inference typing** — tag each edge with its rule (modus ponens, ∀-elim, induction
       step) and check the rule's arity/shape, narrowing the gap between "shape valid" (today) and
       "inference valid" (A3 — still a human read).
@@ -15,6 +18,12 @@ skeleton card, the proof-method playbooks). Everything below is additive.
 
 ## `bin/numeric-spotcheck.py`
 
+- [x] **Result-magnitude guard + wall-clock budget** (landed) — `**` is composable, so a per-exponent
+      cap let `((n**64)**64)**64` build a ~500k-digit integer and hang; now each power's predicted
+      bit-size (`base.bit_length() * exp`) is checked against `MAX_BITS` before computing, with a
+      `WALLCLOCK_BUDGET_S` backstop across the loop. POW_BOMB fixture must be REJECTED. Primality is
+      explicitly OUT OF SCOPE (no primality predicate); a false-algebraic-identity fixture replaced the
+      misleading "Euler prime" one — number-theory/primality claims route to a proof assistant.
 - [ ] **Rationals & wider domains** — exact rationals (`fractions`), a real-sampling mode (grid +
       random) with a tolerance, and modular arithmetic for number-theory claims.
 - [ ] **Randomized / smart sampling** — beyond the dense Cartesian product: random sampling for wide

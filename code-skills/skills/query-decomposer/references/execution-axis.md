@@ -31,7 +31,7 @@ static logic is self-tested with no deps; the live run fires where the engine ex
   "dialect": "postgres",
   "gates": {
     "parse":   { "cmd": "psql -d app -c \"PREPARE _q AS SELECT 1\"" },
-    "bind":    { "cmd": "psql -d app -v ON_ERROR_STOP=1 -f query.sql --dry-run" },
+    "bind":    { "cmd": "psql -d app -v ON_ERROR_STOP=1 -c \"EXPLAIN SELECT 1\"" },
     "explain": { "cmd": "psql -d app -c \"EXPLAIN SELECT * FROM orders LIMIT 1\"" },
     "run":     { "cmd": "psql -d app -c \"EXPLAIN ANALYZE SELECT 1\"", "gate": false }
   }

@@ -37,7 +37,36 @@ CAPABILITY_VERBS = (
     "render", "assess", "critique", "fix", "improve", "scaffold", "document", "model", "translate",
 )
 WHEN_MARKERS = ("trigger", "use when", "use this", "use whenever", "invoke", "reach for", "apply when")
+# Fence markers must be matched at a CLAUSE boundary, not anywhere in prose: "not for the faint of
+# heart" is idiom, not a NOT-for fence. A real fence opens a clause — it follows sentence start or a
+# clause separator (. ; , : — | or a newline) — so we anchor each marker to one of those.
 NOT_MARKERS = ("not for", "not when", "does not", "doesn't", "do not trigger", "don't trigger", "never for")
+_FENCE_PATTERNS = tuple(
+    re.compile(r"(?im)(?:^|[.;:,—|]|\n)\s*%s\b" % re.escape(mk)) for mk in NOT_MARKERS
+)
+
+
+def has_fence(desc):
+    """True iff the description carries a NOT-for fence at a CLAUSE boundary (not idiom in prose)."""
+    return any(p.search(desc) for p in _FENCE_PATTERNS)
+
+
+def found_capability_verbs(desc):
+    """Capability verbs present as a WHOLE WORD or a normal inflection (grade/grades/grading/graded),
+    but NOT as a coincidental prefix of an unrelated word ('plan' must not match 'planetary',
+    'map' must not match 'mapping a galaxy'… 'mapping' IS allowed since it's the verb inflected).
+    We bound each verb with \\b on both sides, allowing only the common verb suffixes between."""
+    low = desc.lower()
+    hits = []
+    for v in CAPABILITY_VERBS:
+        # verb + optional inflection (s, es, d, ed, ing) + word boundary — 'plan\b' won't hit 'planetary'
+        if re.search(r"\b%s(?:e?s|e?d|ing|)\b" % re.escape(v), low):
+            hits.append(v)
+    return hits
+
+
+def has_capability_verb(desc):
+    return bool(found_capability_verbs(desc))
 VAGUE = (
     "various", "powerful", "comprehensive", "robust", "seamless", "flexible", "advanced",
     "cutting-edge", "state-of-the-art", "things", "stuff", "etc", "and more", "and so on",
@@ -60,18 +89,59 @@ def extract_description(skill_md_text):
     return inline.group(1).strip() if inline else None
 
 
+# A quoted phrase is only a CONCRETE trigger if it gives the classifier something to land on. A vague
+# category ("various things", "routing tasks", "all kinds of stuff") is not a landing point — it's the
+# same filler the VAGUE list flags, just in quotes. We reject a quoted phrase that is purely vague:
+# it carries no content word beyond a vague category term.
+_VAGUE_CATEGORY = (
+    "various", "things", "stuff", "tasks", "items", "kinds", "all kinds", "any kind", "anything",
+    "everything", "and more", "etc", "and so on", "wide range", "miscellaneous", "general",
+)
+
+
+def _is_concrete_trigger(phrase):
+    """A trigger phrase is CONCRETE if it names a real request the classifier can land on — not a
+    vague category. Rejected: < 2 words; or a phrase whose only content is a vague-category term
+    ('various things'); or a bare noun-category with no action signal ('routing tasks', 'all kinds of
+    stuff'). Accepted: a phrase with a capability verb ('grade this description') or a demonstrative
+    pointing at a concrete object ('this description — does it over-trigger')."""
+    p = phrase.strip(" .").lower()
+    words = re.findall(r"[a-z0-9'-]+", p)
+    if len(words) < 2:
+        return False
+    vague_words = set()
+    for cat in _VAGUE_CATEGORY:
+        if " " in cat:
+            if cat in p:
+                vague_words.update(cat.split())
+        elif cat in words:
+            vague_words.add(cat)
+    filler = {"the", "a", "an", "this", "that", "my", "your", "of", "to", "for", "on", "in", "and",
+              "or", "with", "some", "any", "do", "it"}
+    content = [w for w in words if w not in vague_words and w not in filler]
+    if not content:
+        return False  # only vague terms + filler — pure category, no landing point
+    # A phrase whose content words include a vague-category head and NO action signal (no capability
+    # verb, no demonstrative pointing at an object) is a bare category like "routing tasks" — reject.
+    has_action = has_capability_verb(p) or bool(re.search(r"\b(this|these|my|your)\b", p))
+    if vague_words and not has_action:
+        return False
+    return True
+
+
 def quoted_triggers(desc):
     """Concrete trigger phrases: anything in double quotes, or comma-separated items after a
-    'Triggers on:' / 'Triggers include' marker (the two shapes real descriptions use)."""
+    'Triggers on:' / 'Triggers include' marker (the two shapes real descriptions use). Vague-category
+    quotes ('various things', 'routing tasks') are rejected — a category is not a landing point."""
     quoted = re.findall(r'"([^"]{3,})"', desc)
     if quoted:
-        return [q.strip() for q in quoted if q.strip()]
+        return [q.strip() for q in quoted if q.strip() and _is_concrete_trigger(q)]
     # marker-introduced list: "Triggers on: a, b, c. NOT for ..."
     mk = re.search(r"(?is)(?:triggers?\s+(?:on|include[s]?)|use when)\s*[:\-]?\s*(.+?)(?:\.\s+(?:not for|does not|do not)|$)", desc)
     if mk:
         chunk = mk.group(1)
         parts = re.split(r"[;,]| or | and ", chunk)
-        return [p.strip(" .") for p in parts if len(p.strip(" .").split()) >= 2]
+        return [p.strip(" .") for p in parts if _is_concrete_trigger(p)]
     return []
 
 
@@ -90,7 +160,7 @@ def lint(desc, min_triggers=3):
     if len(desc) > 1024:
         fails.append("description is %d chars (> 1024 routing budget)" % len(desc))
 
-    if not any(v in low for v in CAPABILITY_VERBS):
+    if not has_capability_verb(desc):
         fails.append("no WHAT signal — names no capability verb "
                      "(decompose/grade/score/audit/design/build/…); the model can't tell what it does")
 
@@ -104,7 +174,7 @@ def lint(desc, min_triggers=3):
         fails.append("only %d concrete trigger phrase(s) (need >= %d) — one phrasing under-triggers; "
                      "cover the real invocation space" % (len(triggers), min_triggers))
 
-    if not any(mk in low for mk in NOT_MARKERS):
+    if not has_fence(desc):
         warns.append("no NOT-for fence — add an explicit 'NOT for …' that names the sibling(s) this "
                      "could be confused with, or it will over-trigger onto their territory")
 
@@ -145,6 +215,40 @@ description: >
 # Bad: over the 1024 budget.
 LONG_DESC = "Grade this. " + ('"do a thing" ' * 3) + ("Triggers on stuff. " * 120)
 LONG_MD = "---\nname: x\ndescription: >\n" + "".join("  %s\n" % w for w in [LONG_DESC]) + "---\n"
+
+# --- minor-fix fixtures ------------------------------------------------------------------------
+# m1: a description with NO real fence but the idiom "not for the faint of heart" in prose. The old
+# substring check saw "not for" and SUPPRESSED the missing-fence warn. The clause-boundary check must
+# still raise it (the idiom is mid-clause, not at a clause opening).
+IDIOM_NO_FENCE_MD = '''---
+name: idiom-skill
+description: >
+  Grade and decompose a skill's frontmatter description — routing work not for the faint of heart.
+  Triggers on: "grade this description", "score the routing", "build a routing corpus".
+---
+# body
+'''
+# m2: a description whose ONLY 'verb-looking' token is 'planetary' (contains 'plan'). The old
+# substring check saw 'plan' and PASSED the WHAT gate; whole-word detection must FAIL it.
+PLAN_SUBSTRING_MD = '''---
+name: astro-skill
+description: >
+  A planetary catalogue of frontmatter metadata for interstellar discoverability.
+  Triggers on: "list the planets", "show the catalogue", "open the atlas".
+---
+# body
+'''
+# m3: a description whose quoted "triggers" are vague categories ("various things", "routing tasks",
+# "all kinds of stuff"). The old quote-counter counted them as concrete; they must NOT count, so the
+# too-few-concrete-triggers fail must fire.
+VAGUE_QUOTES_MD = '''---
+name: vague-quotes-skill
+description: >
+  Grade a skill's frontmatter description for routing. Triggers on: "various things", "routing tasks",
+  "all kinds of stuff".
+---
+# body
+'''
 
 
 def selftest():
@@ -190,6 +294,43 @@ def selftest():
     ml = quoted_triggers("Use when you want to grade a description, score the routing, build a corpus.")
     if len(ml) < 2:
         errs.append("quoted_triggers (marker-list) wrong: %s" % ml)
+
+    # 6. m1 — the prose idiom "not for the faint of heart" must NOT suppress the missing-fence warn
+    #    (it is mid-clause, not a clause-opening NOT-for fence).
+    if has_fence("routing work not for the faint of heart"):
+        errs.append("m1: idiom 'not for the faint of heart' wrongly counted as a fence")
+    if not has_fence("Grade the description. NOT for authoring a whole skill (skills-studio)."):
+        errs.append("m1: a real clause-opening 'NOT for …' fence was not detected")
+    im = extract_description(IDIOM_NO_FENCE_MD)
+    _, iw = lint(im)
+    if not any("NOT-for" in w for w in iw):
+        errs.append("m1: idiom-only description did not raise the missing-fence warn: %s" % iw)
+
+    # 7. m2 — capability-verb detection is whole-word: 'planetary' must NOT satisfy the WHAT gate via
+    #    the substring 'plan', so the no-WHAT fail must fire.
+    if has_capability_verb("a planetary catalogue of interstellar metadata"):
+        errs.append("m2: 'planetary' wrongly matched the capability verb 'plan' (substring bug)")
+    if not has_capability_verb("we will plan the migration"):
+        errs.append("m2: the real verb 'plan' (whole word) was not detected")
+    if not has_capability_verb("grades and scores the routing"):  # inflections still match
+        errs.append("m2: inflected verbs 'grades'/'scores' not detected")
+    pm = extract_description(PLAN_SUBSTRING_MD)
+    pf, _ = lint(pm)
+    if not any("WHAT" in f for f in pf):
+        errs.append("m2: 'planetary'-only description did not raise the no-WHAT fail: %s" % pf)
+
+    # 8. m3 — vague-category quotes are not concrete triggers; the too-few-triggers fail must fire.
+    if _is_concrete_trigger("various things") or _is_concrete_trigger("routing tasks"):
+        errs.append("m3: a vague-category quote was wrongly counted as a concrete trigger")
+    if not _is_concrete_trigger("grade this description"):
+        errs.append("m3: a genuinely concrete trigger was wrongly rejected")
+    vq = extract_description(VAGUE_QUOTES_MD)
+    if len(quoted_triggers(vq)) >= 3:
+        errs.append("m3: vague-category quotes counted toward the concrete-trigger total: %s"
+                    % quoted_triggers(vq))
+    vf, _ = lint(vq)
+    if not any("concrete trigger" in f for f in vf):
+        errs.append("m3: vague-quotes description did not raise the too-few-concrete-triggers fail: %s" % vf)
     return errs
 
 

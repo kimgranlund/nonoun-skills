@@ -10,7 +10,7 @@ weaker gate.
 | **TypeScript** | discriminated unions (`{tag:'a'}|{tag:'b'}`) — strong | exact object types are awkward (structural; excess-property checks only on literals) | template-literal & branded types; no native refinements | great at sums, weak at "no extra fields"; brand primitives by hand (`type Email = string & {__brand}`) |
 | **Rust** | `enum` with data — excellent | structs are closed by default | newtypes (`struct Cents(u64)`), `NonZeroU32` | the gold standard for unrepresentable illegal states; exhaustive `match` enforces coverage |
 | **Haskell / F# / OCaml** | algebraic data types — excellent | records closed | newtypes, smart constructors, GADTs/refinements | "make illegal states unrepresentable" originates here; the compiler is the gate |
-| **JSON Schema** | `oneOf` + `const` discriminant | `additionalProperties:false` | `enum`,`pattern`,`format`,`minimum`,`minItems` | fully mechanizable by `bin/instance-check.py`; the lingua franca for the instance-set proof |
+| **JSON Schema** | `oneOf` + `const` discriminant | `additionalProperties:false` | `enum`,`pattern`,`format`,`minimum`,`minItems` | mechanizable for the supported subset by `bin/instance-check.py` (see its unsupported-keyword list below); the lingua franca for the instance-set proof |
 | **Protobuf** | `oneof` (no payload-less variants pre-edition) | fields are open by spec (unknown fields preserved) | none native; validate-rules via buf/protovalidate | sums weaker than ADTs; openness is a wire feature — close it in code, not the schema |
 | **SQL DDL** | none native (emulate via CHECK + nullable columns, or sibling tables) | columns are fixed; rows are closed | `CHECK`, `NOT NULL`, `UNIQUE`, FK, domains/enums | sum types are the pain point — the "one nullable column per variant" anti-pattern is optional-soup in disguise; prefer a table-per-variant or a tagged table with a CHECK |
 | **GraphQL** | unions & interfaces (no input unions) | inputs are fixed sets | enums, custom scalars, `!` non-null | input types can't be sums — a known hole that pushes illegal states into resolvers |
@@ -38,3 +38,26 @@ in TS/Rust/SQL) and run `bin/instance-check.py` over the legal/illegal sets — 
 `additionalProperties:false` + `const`/`enum` express the four collapses from `illegal-states.md`
 directly. Then mirror the schema into the host type system, preferring whichever construct that
 system makes *unrepresentable* over whichever it merely *validates at runtime*.
+
+### What `bin/instance-check.py` is a SUBSET of (read before trusting a green)
+
+The validator covers a deliberate subset and is **default-deny**: a schema using any keyword it does
+not understand FAILS LOUD as an `UNSUPPORTED_SCHEMA` finding rather than silently passing (a silent
+pass would drop the constraint and false-green an illegal instance).
+
+- **Supported:** `type` (incl. `5.0 ⊨ integer`, `bool` distinct from int), `const`/`enum`
+  (type-aware: `true ≠ 1`, `1 = 1.0`), `required`, `additionalProperties:false` and schema-form,
+  `properties`, object-form `items`, `minimum`/`maximum`/`exclusive*`, `multipleOf` (tolerant),
+  `minLength`/`maxLength`, `pattern` (trailing `$` → end-of-string), `minItems`/`maxItems`,
+  `uniqueItems` (`1` and `1.0` collide), `allOf`/`anyOf`/`oneOf`/`not`, **asserting** `format`
+  (`email`, `uri`, `url`, `uuid`, `date`, `date-time`), and **local `$ref`** into `#/$defs` /
+  `#/definitions`.
+- **Unsupported (flagged loudly, never silently ignored):** `if`/`then`/`else`, `patternProperties`,
+  `propertyNames`, `dependentRequired`/`dependentSchemas`, `contains`/`minContains`,
+  `prefixItems` and tuple-form (array) `items`, remote/non-local `$ref`, `$dynamicRef`, and any
+  unrecognized keyword. Express the constraint with a supported keyword, or extend the tool.
+
+Note on `format`: the JSON Schema spec makes `format` **non-asserting by default**, but this tool
+asserts the formats above (an `email` that isn't one is rejected) precisely because the
+primitive-obsession collapse depends on it. For any format *outside* that set, fall back to
+`pattern` — an unasserted format is not enforced.

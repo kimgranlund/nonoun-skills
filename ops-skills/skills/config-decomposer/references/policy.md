@@ -61,9 +61,13 @@ parse/schema/plan gate; lint/policy advisory. Commit one manifest per config roo
 with CI so the skill runs the **same** gates CI does (the same `terraform validate`/`plan`,
 `kubeconform`, `hadolint`). Per-tool starter commands are tabulated in `validity-axis.md`.
 
-A missing tool is a **SKIP, not a pass** — the harness flags a skipped gate as `NO EVIDENCE`. A
-SHIPPABLE verdict requires the gates to have actually **run**; a green parse with an unrun plan is no
-evidence of the right outcome.
+A missing tool is a **SKIP, not a pass** — the harness flags a skipped gate as `NO EVIDENCE`, reports
+the run as `INCOMPLETE`, and **exits non-zero (3)** so automation can't read a no-evidence run as
+green. A SHIPPABLE verdict requires the gates to have actually **run**; a green parse with an unrun
+plan is no evidence of the right outcome. Note the plan verdict is **tri-state**: a
+`terraform plan -detailed-exitcode` exit 2 (or a `kubectl diff` exit 1) is `changes-present` — a
+**pass with a diff to READ**, the intended outcome — not a fail; the `plan_verdict` line records what
+that diff was (and that the 2nd plan was empty).
 
 ## Handoff — what this skill does NOT do
 

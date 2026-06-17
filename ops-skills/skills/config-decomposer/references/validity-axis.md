@@ -49,7 +49,16 @@ python3 bin/config-harness.py manifest.json     # run present gates; report card
 
 Read the card honestly: a **skipped** gate means you have *no evidence* for that level, not a pass. A
 SHIPPABLE verdict requires the gates to have actually **run**, not merely "not failed." The harness
-reports a skipped gate as `NO EVIDENCE` precisely so it can't be mistaken for green.
+makes both halves of that explicit in its verdicts and exit code:
+
+- A skipped **gate** with no fails is `INCOMPLETE`, and the harness **exits non-zero (3)** — so a
+  no-evidence run can never be read by automation as a green PASS.
+- The `plan` verdict is **tri-state**, because the recommended flag makes the success case non-zero:
+  `terraform plan -detailed-exitcode` exits **2** when changes are present, and `kubectl diff` exits
+  **1** when a diff exists. The harness scores those as `changes-present` — a **pass with a diff to
+  READ** (the doctrine's intended outcome), **not** a gate fail. A fail is reserved for a true error
+  (terraform exit 1 or >2; kubectl diff exit >1). So a `changes-present` plan is your cue to read the
+  diff against the desired state, not a red gate.
 
 ### Starter manifests by tool
 

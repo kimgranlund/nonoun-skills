@@ -6,8 +6,9 @@ Static scan of a JSON Schema for the shapes that let illegal states slip through
 not proof: each one points at a place the state space is wider than the domain.
 
 Smells:
-  BOOLEAN_BLINDNESS   >= 2 boolean fields on one object — usually a mutually-exclusive state that
-                      should be a oneOf / enum (2 booleans = 4 states, often 1-2 of them illegal)
+  BOOLEAN_BLINDNESS   >= 2 boolean-ish fields on one object — a real boolean, an enum:[true,false],
+                      or a const-boolean all count — usually a mutually-exclusive state that should
+                      be a oneOf / enum (2 booleans = 4 states, often 1-2 of them illegal)
   OPTIONAL_SOUP       many properties, <=1 required, no oneOf/anyOf grouping — most field
                       combinations are representable, including the illegal ones
   PRIMITIVE_OBSESSION a string named like a constrained type (email/url/id/uuid/date/...) with no
@@ -46,6 +47,21 @@ def _is_bare_string(schema):
         k in schema for k in ("format", "pattern", "enum", "const"))
 
 
+def _is_boolish(schema):
+    """A field that is a boolean in disguise: a real boolean, OR an enum/const over the two
+    boolean values (e.g. enum:[true,false]) — same 2-state shape, same blindness when paired."""
+    if not isinstance(schema, dict):
+        return False
+    if "boolean" in _types(schema):
+        return True
+    enum = schema.get("enum")
+    if isinstance(enum, list) and enum and set(map(type, enum)) == {bool}:
+        return True
+    if isinstance(schema.get("const"), bool):
+        return True
+    return False
+
+
 def walk(schema, path, findings):
     if not isinstance(schema, dict):
         return
@@ -54,7 +70,7 @@ def walk(schema, path, findings):
         required = set(schema.get("required", []) or [])
         has_choice = any(k in schema for k in ("oneOf", "anyOf"))
 
-        bools = [k for k, s in props.items() if isinstance(s, dict) and "boolean" in _types(s)]
+        bools = [k for k, s in props.items() if _is_boolish(s)]
         if len(bools) >= 2:
             findings.append(("BOOLEAN_BLINDNESS", path,
                              "%d boolean fields (%s) — model the exclusive state as a oneOf/enum"
@@ -94,7 +110,7 @@ DIRTY = {
     "type": "object",
     "properties": {
         "is_active": {"type": "boolean"},
-        "is_deleted": {"type": "boolean"},       # + is_active => BOOLEAN_BLINDNESS
+        "is_deleted": {"enum": [True, False]},    # boolean in disguise; + is_active => BOOLEAN_BLINDNESS
         "email": {"type": "string"},             # PRIMITIVE_OBSESSION
         "status": {"type": "string", "description": "one of open, closed, pending"},  # STRINGLY_TYPED_ENUM
         "note": {"type": "string"},
@@ -117,6 +133,17 @@ CLEAN = {
 }
 
 
+# A boolean-blind object where BOTH fields are booleans in disguise (enum:[true,false]) — the
+# state shape is identical to two real booleans (4 states), so it must still trip the smell.
+DISGUISED_BOOLS = {
+    "type": "object", "additionalProperties": False,
+    "properties": {
+        "is_active": {"enum": [True, False]},
+        "is_deleted": {"const": True},
+    },
+}
+
+
 def selftest():
     errs = []
     kinds = {k for k, _, _ in smells(DIRTY)}
@@ -125,6 +152,9 @@ def selftest():
             errs.append("DIRTY missed %s (got %s)" % (want, sorted(kinds)))
     if smells(CLEAN):
         errs.append("CLEAN produced smells: %s" % smells(CLEAN))
+    # boolean-in-disguise: two enum/const-boolean fields must still trip BOOLEAN_BLINDNESS
+    if not any(k == "BOOLEAN_BLINDNESS" for k, _, _ in smells(DISGUISED_BOOLS)):
+        errs.append("DISGUISED_BOOLS missed BOOLEAN_BLINDNESS (enum:[true,false] not seen as boolean)")
     return errs
 
 

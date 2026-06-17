@@ -23,6 +23,19 @@ type-spec card, the collapse toolkit). Everything below is additive.
 - [ ] **Sum-without-discriminant** smell — a `oneOf` of object branches with no shared `const`
       discriminant (hard to narrow, easy to mis-validate).
 
+## Deferred review minors (noted, not yet done)
+
+- **OPEN_RECORD noise on extensible bags** — the smell fires on *every* object lacking
+  `additionalProperties:false`, including legitimately-extensible maps/bags. Add a suppression when a
+  field is clearly a typed open bag (e.g. `additionalProperties` is a schema, or the name reads
+  `*_meta`/`extra`/`extensions`), or downgrade it to advisory-only for such shapes.
+- **Format coverage** — `instance-check.py` asserts `email`/`uri`/`url`/`uuid`/`date`/`date-time`;
+  other formats (`ipv4`, `hostname`, `time`, `duration`, `regex`, …) are accepted as non-asserting.
+  Express those as `pattern` for now, or extend `_FORMAT`.
+- **Local `$ref` only** — `$ref` resolution covers `#/$defs` and `#/definitions`; remote refs and
+  `$dynamicRef`/recursive cross-document refs remain default-deny (`UNSUPPORTED_SCHEMA`). Full
+  resolution is tracked under the keyword backlog above.
+
 ## Method & corpus
 
 - [ ] A **routing-eval corpus** (the maturity step the repo ROADMAP tracks) — especially the

@@ -96,7 +96,10 @@ The non-obvious core, and the reason it earns a skill:
   every line is a claim to verify, see `plan-and-drift.md`), and the **safety lint** for the
   mechanizable smells (`config-lint.py`).
 - **Safety smells are mechanizable — gate them.** A plaintext secret, a `:latest` image, a
-  `0.0.0.0/0`, or a wildcard IAM grant is a deterministic FAIL, not taste.
+  `0.0.0.0/0`, or a wildcard IAM grant that `config-lint.py` raises is a gate-grade FAIL, not taste.
+  The linter is the cheap first pass (it catches the common shapes — inline/trailing-comma/list
+  secrets, multi-line wildcard arrays); a clean run is not proof of safety, so a high-stakes config
+  also gets the deeper policy engine wired as the harness `policy` phase.
 
 ## The tools & formats (pick by what the config targets)
 
@@ -123,9 +126,12 @@ focuses the method, doesn't change it. Full per-tool manifest table in `referenc
 - **The dangerous defect is invisible to the validator — read the plan against intent.** "Valid
   config, wrong outcome" needs a skeptic reading the diff line-by-line against A1, not the validator's
   green check.
-- **Safety smells are arithmetic, not taste.** A plaintext secret, an unpinned image, a `0.0.0.0/0`,
-  a wildcard grant, a missing limit — run `config-lint.py`, don't eyeball them. A floor finding is
-  gate-grade, not a preference.
+- **Safety smells are arithmetic, not taste — but the linter is a first pass, not a complete floor.**
+  A plaintext secret, an unpinned image, a `0.0.0.0/0`, a wildcard grant, a missing limit — run
+  `config-lint.py` first; a finding it *does* raise is gate-grade, not a preference. But a *clean* run
+  is "none of the common shapes tripped," not "provably safe" — a text-level scan has a residual
+  false-negative surface (a secret in a connection string, a base64 blob, an unusual key). On high
+  stakes, still read, and wire the policy engine (`checkov`/`conftest`) as the harness `policy` phase.
 - **Gates before reviews, always.** Don't grade drift for a config that won't parse, or fit for one
   whose desired state is wrong. Stop each axis at its first failed gate.
 - **Two scores, never one.** *Right-intent-won't-validate* and *valid-but-wrong* need opposite fixes

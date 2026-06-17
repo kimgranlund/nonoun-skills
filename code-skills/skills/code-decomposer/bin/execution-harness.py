@@ -97,10 +97,12 @@ def run_phase(spec, cwd=None):
 
 
 def overall(results):
-    """Report-card summary: gate fail -> FAIL; gate skip -> PASS but flagged."""
+    """Report-card summary. gate fail -> FAIL; a skipped GATE (tool absent) -> INCOMPLETE, NOT a
+    pass — a skipped gate is no evidence, per the skill's own doctrine, so it must never read as
+    green to automation keying on the exit code. PASS only when every gate actually ran green."""
     gate_fails = [r for r in results if r["gate"] and r["verdict"] == "fail"]
     gate_skips = [r for r in results if r["gate"] and r["verdict"] == "skip"]
-    status = "FAIL" if gate_fails else "PASS"
+    status = "FAIL" if gate_fails else ("INCOMPLETE" if gate_skips else "PASS")
     return {"status": status, "gate_fails": gate_fails, "gate_skips": gate_skips}
 
 
@@ -151,8 +153,12 @@ def selftest():
         errs.append("overall should FAIL on a gate fail")
     if overall([ok])["status"] != "PASS":
         errs.append("overall should PASS when all gates pass")
-    if overall([skip])["status"] != "PASS" or not overall([{**skip, "gate": True}])["gate_skips"]:
-        errs.append("overall skip handling wrong")
+    if overall([skip])["status"] != "PASS":  # a skipped ADVISORY phase doesn't taint the verdict
+        errs.append("overall should PASS when only an advisory phase skipped")
+    if overall([{**skip, "gate": True}])["status"] != "INCOMPLETE":  # a skipped GATE is not a pass
+        errs.append("overall should be INCOMPLETE on a skipped gate")
+    if overall([ok, {**skip, "gate": True}])["status"] != "INCOMPLETE":
+        errs.append("a skipped gate alongside a passing gate is still INCOMPLETE")
     return errs
 
 
@@ -197,7 +203,12 @@ def main(argv):
         sys.stderr.write("execution-harness: FAIL — %d gate(s) failed: %s\n"
                          % (len(summary["gate_fails"]), ", ".join(r["phase"] for r in summary["gate_fails"])))
         return 1
-    print("execution-harness: PASS — all present gates green")
+    if summary["status"] == "INCOMPLETE":
+        sys.stderr.write("execution-harness: INCOMPLETE — %d gate(s) had no tool and did not run; "
+                         "this is NOT a pass: %s\n"
+                         % (len(summary["gate_skips"]), ", ".join(r["phase"] for r in summary["gate_skips"])))
+        return 3
+    print("execution-harness: PASS — all present gates ran green")
     return 0
 
 

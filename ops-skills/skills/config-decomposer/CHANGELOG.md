@@ -36,3 +36,36 @@ quadrant.
   handoff seams to `code-decomposer`, `/verify`, `arch-system`, and `/simplify`.
 
 First skill in the new `ops-skills` plugin.
+
+### Defect fixes (pre-release hardening)
+
+- **config-lint — secret detection (B1):** the `PLAINTEXT_SECRET` check matched a secret-ish key only
+  when it was flush against the indent and the value ran to end-of-line, so it missed the three most
+  common shapes — a trailing-comma key in pretty-printed JSON (`"password": "…",`), an inline
+  single-line JSON object (`{ "password": "…", "api_key": "…" }`), and a YAML list item
+  (`- password: …`). Now the key matches **anywhere on the line** and the value capture stops at the
+  field boundary (so multiple keys per line are each scored, and a trailing `,`/`]`/`}` is stripped).
+  All three shapes added as must-FLAG fixtures; the reference/placeholder false-positive guards
+  (`${VAR}`, `${{ secrets.X }}`, `var.`, `secretKeyRef`, `<CHANGEME>`, empty) verified intact.
+- **config-lint — multi-line wildcard grant (B2):** added a multi-line scan that flags the canonical
+  IAM shape `"Action": [` / `"*"` / `]` (key opens the array on one line, the bare `"*"` element on a
+  later line) — the same-line regexes missed it. Must-FLAG fixture added; a scoped multi-line action
+  list (real verbs, no bare `"*"`) verified as NOT flagged.
+- **config-lint — `*.Dockerfile` scan (M3):** the directory walk now matches `*.dockerfile`
+  (e.g. `api.Dockerfile`), not only `Dockerfile`/`Dockerfile.*`. `api.Dockerfile` added as a
+  must-scan fixture.
+- **config-harness — tri-state plan verdict (M1):** a successful `terraform plan -detailed-exitcode`
+  (exit 2 = changes present) and `kubectl diff` (exit 1 = a diff) — the very flags the template and
+  references recommend — were mislabeled as a gate FAIL. The `plan` verdict is now tri-state:
+  exit 2 (terraform) / exit 1 (kubectl diff) is `changes-present` (a pass-with-a-diff-to-READ), and
+  `fail` is reserved for a true error.
+- **config-harness — INCOMPLETE on a skipped gate (M2):** the harness exited 0 (printing PASS) when a
+  decisive GATE was SKIPPED (validator absent) despite a NO-EVIDENCE warning. A skipped gate with no
+  fails is now `INCOMPLETE` and the harness **exits 3**, so automation can't read no-evidence as
+  success.
+- **Minors:** the k8s `NO_RESOURCE_LIMITS` check (whole-document substring; a sidecar's limits mask a
+  peer's missing one) is now documented as a coarse document-level heuristic; `--cwd` with no value no
+  longer raises `IndexError`; `secretKeyRef`/`configMapKeyRef`/`valueFrom` added to the secret-ref
+  guard (honoring the doc claim); and the "deterministic FAIL / don't eyeball" language was softened —
+  `config-lint` is a cheap **first pass**, not a complete floor (residual secret false-negatives —
+  connection strings, base64, unusual key names — noted in ROADMAP).

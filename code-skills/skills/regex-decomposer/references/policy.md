@@ -22,8 +22,10 @@ top-left.
    constructs are cross-verified there.
 7. **Examples green (B2)** — every positive matched and every negative rejected under the declared
    mode; the negative list is non-empty (the contract has a boundary).
-8. **Safe (B3)** — the ReDoS-smell scan is clean **and** an adversarial near-miss negative is in the
-   card and rejected fast (or the engine is RE2/linear and cannot ReDoS).
+8. **Safe (B3)** — the ReDoS-smell scan is clean (a lossy pre-filter: necessary, not sufficient)
+   **and** an adversarial near-miss negative is in the card and rejected fast under a **manual**
+   timing test you run yourself — the tool does not time patterns (or the engine is RE2/linear and
+   cannot ReDoS).
 9. **Both axes ≥4, zero gate fails, SHIPPABLE quadrant** — reported as two scores, gate failures
    first, with B4 robustness + B5 readability ≥4 and the pattern-spec card ready for handoff.
 

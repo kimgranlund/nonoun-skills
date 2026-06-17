@@ -10,7 +10,9 @@ language" and "plausible pattern that won't run or ReDoS") become caught errors,
   B2 Examples  — every `positives[]` string matches, every `negatives[]` string does NOT, under the
                  declared match MODE (`full` = fullmatch / anchored, `partial` = search / unanchored)
   B3 Safety    — a STATIC ReDoS-smell scan flags the catastrophic-backtracking constructs (nested
-                 quantifiers, overlapping alternation under a quantifier, an unbounded `.*` pile-up)
+                 quantifiers — incl. bounded {m,n} outer repeats like (.*a){10} — overlapping
+                 alternation under a quantifier, an unbounded `.*` pile-up). LOSSY pre-filter: a clean
+                 scan is necessary, not sufficient — confirm a suspicion with a timing test, by hand.
 
 A pattern-spec card (JSON):
   {
@@ -85,18 +87,38 @@ def check_examples(rx, positives, negatives, mode):
 # input, multiplied across a quantifier. These three families cover the classic exponential/quadratic
 # blowups. The scan is intentionally conservative (false positives over false negatives) — a flagged
 # pattern needs an adversarial-input proof (see redos-and-safety.md), not an automatic reject.
-_GROUP_OPEN = r"\((?:\?[:=!<][^)]*?|\?<[^>]+>|\?P<[^>]+>|\?P=[^)]+|\?#[^)]*|)"  # ( with optional (?: (?= (?<name> etc.
+#
+# This scan is a LOSSY pre-filter, not a decision procedure: a pure regex cannot parse regex, so it
+# can miss defects buried under deeper nesting AND it can over-flag safe constructs. A clean scan is
+# necessary but NOT sufficient — confirm any catastrophic suspicion with a timing test, and never
+# treat a clean result as a safety proof.
 
-# 1. NESTED QUANTIFIER — a quantified atom inside a quantified group: (a+)+ , (\w*)* , (a{1,3})+
-#    The inner and outer quantifier both span the same characters -> exponential paths.
-_NESTED_QUANT = re.compile(
-    r"\([^()]*[+*]\)[+*]"           # (….+….)+  or (….*….)*   — quantifier inside, quantifier outside
-    r"|\([^()]*[+*]\)\{"            # (….+….){m,n}
-    r"|\([^()]*\{\d+,?\d*\}[^()]*\)[+*{]"  # (….{m,n}….)+ — bounded inner, quantified outer
-)
+# An OUTER quantifier applied to a group: `)*`, `)+`, `){m}`, `){m,}`, `){m,n}`. This is what turns
+# inner ambiguity into a blow-up — and `{m,n}` outer repeats matter just as much as `*`/`+` (the
+# polynomial-ReDoS family `(.*a){10}`, `([^,]*,){20}` is bounded-outer, NOT star-outer).
+_OUTER_QUANT = r"\)(?:[*+?]|\{\d+(?:,\d*)?\})"
 
-# 2. OVERLAPPING ALTERNATION under a quantifier — (a|a)* , (a|ab)* , (\d|\w)+ : branches that can
-#    match the same text give the engine multiple equivalent paths per repetition.
+# An INNER quantified atom anywhere inside a group body: a `*`, `+`, `?`, or `{...}` applied to some
+# atom. We look for any quantifier metacharacter in the body (one not escaped). This is broad on
+# purpose: `(.*a){10}`, `(a?){20}`, `([^,]*,){20}`, `(\w*)*` all carry an inner quantifier whose work
+# the outer repeat multiplies.
+_INNER_QUANT_IN_BODY = re.compile(r"(?<!\\)(?:[*+?]|\{\d+(?:,\d*)?\})")
+
+# A group's TYPE prefix — `?:`, `?=`, `?!`, `?<=`, `?<!`, `?<name>`, `?P<name>`, `?P=name`, `?#…`,
+# `?i:` etc. The `?` in such a prefix is NOT an inner quantifier; strip it before scanning the body
+# so a plain non-capturing group like (?:foo)* is not mistaken for a quantified atom.
+_GROUP_PREFIX = re.compile(r"^\?(?:[:=!>]|<[=!]|P?<[^>]*>|P=[^)]*|#.*|[aiLmsux]*[:)])")
+
+# 1. NESTED QUANTIFIER — a quantified group whose body itself contains a quantified atom:
+#    (a+)+ , (\w*)* , (a{1,3})+ , (.*a){10} , (a?){20} , ([^,]*,){20}
+#    The outer quantifier (incl. a bounded {m,n}) multiplies the inner ambiguity -> exp/polynomial.
+#    Body is the innermost group ([^()]* excludes nested parens), tested for an inner quantifier; the
+#    final char before `)` is excluded from the body so a single trailing inner quant still counts.
+_NESTED_QUANT = re.compile(r"\(([^()]*?)\)(?:[*+?]|\{\d+(?:,\d*)?\})")
+
+# 2. OVERLAPPING ALTERNATION under a quantifier — (a|a)* , (a|ab)* : alternative branches where one
+#    is a prefix of another can match the same text, giving the engine multiple equivalent paths per
+#    repetition. (Mutually-exclusive branches like (foo|bar|baz)* are linear-safe and NOT flagged.)
 _ALT_QUANT = re.compile(r"\([^()]*\|[^()]*\)[+*]|\([^()]*\|[^()]*\)\{\d*,\d*\}")
 
 # 3. QUADRATIC `.*` PILE-UP — two or more unbounded greedy wildcards that can trade characters:
@@ -105,35 +127,50 @@ _QUADRATIC = re.compile(r"(?:\.[*+]).{0,8}?(?:\.[*+])")
 
 
 def _has_overlapping_alternation(group_body):
-    """True if a `(a|b|…)` body has branches that can match the same first input (a real overlap)."""
+    """True if a `(a|b|…)` body has branches that can match the same input (a real, prefix overlap).
+
+    The genuine overlap: one alternative is a prefix of (or equal to) another — `a`/`ab`, `a`/`a` —
+    so both can consume the same leading input, multiplying paths per repetition. Mutually-exclusive
+    branches that merely share a first character (`bar`/`baz`) are linear-safe and NOT an overlap.
+    """
     branches = group_body.split("|")
     if len(branches) < 2:
         return False
-    # crude but effective: a branch that is a prefix of (or equal to) another, or two branches that
-    # share an identical leading char class / literal, can both consume the same input.
     seen = []
     for b in branches:
         b = b.strip()
         for prev in seen:
-            if b and prev and (b.startswith(prev) or prev.startswith(b) or b[0:1] == prev[0:1]):
+            if b and prev and (b.startswith(prev) or prev.startswith(b)):
                 return True
         seen.append(b)
     return False
 
 
 def redos_smells(pattern):
-    """Static ReDoS-smell findings: a list of (kind, detail). Empty = no static smell found."""
+    """Static ReDoS-smell findings: a list of (kind, detail). Empty = no static smell found.
+
+    LOSSY pre-filter: conservatively broad (false positives over false negatives). A clean result is
+    necessary, not sufficient — confirm catastrophic suspicion with a timing test (see
+    redos-and-safety.md). A flag is a B3 gate failure until cleared by that test or a rewrite.
+    """
     finds = []
-    if _NESTED_QUANT.search(pattern):
-        finds.append(("NESTED_QUANTIFIER",
-                      "a quantified group wraps a quantified atom, e.g. (a+)+ / (\\w*)* — "
-                      "exponential backtracking on a non-matching tail"))
+    # NESTED_QUANTIFIER: any quantified group (incl. bounded {m,n} outer) whose body carries an inner
+    # quantifier. Tested per-group so deeper/bounded nesting is caught, not just `)+`/`)*` flush forms.
+    # Strip the group-type prefix first so the `?` in (?:…)*, (?=…)+ etc. is not read as an inner quant.
+    for m in _NESTED_QUANT.finditer(pattern):
+        body = _GROUP_PREFIX.sub("", m.group(1))
+        if _INNER_QUANT_IN_BODY.search(body):
+            finds.append(("NESTED_QUANTIFIER",
+                          "a quantified group (incl. bounded {m,n}) wraps a quantified atom, e.g. "
+                          "(a+)+ / (\\w*)* / (.*a){10} / ([^,]*,){20} — exponential or polynomial "
+                          "backtracking on a non-matching tail"))
+            break
     # overlapping alternation under a quantifier: find each (…|…)[+*{] and test the body for overlap
     for m in re.finditer(r"\(([^()]*\|[^()]*)\)\s*(?:[+*]|\{\d*,\d*\})", pattern):
         if _has_overlapping_alternation(m.group(1)):
             finds.append(("OVERLAPPING_ALTERNATION",
-                          "a quantified alternation has branches that match the same input, e.g. "
-                          "(a|ab)* / (\\d|\\w)+ — ambiguous paths multiply per repetition"))
+                          "a quantified alternation has branches where one is a prefix of another, "
+                          "e.g. (a|ab)* — ambiguous paths multiply per repetition"))
             break
     if _QUADRATIC.search(pattern):
         finds.append(("QUADRATIC_WILDCARD",
@@ -183,8 +220,8 @@ def validate_spec(spec):
     smells = redos_smells(pattern)
     report["smells"] = smells
     for kind, detail in smells:
-        fails.append("%s: B3 ReDoS-SMELL %s — %s (prove safe with an adversarial-input timing test)"
-                     % (name, kind, detail))
+        fails.append("%s: B3 ReDoS-SMELL %s — %s (clear by a MANUAL adversarial-input timing test — "
+                     "this tool does NOT run one — or a rewrite)" % (name, kind, detail))
     return report, fails, warns
 
 
@@ -221,6 +258,32 @@ SPEC_REDOS = {
     "negatives": ["nope"],
 }
 
+# Adversarial MUST-FLAG patterns the scan once passed as clean (regression fixtures).
+# The polynomial-ReDoS family: a quantified atom inside a group that is itself bounded-{m,n}-quantified.
+# Each was reported CLEAN by the pre-broadened _NESTED_QUANT (it only saw `)+`/`)*` flush forms).
+REDOS_MUST_FLAG = (
+    r"(.*a){10}",       # B1: bounded-outer repeat over a `.*` inner -> polynomial blow-up
+    r"(a?){20}a{20}",   # B1: bounded-outer repeat over an `a?` inner -> exponential blow-up
+    r"([^,]*,){20}",    # B1: the classic CSV-field polynomial ReDoS
+    r"(a*)*",           # star-outer over star-inner (already covered; kept as a floor)
+    r"(a|ab)*",         # OVERLAPPING_ALTERNATION (one branch a prefix of another)
+    r".*.*x",           # QUADRATIC_WILDCARD
+    r"^(\w+)+@\w+$",    # NESTED_QUANTIFIER under `+`
+)
+
+# SAFE patterns the scan must NOT flag (regression fixtures). (foo|bar|baz)* is the M1 false positive:
+# mutually-exclusive branches that merely share a first char are linear-safe, not an overlap.
+REDOS_MUST_NOT_FLAG = (
+    r"(foo|bar|baz)*",            # M1: mutually-exclusive alternation under `*` — linear-safe
+    r"\d{4}-\d{2}-\d{2}",
+    r"[a-z]+@[a-z]+\.[a-z]+",
+    r"(?:abc|def)g",
+    r"a+b+c+",
+    r"(?:foo)*",                  # non-capturing group, no inner quantifier — `?:` is not a quant
+    r"(a|b|c)+",                  # single-char mutually-exclusive branches
+    r"(abc){3}",                  # bounded repeat over a literal — no inner quantifier
+)
+
 
 def selftest():
     errs = []
@@ -247,14 +310,20 @@ def selftest():
     if not any("NESTED_QUANTIFIER" in f for f in fails):
         errs.append("ReDoS nested-quantifier spec was not flagged: %s" % fails)
 
-    # 5. the smell scan recognizes each family and stays quiet on safe patterns
-    if not any(k == "NESTED_QUANTIFIER" for k, _ in redos_smells(r"(a*)*")):
-        errs.append("redos_smells missed (a*)*")
+    # 5. the smell scan flags every MUST-FLAG pattern (incl. the polynomial-ReDoS B1 family that the
+    #    pre-broadened scan passed as clean) and stays quiet on every MUST-NOT-FLAG safe pattern.
+    for bad in REDOS_MUST_FLAG:
+        if not redos_smells(bad):
+            errs.append("redos_smells MISSED catastrophic pattern %r (must flag)" % bad)
+    # the specific polynomial-ReDoS family must land on NESTED_QUANTIFIER (the B1 regression)
+    for poly in (r"(.*a){10}", r"(a?){20}a{20}", r"([^,]*,){20}"):
+        if not any(k == "NESTED_QUANTIFIER" for k, _ in redos_smells(poly)):
+            errs.append("redos_smells did not flag %r as NESTED_QUANTIFIER" % poly)
     if not any(k == "OVERLAPPING_ALTERNATION" for k, _ in redos_smells(r"(a|ab)*")):
         errs.append("redos_smells missed (a|ab)* overlapping alternation")
     if not any(k == "QUADRATIC_WILDCARD" for k, _ in redos_smells(r".*.*x")):
         errs.append("redos_smells missed .*.* quadratic wildcard")
-    for safe in (r"\d{4}-\d{2}-\d{2}", r"[a-z]+@[a-z]+\.[a-z]+", r"(?:abc|def)g", r"a+b+c+"):
+    for safe in REDOS_MUST_NOT_FLAG:
         if redos_smells(safe):
             errs.append("redos_smells false-positive on safe pattern %r: %s" % (safe, redos_smells(safe)))
 

@@ -35,18 +35,20 @@ re-quantify the claim, vs repair the inference chain).
 | Axis | Direction | Levels (in order) | Asks |
 |---|---|---|---|
 | **A · Argument** | whole → part | **A1** Claim `[gate]` → **A2** Strategy `[gate]` → **A3** Steps → **A4** Coverage → **A5** Rigor | "Does it prove the *right statement*, soundly?" |
-| **B · Verification** | part → whole | **B1** Well-formed `[gate, code]` → **B2** Acyclic `[gate, code]` → **B3** Checks `[gate, code]` → **B4** Robustness → **B5** Reproducibility | "Does the argument *actually hold*, mechanically?" |
+| **B · Verification** | part → whole | **B1** Well-formed `[gate, code]` → **B2** Acyclic `[gate, code]` → **B3** Checks `[gate, code — integer-arithmetic claims; else SKIP / proof-assistant]` → **B4** Robustness → **B5** Reproducibility | "Does the argument *actually hold*, mechanically?" |
 
 `A1 · A2` and `B1 · B2 · B3` are **`[gate]`s** — a failure cascades and BLOCKS the reviews below it on
 that axis (you can't grade the steps of a proof of the wrong claim, or the rigor of a chain that
 cites a missing lemma). `A3–A5 · B4–B5` are **`[review]`s** (1–5). A shippable proof is **≥4 on every
 review with zero gate failures**, reported as two separate axis scores plus the quadrant cell.
 
-Three gates route to code, never to a sympathetic read:
+These gates route to code, never to a sympathetic read:
 - **B1/B2 structure** → `bin/proof-structure-check.py` (dangling citation, cycle, goal-reachability).
-  See `structure-and-circularity.md`.
-- **B3 checks** → `bin/numeric-spotcheck.py` (counterexample search over the claim). See
-  `verification-axis.md`.
+  Always applies. See `structure-and-circularity.md`.
+- **B3 checks** → `bin/numeric-spotcheck.py` (counterexample search over the claim) — **only for
+  parametric integer-arithmetic claims**. Most real proofs (topology, reals/sets, non-arithmetic
+  logic) cannot use it, so B3 is *usually a recorded SKIP* (or a proof-assistant gate where one is
+  installed) — a SKIP is "no evidence", never a failure. See `verification-axis.md`.
 
 ### A · Argument (whole → part)
 
@@ -74,9 +76,11 @@ Three gates route to code, never to a sympathetic read:
 - **B2 Acyclic `[gate, code]`** — is the citation graph a **DAG** (no circular reasoning — no step
   that, transitively, assumes itself), and is the **goal reachable** from the premises/axioms through
   the citation edges? Routed to `bin/proof-structure-check.py`.
-- **B3 Checks `[gate, code]`** — does the claim (and its key steps, where parametric) **survive a
-  counterexample search** over a finite sample space, via `bin/numeric-spotcheck.py`? A proof
-  assistant (Lean / Coq / Isabelle) where available is the stronger form of this gate.
+- **B3 Checks `[gate, code]`** — *for parametric integer-arithmetic claims:* does the claim (and its
+  key steps, where parametric) **survive a counterexample search** over a finite sample space, via
+  `bin/numeric-spotcheck.py`? For any non-arithmetic claim this tool does not apply — B3 is a recorded
+  **SKIP** (or a proof-assistant gate: Lean / Coq / Isabelle, the stronger form where available),
+  which is the common case and not a failure.
 - **B4 Robustness `[review]`** — do **boundary and degenerate instances** of the claim hold (the
   smallest n, the empty/singleton case, the equality edge)? A claim that fails at n=0 has a hole the
   prose may have skipped.

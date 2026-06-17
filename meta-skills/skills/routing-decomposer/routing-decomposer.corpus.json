@@ -1,0 +1,37 @@
+{
+  "skill": "routing-decomposer",
+  "_note": "This skill's own checked-in routing corpus — the test of record, dogfooding the eval against itself. Positives cover the invocation families (imperative / diagnostic / symptom / object-first / indirect-paraphrase). Negatives are drawn ADVERSARIALLY from real in-repo marketplace siblings (the *-decomposer family, which share the 'decompose / grade on two axes' vocabulary) plus near-misses, plus the GLOBAL peer skills-studio (whole-skill authoring — NOT a repo sibling). Re-derive when the neighbourhood changes. NOTE: the indirect/paraphrase positives are deliberately low-overlap; routing-eval measures lexical overlap ONLY and may miss them — that is a proxy limit, not a description defect (see references/routing-axis.md, B4).",
+  "siblings_in_repo": ["code-decomposer", "component-decomposer", "layout-decomposer", "type-decomposer", "config-decomposer", "query-decomposer", "regex-decomposer", "proof-decomposer", "extraction-decomposer"],
+  "global_peers": ["skills-studio"],
+  "positives": [
+    "grade this skill's description",
+    "decompose the routing surface of my skill",
+    "score the routing precision and recall of this description",
+    "is my description routing correctly",
+    "why does my skill never fire on real requests",
+    "why does my description over-trigger and grab the wrong requests",
+    "this skill over-triggers and steals requests from its neighbour",
+    "my skill under-triggers and never gets picked",
+    "this frontmatter description — does it route the right requests",
+    "build a routing corpus for my skill",
+    "measure whether this description fires on the right phrases",
+    "fix the wording in my description that mis-routes",
+    "check the trigger phrases in my skill description",
+    "grade the precision and recall of my skill's routing"
+  ],
+  "negatives": [
+    "author a whole new skill from scratch end to end",
+    "run the adversarial critic panel on my skill",
+    "refactor the body of my skill and add a mode",
+    "decompose and grade a unit of code against its contract",
+    "grade this function on the spec and execution axes",
+    "decompose this UI layout into regions and groups",
+    "design an app shell and wireframe a dashboard",
+    "decompose and grade a web component's API and geometry",
+    "grade a type or schema so it can't admit illegal states",
+    "decompose a Terraform config for drift and safety",
+    "write the description and the whole skill for me",
+    "score this regex for correctness against test cases",
+    "grade this SQL query for performance"
+  ]
+}

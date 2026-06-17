@@ -4,7 +4,8 @@ The Verification axis (B1–B5) grades *mechanism*, bottom-up: from "does every 
 something real" to "can a checker reproduce the whole chain." It is the **mechanizable** axis — route
 it to the structure check and the counterexample search, and **trust the graph and the
 counterexample, not the read-through**. An LLM cannot reliably tell by reading whether a step is
-circular or whether a "for all n" claim survives n=41; running the checks is the only evidence.
+circular or whether a plausible-looking "for all" identity quietly fails at some integer; running the
+checks is the only evidence.
 
 ## The ladder
 
@@ -71,15 +72,26 @@ python3 bin/numeric-spotcheck.py <claim.json>   # a counterexample -> nonzero ex
 ```
 
 It evaluates the claim over the Cartesian product of the integer range with a **safe AST evaluator**
-(no `eval`; only literals, the declared vars, `+ - * // % **`, comparisons, `and/or/not`, parens). The
-asymmetry is the whole point:
+(no `eval`; only literals, the declared vars, `+ - * // % **`, comparisons, `and/or/not`, parens).
+Two guards keep the "can't hang" promise: the **sample-space cap** bounds the count of evaluations,
+and the **result-magnitude cap** bounds the bit-size of any `**` result — because `**` is composable
+(`((n**64)**64)**64` stays under any per-exponent cap yet builds a ~500k-digit integer), capping the
+exponent alone is not enough; a wall-clock budget is the backstop. The asymmetry is the whole point:
 
-- **A counterexample is a proof of falsity** — the proof is *wrong*, stop and report. (The classic:
-  "n² − n + 41 is prime for all n" survives n=0…40 and dies at n=41 — a search to range [0, 41] kills
-  it; a sympathetic read does not.)
+- **A counterexample is a proof of falsity** — the proof is *wrong*, stop and report. (Example: the
+  cube of a sum is *not* the sum of cubes — `(a+b)³ == a³ + b³` reads plausible but the missing cross
+  terms `3a²b + 3ab²` make it false the moment both `a` and `b` are nonzero; a search over a small
+  box kills it instantly, a sympathetic read does not.)
 - **"No counterexample in range" is corroboration, NOT a proof** — it raises confidence and is exactly
   how to *catch* a false claim cheaply, but ∀ over an infinite domain is never settled by a finite
   sample. Report it as "survived N samples", never as "verified".
+
+**Out of scope — primality.** This tool evaluates only `+ - * // % **`, comparisons, and boolean
+connectives; it has **no primality predicate** and cannot express "n is prime". The famous Euler
+polynomial `n² − n + 41` (prime for n=0…40, composite at n=41) is *motivation* for "a quantified
+claim that reads right can die at one integer", not something this tool can check — do not write a
+fixture that pretends to. A primality or number-theory claim is a **SKIP** here; route it to a proof
+assistant (Lean / Coq / Isabelle) or to the planned modular-arithmetic mode in `ROADMAP.md`.
 
 Where the claim is **not** arithmetic over integers (a topological statement, a claim about reals or
 sets), the numeric check doesn't apply — fall to a **proof assistant** (Lean / Coq / Isabelle /

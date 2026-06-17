@@ -98,11 +98,15 @@ A · FIDELITY  ┌────────────────────�
               ├────────────────────────┼────────────────────────┤
 A · FIDELITY  │ VALID JSON, INVENTED   │       REBUILD           │
    fails      │ VALUES — schema-clean, │                         │
-              │ but a value the source │  (the signature LLM     │
-              │ never stated (the      │   failure if it ALSO    │
-              │ signature failure)     │   doesn't parse)        │
+              │ but a value the source │  (both invented AND     │
+              │ never stated (THE      │   off-schema / unparse- │
+              │ signature failure)     │   able — start over)    │
               └────────────────────────┴────────────────────────┘
 ```
+
+The **signature LLM failure is the bottom-LEFT cell** — *valid JSON, invented values* — schema-clean
+yet carrying a value the source never stated. (Bottom-right, REBUILD, is the doubly-broken case:
+invented AND malformed.)
 
 The quadrant **names the fix**: bottom-left (*valid JSON, invented values* — the dangerous,
 common-for-an-LLM cell) needs **fidelity** work the schema cannot see — drop the hallucination,

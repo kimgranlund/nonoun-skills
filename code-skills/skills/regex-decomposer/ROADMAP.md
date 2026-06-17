@@ -5,15 +5,21 @@ card, the dialect table). Everything below is additive.
 
 ## `bin/regex-check.py`
 
-- [ ] **A wall-clock ReDoS timing test** — beyond the static smell scan, run the pattern against the
-      adversarial near-miss negative with a hard timeout (subprocess + `SIGALRM`) and FAIL if it
-      doesn't reject fast. Turns B3's "smell" into a measured proof.
+- [ ] **A wall-clock ReDoS timing test** (a `--time <pattern> <input>` mode) — beyond the static
+      smell scan, run the pattern against the adversarial near-miss negative with a hard timeout
+      (`signal.SIGALRM` + a hard ceiling) and FAIL if it doesn't reject fast. Turns B3's "smell" into
+      a measured proof. **Until this lands the timing test is a MANUAL step the tool does not run** —
+      the docs (SKILL.md, redos-and-safety.md, match-axis.md, decomposition-method.md, policy.md) now
+      say so plainly (was the B2 doc-honesty fix).
 - [ ] **Multi-engine compile** — shell out to `node`, `pcre2grep`, or Go `regexp` (where present) so
       B1 is checked in the *declared* engine, not only Python `re` (a missing engine is a SKIP, like
       the execution-harness pattern).
 - [ ] **Smell-scan precision** — the static scan is conservative (false positives over false
-      negatives). Add an AST-ish parse of the pattern to cut false positives on safe nesting like
-      `(?:ab)+` and to catch deeper nesting the regex-based scan misses.
+      negatives) and remains LOSSY by construction (a pure regex can't parse regex). Add an AST-ish
+      parse of the pattern to cut false positives on safe nesting like `(?:ab)+` and to catch deeper
+      nesting the regex-based scan misses. (The B1 bounded-outer family `(.*a){10}` / `([^,]*,){20}`
+      and the M1 false positive `(foo|bar|baz)*` are now handled + pinned by selftest fixtures; this
+      item is the deeper AST work that closes the remaining lossiness.)
 - [ ] Emit a machine-readable report (JSON) so GRADE can fold the example misses + smells into the
       two-axis grade automatically.
 

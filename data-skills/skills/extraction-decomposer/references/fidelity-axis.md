@@ -34,13 +34,17 @@ This is the dangerous gate, the crossing seam with VALIDITY, and the reason the 
 The discipline, in order:
 
 1. **Run `bin/groundedness-check.py`** over the extraction + the source. It asserts every scalar is
-   grounded — exact substring, normalized, numeric-key, or date-reformat match (see `groundedness.md`
-   for the full ladder and the failure taxonomy). Any **ungrounded** scalar is a likely invented
-   value and a gate failure until explained.
+   grounded — **token-boundary** exact/normalized, numeric-key, or date-reformat match (see
+   `groundedness.md` for the full ladder and the failure taxonomy). Any **ungrounded** scalar is a
+   likely invented value and a gate failure until explained; a short token-match surfaces as
+   `WEAK_GROUNDING` (verify manually) and an empty value as `EMPTY`.
 2. **Groundedness is necessary, not sufficient.** It catches the value that appears *nowhere* in the
-   source (the cleanest hallucination). It cannot, by construction, catch a **wrong-span** value —
-   one that *is* somewhere in the source but was attached to the wrong field (extracting the *ship-to*
-   city into `bill_to.city`). That's what the adversarial verifier is for.
+   source **and** the substring-fragment class (an invented `"Fran"` that is only a fragment of
+   "Francisco" — token-boundary matching closes that, where a naive raw-substring check would have
+   passed it). It **cannot**, by construction, catch a **wrong-span** value — one that *is* a faithful
+   span of the source but was attached to the wrong field (extracting the *ship-to* city into
+   `bill_to.city`). That residual gap is what the adversarial verifier is for. Treat a green run as
+   "every scalar is locatable as whole tokens," not "every value is correct."
 3. **Run the adversarial verifier** (below) for what groundedness can't see.
 
 A faithfulness failure is corrected by **deleting the invented value and representing the field as

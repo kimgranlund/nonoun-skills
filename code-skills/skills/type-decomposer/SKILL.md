@@ -48,7 +48,7 @@ legal/illegal instance sets), a validity report, and a two-axis grade with the d
 
 > *"Is this `RequestState` type sound?"* (fields: `is_loading`, `is_error`, `data?`, `error?`) →
 > 1. **Model — domain → state-space:** the domain is "a request is *one of* loading / ready /
->    failed" `[gate]`. The type is two booleans + two optionals = 16 states; the domain allows 3
+>    failed" `[gate]`. The type is two booleans + two optionals = 16 *shape* states (ignoring payload); the domain allows 3
 >    `[gate]` → **state-space mismatch**: `is_loading && is_error`, `data && error` are representable
 >    but illegal.
 > 2. **Collapse (A3):** replace with a tagged union `oneOf [loading, ready{data}, failed{error}]`.
@@ -85,7 +85,10 @@ field names — and you cannot eyeball whether illegal states are representable,
   validate) **and an ILLEGAL instance set (all must be rejected)**. An illegal instance that
   validates *is* a representable illegal state — A2 has failed, proven mechanically. The validator
   carries the unrepresentability tools (`oneOf`, `additionalProperties:false`, `const`/`enum`,
-  `not`) so the illegal set can actually be rejected by the schema.
+  `not`, `pattern`, asserting `format`, local `$ref`) so the illegal set can actually be rejected by
+  the schema. It is a **subset** and **default-deny**: a schema using a keyword it can't enforce
+  fails loud as `UNSUPPORTED_SCHEMA`, never a silent green (the supported/unsupported list lives in
+  `references/type-systems.md`).
 - `bin/model-smells.py` is the cheap static pre-filter for the MODEL axis — boolean-blindness,
   optional-soup, primitive-obsession, open-record — pointing at where the state space is wider than
   the domain before you write the counterexample.
@@ -135,5 +138,5 @@ one blended score is reported.
 | `references/illegal-states.md` | **the centerpiece** — the make-illegal-states-unrepresentable toolkit: boolean-blindness→sum, optional-soup→variants, primitive-obsession→newtype, open→closed records, with before/after and the red→green proof |
 | `references/type-systems.md` | **choosing the target** — what TS / Rust / ML-family / JSON Schema / protobuf / SQL DDL / GraphQL can each make unrepresentable, nullability hazards, and modelling the contract in JSON Schema for the mechanized B3 |
 | `references/policy.md` | **definition-of-done / handoff** — the 10-point DoD, the type-spec card (schema + legal/illegal sets), and the seams to `code-decomposer`, `extraction-decomposer`, `query-decomposer`, `arch-system` |
-| `bin/instance-check.py` | **mechanizes B3** — a JSON-Schema-subset validator (`oneOf`, `additionalProperties:false`, `const`/`enum`, `not`, …) that runs a spec's legal/illegal instance sets; a legal reject or an illegal accept is a finding. `<spec.json>` · `selftest` |
+| `bin/instance-check.py` | **mechanizes B3** — a JSON-Schema-subset validator (`oneOf`, `additionalProperties:false`, `const`/`enum`, `not`, `pattern`, asserting `format`, local `$ref`, …) that runs a spec's legal/illegal instance sets; a legal reject, an illegal accept, or an unsupported keyword (default-deny → `UNSUPPORTED_SCHEMA`) is a finding. `<spec.json>` · `selftest` |
 | `bin/model-smells.py` | **mechanizes the A3/A4 pre-filter** — flags boolean-blindness, optional-soup, primitive-obsession, open-record, stringly-typed-enum over a JSON Schema. `<schema.json\|dir>` · `selftest` |

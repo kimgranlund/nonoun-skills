@@ -19,8 +19,16 @@ no `$schema` fetch, no format registry):
   minLength / maxLength     — string length bounds
   pattern     a regex the string must search-match
 
+UNKNOWN / UNSUPPORTED keywords are NOT silent no-ops. A schema-author typo (`requried`, `minimun`) or
+an unsupported keyword (`additionalProperties`, `uniqueItems`) that this subset doesn't enforce is the
+most dangerous schema bug: it produces a FALSE GREEN — the intended constraint is never checked, so a
+violating doc passes. So every keyword a schema node carries that this validator does not implement is
+surfaced as a `WARN: unknown/unsupported keyword 'X' — not enforced` finding, and the run exits
+nonzero (a schema you can't fully enforce must not report a clean pass). Meta-keywords that legitimately
+carry no validation here ($schema, $id, $comment, title, description, default, examples) are ignored.
+
   python3 bin/schema-check.py selftest
-  python3 bin/schema-check.py <doc.json> <schema.json>   # nonzero exit on any schema violation
+  python3 bin/schema-check.py <doc.json> <schema.json>   # nonzero exit on any violation OR unknown keyword
 
 Python 3.8+.
 """
@@ -41,6 +49,18 @@ _TYPE_CHECKS = {
 }
 
 
+# keywords this validator IMPLEMENTS (carries enforcement for).
+_SUPPORTED = frozenset({
+    "type", "required", "properties", "items", "enum",
+    "minimum", "maximum", "minLength", "maxLength", "pattern",
+})
+# meta / annotation keywords that legitimately carry no validation here — ignored, NOT warned.
+_IGNORED = frozenset({
+    "$schema", "$id", "$comment", "$defs", "definitions",
+    "title", "description", "default", "examples",
+})
+
+
 def _type_ok(value, t):
     check = _TYPE_CHECKS.get(t)
     if check is None:
@@ -49,12 +69,23 @@ def _type_ok(value, t):
 
 
 def validate(value, schema, path="$", errors=None):
-    """Validate `value` against `schema`. Appends "<path>: <message>" strings to `errors`."""
+    """Validate `value` against `schema`. Appends "<path>: <message>" strings to `errors`.
+
+    A `WARN: ... unknown/unsupported keyword 'X' — not enforced` line is appended for any keyword the
+    validator does not implement (a typo or an unsupported constraint that would otherwise be a SILENT
+    no-op → false green). Warnings count toward a nonzero exit, since a schema that can't be fully
+    enforced must not report a clean pass."""
     if errors is None:
         errors = []
     if not isinstance(schema, dict):
         errors.append("%s: schema node is not an object" % path)
         return errors
+
+    # --- unknown / unsupported keyword detection (defeats the author-typo false green) ---
+    for kw in schema:
+        if kw not in _SUPPORTED and kw not in _IGNORED:
+            errors.append("%s: WARN unknown/unsupported keyword %r — not enforced "
+                          "(typo, or a constraint this subset does not implement)" % (path, kw))
 
     # --- type ---
     if "type" in schema:
@@ -200,6 +231,27 @@ def selftest():
         errs.append("boolean wrongly accepted as number")
     if validate(True, {"type": "boolean"}):
         errs.append("boolean rejected as boolean")
+
+    # 5. M2 — a typo'd / unsupported keyword must NOT be a silent no-op (it produces a false green).
+    #     `requried` (typo of required), `minimun` (typo of minimum), and `additionalProperties`
+    #     (unsupported) are all unenforced; the run must WARN on each and NOT report clean.
+    typo_schema = {"type": "object", "requried": ["a"],
+                   "properties": {"a": {"type": "number", "minimun": 0}},
+                   "additionalProperties": False}
+    es = validate({"a": -999}, typo_schema)
+    for kw in ("requried", "minimun", "additionalProperties"):
+        if not any("WARN" in x and ("%r" % kw) in x for x in es):
+            errs.append("unknown keyword %r not WARNed (got %s) — typo defeats validation silently"
+                        % (kw, es))
+    if not es:
+        errs.append("typo'd schema reported clean — false green (the M2 bug)")
+
+    # 5b. a schema using ONLY supported + ignored keywords produces NO spurious unknown-keyword WARN.
+    annotated = {"$schema": "x", "title": "t", "description": "d",
+                 "type": "object", "properties": {"a": {"type": "number", "minimum": 0}}}
+    es = validate({"a": 1}, annotated)
+    if any("WARN" in x for x in es):
+        errs.append("supported/ignored-only schema produced a spurious WARN: %s" % es)
     return errs
 
 
@@ -212,7 +264,7 @@ def main(argv):
                 sys.stderr.write("  - %s\n" % e)
             return 1
         print("schema-check: OK — conforming doc validates; type/required/enum/pattern/range/"
-              "nullable/nested violations each caught")
+              "nullable/nested violations each caught; unknown/unsupported keywords WARNed")
         return 0
     if len(argv) < 2:
         sys.stderr.write("usage: schema-check.py <doc.json> <schema.json>\n")
@@ -228,10 +280,22 @@ def main(argv):
         sys.stderr.write("cannot read schema: %s\n" % e)
         return 2
     errors = validate(doc, schema)
-    for e in errors:
+    warns = [e for e in errors if "WARN" in e]
+    viols = [e for e in errors if "WARN" not in e]
+    for e in viols:
         print("  %s" % e)
+    for w in warns:
+        print("  %s" % w)
     if errors:
-        sys.stderr.write("schema-check: FAIL — %d schema violation(s)\n" % len(errors))
+        if viols and warns:
+            sys.stderr.write("schema-check: FAIL — %d schema violation(s) and %d unenforced "
+                             "keyword(s)\n" % (len(viols), len(warns)))
+        elif viols:
+            sys.stderr.write("schema-check: FAIL — %d schema violation(s)\n" % len(viols))
+        else:
+            sys.stderr.write("schema-check: FAIL — %d unknown/unsupported keyword(s) not enforced — "
+                             "the schema cannot be fully checked (typo? unsupported constraint?); fix "
+                             "or remove them before trusting a pass\n" % len(warns))
         return 1
     print("schema-check: OK — document conforms to the schema")
     return 0

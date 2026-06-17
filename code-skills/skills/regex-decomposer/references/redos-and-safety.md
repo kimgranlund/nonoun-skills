@@ -6,6 +6,12 @@ This is the centerpiece. The whole skill exists because an LLM (and a hurrying h
 denial-of-service. MATCH's B3 gate is "no catastrophic backtracking on adversarial input." This file
 is the taxonomy, and `bin/regex-check.py`'s smell scan is its mechanized pre-filter.
 
+> **The static scan is a LOSSY pre-filter, not a verdict.** A pure regex cannot parse regex, so the
+> scan both *misses* defects under deeper nesting **and** *over-flags* some safe constructs. A clean
+> scan is **necessary but not sufficient**; a flag is a suspicion, not a proof. Confirm any
+> catastrophic suspicion with a **timing test** — and note the timing test is a **manual** step the
+> tool does **not** perform (mechanizing it is on the ROADMAP).
+
 ## The one principle
 
 > **Catastrophic backtracking comes from ambiguity multiplied across a quantifier.** When the engine
@@ -26,7 +32,8 @@ Two corollaries:
 
 ## The taxonomy (what `bin/regex-check.py` flags)
 
-Static, cheap, deterministic — the pre-filter before a (costlier) adversarial timing test:
+Static, cheap, deterministic — the pre-filter before a (costlier) **manual** adversarial timing test
+(the tool flags the smell; it does not time the pattern):
 
 | Kind | Smell | Why it blows up |
 |---|---|---|
@@ -56,7 +63,9 @@ ways, and the spec card carries the proof:
    matches a long prefix and then fails — `"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!"` for a `\w`-based
    pattern, a long unterminated line for a `.*…` pattern. A safe pattern rejects it *fast*; a ReDoS
    pattern would hang. (The static scan is the cheap pre-filter; a wall-clock timing test on the
-   adversarial negative is the proof — keep the negative in the card as a regression.)
+   adversarial negative is the proof — but **you run that timing test by hand**: `regex-check.py`
+   does not time patterns, so it cannot clear a B3 smell for you. Keep the negative in the card as a
+   regression.)
 2. **A rewrite that removes the ambiguity**, then re-run the whole example set to prove the language
    is unchanged. The rewrite must keep every positive matching and every negative rejected — the card
    is what guarantees the cure didn't change the meaning.
@@ -84,9 +93,11 @@ ways, and the spec card carries the proof:
 B3 is **statically clean ∧ adversarially proven**:
 
 - statically clean = `bin/regex-check.py`'s smell scan finds no NESTED_QUANTIFIER /
-  OVERLAPPING_ALTERNATION / QUADRATIC_WILDCARD;
+  OVERLAPPING_ALTERNATION / QUADRATIC_WILDCARD (lossy: necessary, not sufficient — see the caveat up
+  top);
 - adversarially proven = an adversarial near-miss negative is in the card and the pattern rejects it
-  fast (or the pattern runs on an engine — RE2 — that cannot ReDoS).
+  fast under a **manual** timing test you run yourself (or the pattern runs on an engine — RE2 — that
+  cannot ReDoS). The tool does not perform this timing test.
 
 A pattern that compiles and passes its positives but carries an unanswered smell is **not**
 B3-passing — it's the *right intent, won't run* quadrant (it runs, until the day someone sends the

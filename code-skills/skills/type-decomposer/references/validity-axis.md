@@ -35,8 +35,13 @@ schema:
 Run it: `python3 bin/instance-check.py spec.json`, where the spec is
 `{ "schema": {…}, "legal": [...], "illegal": [...] }`. The validator carries the subset that
 expresses the unrepresentability tools — `oneOf` (tagged unions), `additionalProperties:false`
-(closed records), `const`/`enum`, `required`, `not`, `allOf`/`anyOf` — so the illegal set can
-actually be rejected by the schema rather than by hand-waving.
+(closed records), `const`/`enum`, `required`, `not`, `allOf`/`anyOf`, `pattern`, an asserting
+`format` set, and local `$ref` — so the illegal set can actually be rejected by the schema rather
+than by hand-waving. It is a **subset** and **default-deny**: a schema using a keyword it can't
+enforce (`if/then/else`, `patternProperties`, tuple-`items`, a remote `$ref`, …) FAILS LOUD as an
+`UNSUPPORTED_SCHEMA` finding instead of false-greening — so a green is a green over the *supported*
+subset, never a silent pass. The full supported/unsupported list lives in
+`references/type-systems.md`.
 
 A green B3 is the mechanized proof of A2. This is why the two axes cross at the schema: the illegal
 instance set is simultaneously a MODEL claim (these states are illegal) and a VALIDITY test (the

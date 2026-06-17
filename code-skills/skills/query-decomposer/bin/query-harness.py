@@ -3,7 +3,7 @@
 
 The EXECUTION axis (B1 parse · B2 bind · B3 plan/run) is mechanizable, but the engine is
 project-specific — so this is a thin ADAPTER, not a bundled database. It reads a tiny manifest of
-per-phase commands (each driving the real engine: psql / sqlite3 / bq / snowsql / a dry-run), runs
+per-phase commands (each driving the real engine: psql / sqlite3 / bq / snowsql via EXPLAIN), runs
 each one whose tool is actually on PATH, and normalizes the verdicts into a report card. Like the
 code-decomposer execution-harness, the static logic (manifest parse + verdict normalize) is proved by
 `selftest` with zero external deps; the live run fires only where the real engine exists (a missing
@@ -15,7 +15,7 @@ advisory because it touches data):
     "dialect": "postgres",
     "gates": {
       "parse":   { "cmd": "psql -d app -c \"PREPARE _q AS SELECT 1\"" },
-      "bind":    { "cmd": "psql -d app -v ON_ERROR_STOP=1 -f query.sql --dry-run" },
+      "bind":    { "cmd": "psql -d app -v ON_ERROR_STOP=1 -c \"EXPLAIN SELECT 1\"" },
       "explain": { "cmd": "psql -d app -c \"EXPLAIN SELECT 1\"" },
       "run":     { "cmd": "psql -d app -c \"EXPLAIN ANALYZE SELECT 1\"", "gate": false }
     }
@@ -97,10 +97,24 @@ def run_phase(spec, cwd=None):
 
 
 def overall(results):
-    """Report-card summary: gate fail -> FAIL; gate skip -> PASS but flagged."""
-    gate_fails = [r for r in results if r["gate"] and r["verdict"] == "fail"]
-    gate_skips = [r for r in results if r["gate"] and r["verdict"] == "skip"]
-    status = "FAIL" if gate_fails else "PASS"
+    """Report-card summary over the GATE phases only (advisory phases never decide the verdict):
+      - any gate FAILED                         -> FAIL
+      - no gate failed but some gate was SKIPPED -> INCOMPLETE (no engine ran it; NOT a pass)
+      - every gate ran green                     -> PASS
+    A fully-skipped run (the common no-engine-on-PATH case) is INCOMPLETE, not PASS — a skipped gate
+    is missing evidence, and a missing tool is a SKIP, never a pass."""
+    gate_results = [r for r in results if r["gate"]]
+    gate_fails = [r for r in gate_results if r["verdict"] == "fail"]
+    gate_skips = [r for r in gate_results if r["verdict"] == "skip"]
+    gate_passes = [r for r in gate_results if r["verdict"] == "pass"]
+    if gate_fails:
+        status = "FAIL"
+    elif gate_skips or not gate_passes:
+        # some gate was skipped, OR no gate ran green at all (an empty / advisory-only manifest):
+        # either way there is no positive gate evidence — this is NOT a pass.
+        status = "INCOMPLETE"
+    else:
+        status = "PASS"
     return {"status": status, "gate_fails": gate_fails, "gate_skips": gate_skips}
 
 
@@ -108,7 +122,9 @@ TEMPLATE = {
     "dialect": "postgres",
     "gates": {
         "parse":   {"cmd": "psql -d app -c \"PREPARE _q AS SELECT 1\""},
-        "bind":    {"cmd": "psql -d app -v ON_ERROR_STOP=1 -f query.sql --dry-run"},
+        # bind without executing: EXPLAIN binds every identifier against the schema but never runs
+        # the query (a real idiom — psql has no --dry-run flag).
+        "bind":    {"cmd": "psql -d app -v ON_ERROR_STOP=1 -c \"EXPLAIN SELECT 1\""},
         "explain": {"cmd": "psql -d app -c \"EXPLAIN SELECT 1\""},
         "run":     {"cmd": "psql -d app -c \"EXPLAIN ANALYZE SELECT 1\"", "gate": False},
     },
@@ -149,13 +165,27 @@ def selftest():
     skip = run_phase({"phase": "explain", "cmd": "definitely_not_a_real_engine_xyz -c EXPLAIN", "gate": True})
     if skip["ran"] or skip["verdict"] != "skip":
         errs.append("run_phase skip path failed: %s" % skip)
-    # 5. overall verdict logic
+    # 5. overall verdict logic — three statuses (PASS / FAIL / INCOMPLETE)
     if overall([ok, bad])["status"] != "FAIL":
         errs.append("overall should FAIL on a gate fail")
     if overall([ok])["status"] != "PASS":
         errs.append("overall should PASS when all gates pass")
-    if overall([skip])["status"] != "PASS" or not overall([{**skip, "gate": True}])["gate_skips"]:
-        errs.append("overall skip handling wrong")
+    # an all-skip GATE run is INCOMPLETE (was wrongly PASS) — a missing engine is NOT a pass
+    if overall([skip])["status"] != "INCOMPLETE" or not overall([skip])["gate_skips"]:
+        errs.append("overall should be INCOMPLETE on an all-skip gate run: %s" % overall([skip]))
+    # a gate fail beats an INCOMPLETE skip (FAIL dominates)
+    if overall([bad, skip])["status"] != "FAIL":
+        errs.append("overall should FAIL when a gate fails even if another gate skipped")
+    # a green gate alongside a skipped ADVISORY (non-gate) phase stays PASS — advisory never decides
+    adv_skip = {**skip, "gate": False}
+    if overall([ok, adv_skip])["status"] != "PASS":
+        errs.append("overall should PASS when only an advisory phase skipped: %s" % overall([ok, adv_skip]))
+    # an empty manifest (no gate ran at all) is INCOMPLETE, not PASS
+    if overall([])["status"] != "INCOMPLETE":
+        errs.append("overall on an empty manifest should be INCOMPLETE, got %s" % overall([])["status"])
+    # an advisory-only manifest (a passing advisory phase, no gate) is also INCOMPLETE — no gate evidence
+    if overall([{**ok, "gate": False}])["status"] != "INCOMPLETE":
+        errs.append("overall on an advisory-only manifest should be INCOMPLETE")
     return errs
 
 
@@ -178,7 +208,8 @@ def main(argv):
             for e in errs:
                 sys.stderr.write("  - %s\n" % e)
             return 1
-        print("query-harness: OK — manifest parse + verdict normalize + run/skip paths verified")
+        print("query-harness: OK — manifest parse + verdict normalize + run/skip paths + "
+              "PASS/FAIL/INCOMPLETE verdict logic verified")
         return 0
     if argv[0] == "template":
         print(json.dumps(TEMPLATE, indent=2))
@@ -202,6 +233,15 @@ def main(argv):
         sys.stderr.write("query-harness: FAIL — %d gate(s) failed: %s\n"
                          % (len(summary["gate_fails"]), ", ".join(r["phase"] for r in summary["gate_fails"])))
         return 1
+    if summary["status"] == "INCOMPLETE":
+        # no gate ran green (the common no-engine-on-PATH case, or an empty/advisory-only manifest).
+        # A skipped gate reported as a pass would be NOT-done — so this exits NON-ZERO, never PASS.
+        n = len(summary["gate_skips"])
+        why = ("%d gate(s) had no engine" % n) if n else "no gate ran (empty/advisory-only manifest)"
+        sys.stderr.write("query-harness: INCOMPLETE — %s; this is NOT a pass "
+                         "(provide the engine on PATH and re-run; a skipped gate is missing evidence)\n"
+                         % why)
+        return 3
     print("query-harness: PASS — all present gates green (grain check is separate — see grain-and-joins.md)")
     return 0
 

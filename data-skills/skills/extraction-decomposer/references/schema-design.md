@@ -63,7 +63,11 @@ The constraint keywords aren't just validity hygiene — a violated constraint i
 signal:
 
 - **`pattern`** — an id shape (`^INV-\d{4}-\d{4}$`), an email, a date format. A value that fails the
-  pattern is frequently invented or wrong-span.
+  pattern is frequently invented or wrong-span. **Anchor the pattern with `^…$`.** `schema-check.py`
+  (like JSON Schema) uses an *unanchored* search-match: an unanchored `INV-\d{4}-\d{4}` matches any
+  string that merely *contains* that shape, so `"junk INV-2026-0042 junk"` passes. Anchor both ends
+  (`^INV-\d{4}-\d{4}$`) so the *whole* value must conform — otherwise the pattern is a far weaker
+  fidelity guard than it looks.
 - **`minimum`/`maximum`** — a `total` that can't be negative, a `quantity` with a sane ceiling, a
   `year` in a plausible range. An out-of-range value is a hallucination tell.
 - **`minLength`** — a non-empty name (`minLength: 1`) rules out the empty-string "I had to put

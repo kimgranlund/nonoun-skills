@@ -5,6 +5,23 @@ extraction-report card, the inversion doctrine). Everything below is additive.
 
 ## `bin/groundedness-check.py`
 
+- [x] **Token / word-boundary matching** (was: raw substring) — closes the substring-fragment false
+      negative where an invented `"Fran"`/`"Ware"` grounded against `San Francisco`/`warehouse`, and a
+      split `"John"`+`"Smith"` grounded against `Johnson`/`Smithfield`. Plus a **weak-grounding floor**
+      (1-token ≤3-char hits → `WEAK_GROUNDING — verify manually`) and a distinct `EMPTY` finding for
+      empty/whitespace values. Adversarial fixtures added for all of these.
+- [x] **Numeric back-door anchored** — a string scalar takes the NUMERIC path only when the *entire*
+      trimmed string is one number token; a string that merely *starts* with a grounded digit
+      (`"12 Nonexistent Street"`, `"12-FAKE-ID-9999"`) no longer grounds. Fixture added.
+- [ ] **Deferred — residual false-negative class:** a value that is a faithful *multi-token span* of
+      the source copied into the **wrong field** still grounds (token matching is containment, not
+      alignment). This is by design the **adversarial verifier's** job, not the deterministic gate's.
+- [ ] **Deferred — locale / scientific notation:** `DD.MM.YYYY`-dominant dates, non-ASCII digits, and
+      scientific-notation numbers can still produce false positives; the FAIL message now says
+      "verify" rather than asserting hallucination, but native handling (each behind its own fixtures)
+      is still future work. (Tracked below under date/number locales.)
+- [ ] **Configurable weak-grounding floor** — `MIN_TOKENS`/`MIN_CHARS` are currently constants; expose
+      them so a high-recall corpus can tighten or loosen the WEAK_GROUNDING band.
 - [ ] **Fuzzy / derivable grounding** — a configurable similarity threshold for near-verbatim spans
       (OCR noise, hyphenation, ligatures), and arithmetic derivation (a `total` that is the *sum* of
       grounded line items, grounded by computation rather than appearance).
@@ -18,6 +35,11 @@ extraction-report card, the inversion doctrine). Everything below is additive.
 
 ## `bin/schema-check.py`
 
+- [x] **Unknown / unsupported keyword detection** — a schema-author typo (`requried`, `minimun`) or an
+      unsupported keyword (`additionalProperties`, `uniqueItems`) is no longer a silent no-op (which
+      produced a false green); each surfaces a `WARN: unknown/unsupported keyword 'X' — not enforced`
+      line and the run exits nonzero. Meta/annotation keywords ($schema, title, description, …) are
+      ignored without a warning. Adversarial fixture added.
 - [ ] **`$defs` / local `$ref`** resolution (same-document only — no remote fetch, keeping the
       clean-checkout-true contract).
 - [ ] More keywords as the extraction corpus demands: `additionalProperties`, `uniqueItems`,

@@ -13,6 +13,15 @@ The doctrine this enforces: the PLAN is the contract. A green `parse` proves syn
 the `plan` phase is where "valid config, wrong outcome / surprise destroy" is caught. A skipped plan
 gate is reported as *no evidence*, never folded into a pass.
 
+The `plan` verdict is TRI-STATE, because the doctrine's success case is non-zero by design — the
+template recommends `terraform plan -detailed-exitcode` (exit 2 = changes present) and `kubectl diff`
+(exit 1 = a diff): those are `changes-present` (pass-with-a-diff-to-READ), NOT a gate fail. `fail` is
+reserved for a true error (terraform plan exit 1 or >2; kubectl diff exit >1).
+
+Exit codes: 0 = PASS (all present gates green) · 1 = FAIL (a gate errored) · 2 = bad invocation/manifest
+· 3 = INCOMPLETE (a decisive GATE was SKIPPED with no fails — NO EVIDENCE, so automation can't read it
+as success).
+
 Manifest (JSON) — each phase optional; `gate` defaults by phase (parse/schema/plan gate; lint/
 policy advisory):
   {
@@ -58,8 +67,30 @@ def available(cmd):
     return shutil.which(tool) is not None
 
 
-def verdict_of(exit_code):
-    return "pass" if exit_code == 0 else "fail"
+def verdict_of(exit_code, phase=None, cmd=""):
+    """Normalize an exit code to a verdict — tri-state for the plan/diff phase.
+
+    A `plan` phase is the doctrine's success case when it reports *changes present*, and the harness's
+    own template recommends the very flag that signals that with a non-zero code:
+      - `terraform plan -detailed-exitcode`: exit 0 = no changes, 2 = changes present (SUCCESS — a diff
+        to READ), >2 = a real error.
+      - `kubectl diff`: exit 0 = no diff, 1 = a diff present (SUCCESS — to READ), >1 = a real error.
+    So for those, the "changes" code is `changes-present` (pass-with-diff, the intended outcome), NOT a
+    gate fail. `fail` is reserved for a true error. Every other phase keeps the plain 0=pass / else=fail.
+    """
+    if exit_code == 0:
+        return "pass"
+    low = cmd.lower()
+    is_kubectl_diff = "kubectl" in low and "diff" in low
+    if phase == "plan":
+        if is_kubectl_diff:
+            return "changes-present" if exit_code == 1 else "fail"   # kubectl diff: 1 = diff, >1 = error
+        # terraform/tofu plan -detailed-exitcode (the template default): 2 = changes, >2 = error, 1 = error
+        return "changes-present" if exit_code == 2 else "fail"
+    # a kubectl diff wired under any phase still means "diff present", not an error, at exit 1
+    if is_kubectl_diff and exit_code == 1:
+        return "changes-present"
+    return "fail"
 
 
 def parse_manifest(doc):
@@ -95,18 +126,36 @@ def run_phase(spec, cwd=None):
         return res
     res["ran"] = True
     res["exit"] = proc.returncode
-    res["verdict"] = verdict_of(proc.returncode)
-    tail = (proc.stderr or proc.stdout or "").strip().splitlines()[-1:] if proc.returncode else []
-    res["note"] = tail[0][:160] if tail else ""
+    res["verdict"] = verdict_of(proc.returncode, spec["phase"], spec["cmd"])
+    if res["verdict"] == "changes-present":
+        res["note"] = "exit %d — changes present, READ the diff (not a fail)" % proc.returncode
+    else:
+        tail = (proc.stderr or proc.stdout or "").strip().splitlines()[-1:] if proc.returncode else []
+        res["note"] = tail[0][:160] if tail else ""
     return res
 
 
 def overall(results):
-    """Report-card summary: gate fail -> FAIL; gate skip -> PASS but flagged (no evidence)."""
+    """Report-card summary.
+
+    Status precedence (M2 — a skipped GATE is NO EVIDENCE, never a silent pass):
+      - FAIL       any gate phase truly failed (a real error);
+      - INCOMPLETE no gate failed, but a gate phase was SKIPPED (tool absent) — the decisive evidence
+                   is missing, so automation must NOT read this as green (exit non-zero);
+      - PASS       every gate ran and passed (a plan that reports `changes-present` is a pass — a diff
+                   to read, the doctrine's success case, not a fail).
+    """
     gate_fails = [r for r in results if r["gate"] and r["verdict"] == "fail"]
     gate_skips = [r for r in results if r["gate"] and r["verdict"] == "skip"]
-    status = "FAIL" if gate_fails else "PASS"
-    return {"status": status, "gate_fails": gate_fails, "gate_skips": gate_skips}
+    gate_changes = [r for r in results if r["gate"] and r["verdict"] == "changes-present"]
+    if gate_fails:
+        status = "FAIL"
+    elif gate_skips:
+        status = "INCOMPLETE"
+    else:
+        status = "PASS"
+    return {"status": status, "gate_fails": gate_fails, "gate_skips": gate_skips,
+            "gate_changes": gate_changes}
 
 
 TEMPLATE = {
@@ -123,11 +172,26 @@ TEMPLATE = {
 
 def selftest():
     errs = []
-    # 1. tool_of + verdict_of
+    # 1. tool_of + verdict_of (M1: the plan/diff verdict is tri-state)
     if tool_of("terraform plan -detailed-exitcode") != "terraform":
         errs.append("tool_of failed")
-    if verdict_of(0) != "pass" or verdict_of(2) != "fail":
-        errs.append("verdict_of failed")
+    if verdict_of(0) != "pass":
+        errs.append("verdict_of(0) should be pass")
+    # a non-plan phase keeps plain 0=pass / else=fail
+    if verdict_of(2, "schema", "terraform validate") != "fail":
+        errs.append("verdict_of: non-plan exit 2 should be fail")
+    # terraform plan -detailed-exitcode: 2 = changes present (SUCCESS, a diff to read), not a fail
+    if verdict_of(2, "plan", "terraform plan -detailed-exitcode") != "changes-present":
+        errs.append("verdict_of: terraform plan exit 2 should be changes-present, not fail")
+    if verdict_of(1, "plan", "terraform plan -detailed-exitcode") != "fail":
+        errs.append("verdict_of: terraform plan exit 1 should be fail (real error)")
+    if verdict_of(3, "plan", "terraform plan -detailed-exitcode") != "fail":
+        errs.append("verdict_of: terraform plan exit >2 should be fail")
+    # kubectl diff: exit 1 = a diff present (SUCCESS to read), >1 = error
+    if verdict_of(1, "plan", "kubectl diff -f .") != "changes-present":
+        errs.append("verdict_of: kubectl diff exit 1 should be changes-present")
+    if verdict_of(2, "plan", "kubectl diff -f .") != "fail":
+        errs.append("verdict_of: kubectl diff exit >1 should be fail")
     # 2. parse_manifest accepts a good manifest in canonical order
     specs = parse_manifest({"gates": {"plan": {"cmd": "terraform plan"}, "parse": {"cmd": "yamllint ."}}})
     if [s["phase"] for s in specs] != ["parse", "plan"]:
@@ -151,13 +215,28 @@ def selftest():
     skip = run_phase({"phase": "lint", "cmd": "definitely_not_a_real_tool_xyz check", "gate": False})
     if skip["ran"] or skip["verdict"] != "skip":
         errs.append("run_phase skip path failed: %s" % skip)
-    # 5. overall verdict logic — a skipped GATE is no evidence, flagged, not a silent pass
+    # M1: a `plan` phase exiting 2 (the -detailed-exitcode "changes present" code) is changes-present, not a fail
+    changes = run_phase({"phase": "plan", "cmd": "%s -c \"import sys; sys.exit(2)\"" % shlex.quote(sys.executable), "gate": True})
+    if not changes["ran"] or changes["verdict"] != "changes-present":
+        errs.append("run_phase plan exit-2 should be changes-present: %s" % changes)
+    # 5. overall verdict logic
     if overall([ok, bad])["status"] != "FAIL":
         errs.append("overall should FAIL on a gate fail")
     if overall([ok])["status"] != "PASS":
         errs.append("overall should PASS when all gates pass")
-    if overall([skip])["status"] != "PASS" or not overall([{**skip, "gate": True}])["gate_skips"]:
-        errs.append("overall skip handling wrong")
+    # a plan reporting changes-present is the doctrine's success case — a PASS (a diff to read), not a fail
+    if overall([changes])["status"] != "PASS" or not overall([changes])["gate_changes"]:
+        errs.append("overall should PASS on a changes-present gate and flag it: %s" % overall([changes]))
+    # M2: a SKIPPED gate with no fails is INCOMPLETE (exit non-zero), never a silent PASS
+    skip_gate = {**skip, "gate": True}
+    if overall([skip_gate])["status"] != "INCOMPLETE" or not overall([skip_gate])["gate_skips"]:
+        errs.append("overall: a skipped GATE should be INCOMPLETE, not PASS: %s" % overall([skip_gate]))
+    # an advisory (non-gate) skip is fine — still PASS
+    if overall([skip])["status"] != "PASS":
+        errs.append("overall: an advisory skip should not block PASS: %s" % overall([skip]))
+    # M2 (main path): --cwd with no value must not crash with IndexError; it returns a clean error code
+    if main(["some-manifest.json", "--cwd"]) != 2:
+        errs.append("main --cwd with no value should return 2, not raise IndexError")
     return errs
 
 
@@ -178,14 +257,19 @@ def main(argv):
             for e in errs:
                 sys.stderr.write("  - %s\n" % e)
             return 1
-        print("config-harness: OK — manifest parse + verdict normalize + run/skip paths verified")
+        print("config-harness: OK — manifest parse + tri-state plan verdict + run/skip/changes paths + "
+              "INCOMPLETE-on-skipped-gate verified")
         return 0
     if argv[0] == "template":
         print(json.dumps(TEMPLATE, indent=2))
         return 0
     manifest, cwd = argv[0], None
     if "--cwd" in argv:
-        cwd = argv[argv.index("--cwd") + 1]
+        i = argv.index("--cwd")
+        if i + 1 >= len(argv):
+            sys.stderr.write("config-harness: --cwd needs a directory argument\n")
+            return 2
+        cwd = argv[i + 1]
     try:
         doc = json.load(open(manifest, encoding="utf-8"))
         specs = parse_manifest(doc)
@@ -195,6 +279,9 @@ def main(argv):
     results = [run_phase(s, cwd) for s in specs]
     _print_card(results, cwd)
     summary = overall(results)
+    if summary["gate_changes"]:
+        print("  → %d plan gate(s) report CHANGES PRESENT — READ the diff against the desired state: %s"
+              % (len(summary["gate_changes"]), ", ".join(r["phase"] for r in summary["gate_changes"])))
     if summary["gate_skips"]:
         print("  ⚠ %d gate(s) skipped (tool absent) — NO EVIDENCE, not a pass: %s"
               % (len(summary["gate_skips"]), ", ".join(r["phase"] for r in summary["gate_skips"])))
@@ -202,6 +289,11 @@ def main(argv):
         sys.stderr.write("config-harness: FAIL — %d gate(s) failed: %s\n"
                          % (len(summary["gate_fails"]), ", ".join(r["phase"] for r in summary["gate_fails"])))
         return 1
+    if summary["status"] == "INCOMPLETE":
+        sys.stderr.write("config-harness: INCOMPLETE — %d decisive gate(s) SKIPPED (tool absent), no fails: %s. "
+                         "This is NO EVIDENCE, not a pass.\n"
+                         % (len(summary["gate_skips"]), ", ".join(r["phase"] for r in summary["gate_skips"])))
+        return 3
     print("config-harness: PASS — all present gates green")
     return 0
 

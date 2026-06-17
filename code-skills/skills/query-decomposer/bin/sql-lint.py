@@ -32,13 +32,31 @@ _DQUOTE_ID = re.compile(r'"(?:[^"])*"')            # double-quoted identifier
 _BACKTICK_ID = re.compile(r"`(?:[^`])*`")          # MySQL/BigQuery identifier
 
 
+def _blank_keep_newlines(m):
+    """Replace a matched region with spaces of the SAME length, preserving newlines — so the
+    normalized text stays positionally aligned with the original (line numbers don't drift)."""
+    return re.sub(r"[^\n]", " ", m.group(0))
+
+
+def _blank_literal(quote):
+    """Blank a quoted literal/identifier to same-length filler: keep the quotes, space the inside,
+    preserve newlines. Length-preserving so offsets map 1:1 onto the original text."""
+    def repl(m):
+        text = m.group(0)
+        inner = re.sub(r"[^\n]", " ", text[1:-1])
+        return quote + inner + quote
+    return repl
+
+
 def normalize(sql):
-    """Lower-case-able copy with comments and string/identifier literals blanked (length-preserving-ish)."""
-    s = _BLOCK_COMMENT.sub(" ", sql)
-    s = _LINE_COMMENT.sub(" ", s)
-    s = _STRING_LIT.sub("''", s)
-    s = _DQUOTE_ID.sub('"id"', s)
-    s = _BACKTICK_ID.sub("`id`", s)
+    """Lower-case-able copy with comments + string/identifier literals blanked. LENGTH-PRESERVING:
+    every replacement keeps the original character count and newlines, so a position in the result
+    maps onto the same position in `sql` (callers compute line numbers from the original offset)."""
+    s = _BLOCK_COMMENT.sub(_blank_keep_newlines, sql)
+    s = _LINE_COMMENT.sub(_blank_keep_newlines, s)
+    s = _STRING_LIT.sub(_blank_literal("'"), s)
+    s = _DQUOTE_ID.sub(_blank_literal('"'), s)
+    s = _BACKTICK_ID.sub(_blank_literal("`"), s)
     return s
 
 
@@ -74,6 +92,15 @@ _AGG = re.compile(r"(?i)\b(count|sum|avg|min|max|array_agg|string_agg|group_conc
 _FROM_ENDS = ["where", "group by", "having", "order by", "limit", "window", "qualify", "union", "join",
               "left", "right", "inner", "outer", "cross", "full", "on"]
 _SELECT_ENDS = ["from"]
+# a real join predicate is `ident.ident = ident.ident` (column = column), NOT `col = 'literal'`,
+# `1=1`, or `col >= 18`. Only such a predicate suppresses IMPLICIT_CROSS_JOIN.
+_COL = r"[A-Za-z_][A-Za-z0-9_$]*(?:\.[A-Za-z_][A-Za-z0-9_$]*)+"   # requires a dotted qualifier
+_COL_EQ_COL = re.compile(r"(?i)(?<![<>!])(?:%s)\s*=\s*(?:%s)(?!=)" % (_COL, _COL))
+# a window function is a top-level `... OVER (...)`; such a SELECT item is not a "non-aggregated column"
+_OVER = re.compile(r"(?i)\bover\s*\(")
+# a pure literal/constant SELECT item: a number, a blanked string ('...' of spaces after normalize),
+# or TRUE/FALSE/NULL. (normalize() leaves quoted strings as '<spaces>'.)
+_LITERAL_ITEM = re.compile(r"(?i)^(?:[-+]?\d+(?:\.\d+)?|'\s*'|true|false|null)$")
 
 
 def analyze_sql(sql):
@@ -103,19 +130,26 @@ def _analyze_one(stmt, line):
     if re.search(r"(?i)\bselect\b", top) and re.search(r"(?i)\bselect\s+(?:distinct\s+)?\*", top):
         finds.append(("SELECT_STAR", line, "SELECT * hides the result columns / grain key"))
 
-    # MISSING_WHERE_DML — UPDATE/DELETE with no top-level WHERE
-    m = re.match(r"(?i)\s*(update|delete)\b", stmt)
+    # MISSING_WHERE_DML — UPDATE/DELETE with no top-level WHERE. Matches both a bare statement and a
+    # CTE-led one (`WITH cte AS (...) DELETE FROM t`): look for a top-level (paren-stripped) UPDATE/
+    # DELETE verb, so a DELETE nested inside a CTE subquery (which IS parenthesized) doesn't count here
+    # and the governing top-level statement's missing WHERE is still caught.
+    m = re.search(r"(?i)\b(update|delete)\b", top)
     if m and not re.search(r"(?i)\bwhere\b", top):
         finds.append(("MISSING_WHERE_DML", line,
                       "%s with no WHERE — rewrites the whole table" % m.group(1).upper()))
 
-    # IMPLICIT_CROSS_JOIN — a FROM with >1 comma-separated table and no join predicate
+    # IMPLICIT_CROSS_JOIN — a FROM with >1 comma-separated table and no join predicate.
+    # A join predicate is a top-level `ident.ident = ident.ident` (column=column) in the WHERE — NOT
+    # merely the presence of `=`: `WHERE a.status='x'`, `WHERE 1=1`, `WHERE a.age>=18` are all filters,
+    # not joins, and must NOT suppress the cartesian flag.
     from_clause = _clause(top, "from", _FROM_ENDS)
     if from_clause:
         tables = [t for t in from_clause.split(",") if t.strip()]
         has_join_kw = bool(re.search(r"(?i)\bjoin\b", top))
-        has_where_eq = bool(re.search(r"(?i)\bwhere\b", low_top)) and "=" in _clause(top, "where", ["group by", "having", "order by", "limit"])
-        if len(tables) > 1 and not has_join_kw and not has_where_eq:
+        where_clause = _clause(top, "where", ["group by", "having", "order by", "limit"])
+        has_join_predicate = bool(_COL_EQ_COL.search(where_clause))
+        if len(tables) > 1 and not has_join_kw and not has_join_predicate:
             finds.append(("IMPLICIT_CROSS_JOIN", line,
                           "FROM lists %d tables with no join predicate — cartesian product" % len(tables)))
 
@@ -131,13 +165,35 @@ def _analyze_one(stmt, line):
         sel = _clause(stmt, "select", _SELECT_ENDS)
         sel = re.sub(r"(?i)^\s*distinct\b", "", sel)
         sel_items = [c for c in _split_top_commas(sel) if c.strip()]
-        non_agg = [c for c in sel_items if not _AGG.search(c)]
+        non_agg = [c for c in sel_items if not _is_aggregated_item(c)]
         gb_keys = [k for k in _split_top_commas(gb) if k.strip()]
         if non_agg and len(non_agg) > len(gb_keys):
             finds.append(("GROUP_BY_INCOMPLETE", line,
                           "%d non-aggregated SELECT columns but %d GROUP BY keys — likely incomplete GROUP BY"
                           % (len(non_agg), len(gb_keys))))
     return finds
+
+
+def _strip_alias(item):
+    """Drop a trailing `AS alias` (bare, double-quoted, or backtick-quoted — quoted forms are blanked
+    to '<spaces>' by normalize) so we test the expression, not its label."""
+    s = item.strip()
+    s = re.sub(r"""(?i)\s+as\s+(?:"\s*"|`\s*`|[A-Za-z_][A-Za-z0-9_$]*)\s*$""", "", s)
+    return s.strip()
+
+
+def _is_aggregated_item(item):
+    """A SELECT item that does NOT count as a 'non-aggregated column' for the GROUP BY check:
+    an aggregate call (SUM/COUNT/...), a window function (top-level `OVER (...)`), or a pure
+    literal/constant ('summary', 42, TRUE). Such items are legal in a grouped SELECT regardless of
+    the GROUP BY, so they must not inflate the non-aggregated count."""
+    if _AGG.search(item):
+        return True
+    if _OVER.search(item):                       # a window function: RANK() OVER (...), etc.
+        return True
+    if _LITERAL_ITEM.match(_strip_alias(item)):  # a bare literal/constant select item
+        return True
+    return False
 
 
 def _split_top_commas(s):
@@ -185,6 +241,24 @@ SQL_GROUP = "SELECT region, city, SUM(amount) FROM sales GROUP BY region;"
 # a COUNT(*) and a string literal with a keyword must not trip SELECT_STAR / clause scans:
 SQL_TRICKY = "SELECT COUNT(*) AS n FROM logs WHERE message = 'limit reached' GROUP BY day ORDER BY day;"
 
+# B1 — a real cartesian whose only WHERE predicate is a LITERAL filter must still FLAG (the `=` alone
+# must not suppress it). Also exercises `WHERE 1=1` and `WHERE a.age>=18`, which used to defeat it.
+SQL_CROSS_LITERAL = "SELECT a.id, b.id FROM users a, roles b WHERE a.status = 'x';"
+SQL_CROSS_TRUE = "SELECT a.id, b.id FROM users a, roles b WHERE 1=1;"
+SQL_CROSS_RANGE = "SELECT a.id, b.id FROM users a, roles b WHERE a.age >= 18;"
+# and the genuine column=column join predicate must still NOT flag (alias of SQL_CROSS_OK's shape):
+SQL_CROSS_JOINED = "SELECT a.id, b.id FROM users a, roles b WHERE a.x = b.y;"
+
+# M2 — a window function and a constant SELECT item are legal in a grouped SELECT and must NOT
+# inflate GROUP_BY_INCOMPLETE:
+SQL_GROUP_WINDOW = "SELECT region, RANK() OVER (ORDER BY total DESC), SUM(total) FROM sales GROUP BY region;"
+SQL_GROUP_CONST = "SELECT region, 'summary' AS kind, SUM(amt) FROM sales GROUP BY region;"
+
+# minor m1 — a leading comment must not drift the reported line number (statement starts on line 3):
+SQL_COMMENT_LINE = "-- a leading note\n-- another note\nDELETE FROM sessions;"
+# minor m3 — a CTE-led DELETE with no WHERE must FLAG (re.match start-anchor used to miss it):
+SQL_CTE_DELETE = "WITH stale AS (SELECT id FROM sessions WHERE expires_at < now()) DELETE FROM sessions;"
+
 
 def selftest():
     errs = []
@@ -218,6 +292,31 @@ def selftest():
         errs.append("false positive SELECT_STAR on COUNT(*)")
     if "LIMIT_NO_ORDER" in tk:
         errs.append("false positive LIMIT_NO_ORDER (literal 'limit reached' / ORDER BY present)")
+
+    # B1 — a `=` that is a literal/range/constant filter must NOT suppress the cartesian flag
+    if "IMPLICIT_CROSS_JOIN" not in kinds(SQL_CROSS_LITERAL):
+        errs.append("missed IMPLICIT_CROSS_JOIN with a literal WHERE filter (col='x')")
+    if "IMPLICIT_CROSS_JOIN" not in kinds(SQL_CROSS_TRUE):
+        errs.append("missed IMPLICIT_CROSS_JOIN with WHERE 1=1")
+    if "IMPLICIT_CROSS_JOIN" not in kinds(SQL_CROSS_RANGE):
+        errs.append("missed IMPLICIT_CROSS_JOIN with a range predicate (a.age>=18)")
+    # ...but a genuine column=column join predicate still must NOT flag
+    if "IMPLICIT_CROSS_JOIN" in kinds(SQL_CROSS_JOINED):
+        errs.append("false positive IMPLICIT_CROSS_JOIN on a column=column join (a.x=b.y)")
+
+    # M2 — window functions and constant SELECT items must NOT inflate GROUP_BY_INCOMPLETE
+    if "GROUP_BY_INCOMPLETE" in kinds(SQL_GROUP_WINDOW):
+        errs.append("false positive GROUP_BY_INCOMPLETE on a window function (RANK() OVER ...)")
+    if "GROUP_BY_INCOMPLETE" in kinds(SQL_GROUP_CONST):
+        errs.append("false positive GROUP_BY_INCOMPLETE on a constant SELECT item ('summary' AS kind)")
+
+    # minor m1 — line number does not drift past leading comments (DELETE is on line 3)
+    cl = [ln for k, ln, _ in analyze_sql(SQL_COMMENT_LINE) if k == "MISSING_WHERE_DML"]
+    if cl != [3]:
+        errs.append("line number drifted past leading comments: got %s, want [3]" % cl)
+    # minor m3 — a CTE-led DELETE with no WHERE is caught
+    if "MISSING_WHERE_DML" not in kinds(SQL_CTE_DELETE):
+        errs.append("missed MISSING_WHERE_DML on a CTE-led DELETE (WITH ... DELETE)")
     return errs
 
 

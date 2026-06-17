@@ -3,6 +3,33 @@
 Versioned independently of the `data-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## Unreleased — fidelity/validity gate hardening
+
+Closes concrete false-negative defects in both `bin/` gates (each with adversarial selftest fixtures):
+
+- **groundedness-check.py — token/word-boundary grounding (was raw substring).** A raw-substring test
+  grounded invented *fragments* of real words: `"Fran"`←`San Francisco`, `"Ware"`←`warehouse`, a split
+  `"John"`+`"Smith"`←`Johnson`/`Smithfield`. Now both sides are tokenized and a value grounds only when
+  its whole tokens appear as a contiguous run of whole source tokens. Adds a **weak-grounding floor**
+  (1-token ≤3-char hits → `WEAK_GROUNDING — verify manually`) and a distinct `EMPTY` finding for
+  empty/whitespace values (were silently "grounded"). New must-FLAG fixtures: `Fran`/`Ware`/`Del`/
+  `John`/`Smith`, plus `WEAK_GROUNDING`/`EMPTY` coverage.
+- **groundedness-check.py — anchored numeric back door.** A string scalar takes the NUMERIC path only
+  when the *entire* trimmed string is one number token; a string that merely *starts* with a grounded
+  digit (`"12 Nonexistent Street"`, `"12-FAKE-ID-9999"`) no longer grounds via the leading number. New
+  must-FLAG fixture.
+- **schema-check.py — unknown/unsupported keywords no longer silently ignored.** A schema-author typo
+  (`requried`, `minimun`) or an unsupported keyword (`additionalProperties`) was a silent no-op → false
+  green. Each now emits `WARN: unknown/unsupported keyword 'X' — not enforced` and the run exits
+  nonzero; meta/annotation keywords are ignored without warning. New typo'd-keyword fixture.
+- **Docs (honesty + minors):** SKILL.md / fidelity-axis.md / groundedness.md now name the
+  substring-fragment false-negative class (mitigated by token matching + the weak floor) instead of
+  claiming the check comprehensively catches "the value that appears nowhere"; the FAIL message says
+  "verify" rather than asserting hallucination (locale/scientific-notation false positives);
+  schema-design.md notes `pattern` is unanchored (recommend `^…$`); the decomposition-method.md
+  quadrant is reconciled to label **bottom-left** (valid JSON, invented values) the signature failure,
+  matching SKILL.md.
+
 ## 0.1.0 — draft
 
 Initial release. Decompose / design / grade a structured extraction on the **FIDELITY × VALIDITY**
