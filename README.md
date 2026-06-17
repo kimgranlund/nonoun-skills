@@ -1,36 +1,70 @@
 # nonoun-skills
 
-A home for **general-purpose Claude Code skills** — domain-agnostic authoring aids that aren't tied to any one plugin's job. Versioned, validated, and installable as a marketplace, kept separate from the product plugins (which live in [`nonoun-plugins`](https://github.com/kimgranlund/nonoun-plugins)) so the skills don't bloat a plugin's standing context or stretch its scope.
+A home + marketplace for **general-purpose Claude Code skills** — domain-agnostic authoring aids that aren't tied to any one plugin's job. Versioned, validated, and installable, kept separate from the product plugins (which live in [`nonoun-plugins`](https://github.com/kimgranlund/nonoun-plugins)) so the skills don't bloat a plugin's standing context or stretch its scope.
 
-The marketplace `name` is `nonoun-skills`; the repo is `nonoun-skills`. Skills are distributed as cohesive **skill-bundle plugins** (a plugin that bundles only skills — no commands, agents, or MCP).
+Skills ship as cohesive **skill-bundle plugins** — a plugin that bundles only skills (no commands, agents, or MCP). The repo holds **6 plugins / 14 skills**, and the spine running through most of them is one technique: the **decomposer**.
+
+→ Building a skill? See **[HOWTO.md](HOWTO.md)**. Repo history: **[CHANGELOG.md](CHANGELOG.md)**.
+
+## The decomposer method (the spine)
+
+Most skills here are **decomposers**. A decomposer grades an artifact on **two independent axes that walk the same hierarchy in opposite directions**, and the whole technique is that the two are **scored separately, never averaged**:
+
+- an **intent axis** (whole → part) — *"is it the right thing?"* — naming, structure, the claim it makes. This is where an LLM is strong.
+- a **mechanism axis** (part → whole) — *"does it actually work / hold / render, here?"* — the thing that compiles, validates, renders, executes. This is where an LLM fails silently, so it is **routed to a deterministic, self-tested `bin/` gate** — *computation routes to code, never inference.*
+
+They **cross at one seam** (the artifact that is both the claim and the mechanism), the defects on the two axes are **opposite** (a clean intent can't hide a broken mechanism, and vice versa), and the rubric is **gated**: gate-level checks cascade and block the finer reviews. Where the dangerous axis can't be deterministically gated, the method **adversarially verifies** it in a fresh context. Every decomposer runs the same three modes: **DECOMPOSE** (read & grade), **CREATE/DESIGN** (author), **GRADE** (score against the rubric).
+
+The same shape, specialized per domain — the axis pair is the skill's fingerprint:
+
+| Skill | Plugin | Intent axis × mechanism axis | Mechanized gate (`bin/`) |
+| --- | --- | --- | --- |
+| **layout-decomposer** | design | OUTSIDE-IN × INSIDE-OUT | — (ASCII-wireframe archetype library) |
+| **mermaid-decomposer** | design | INTENT × RENDER | `mermaid-render-check.py` (keyword gate + `mmdc`) |
+| **component-decomposer** | design | COMPOSE × REALIZE | `geometry-check.py` (the (h−glyph)/2 law) · `component-contract-check.py` |
+| **code-decomposer** | code | SPEC × EXECUTION | `execution-harness.py` · `test-vacuity-check.py` |
+| **regex-decomposer** | code | LANGUAGE × MATCH | `regex-check.py` (example-set + ReDoS smell) |
+| **query-decomposer** | code | SEMANTICS × EXECUTION | `sql-lint.py` · `query-harness.py` (EXPLAIN/dry-run) |
+| **type-decomposer** | code | MODEL × VALIDITY | `instance-check.py` (legal/illegal instance sets) · `model-smells.py` |
+| **extraction-decomposer** | data | FIDELITY × VALIDITY | `groundedness-check.py` · `schema-check.py` |
+| **routing-decomposer** | meta | INSTRUCTION × ROUTING | `routing-eval.py` (precision/recall) · `description-lint.py` |
+| **proof-decomposer** | reasoning | ARGUMENT × VERIFICATION | `proof-structure-check.py` (DAG) · `numeric-spotcheck.py` |
+| **config-decomposer** | ops | INTENT × VALIDITY | `config-lint.py` · `config-harness.py` (validate/plan) |
+
+The non-decomposer skills follow two other vintages: deep **reference** skills that *answer and point at a peer for output* (they don't generate), and a **domain build** skill.
 
 ## Plugins
 
-### `design-skills` — design-domain skills
-
-Four skills. Two are paired **"decomposers"** on the same technique (two independent axes that walk the same hierarchy in opposite directions, scored separately so opposite defects don't average out); two are deep **reference** skills (perceptual color, typography):
-
-| Skill | What it does | Carries |
+| Plugin | Domain | Skills |
 | --- | --- | --- |
-| **layout-decomposer** | read / grade / design a UI on OUTSIDE-IN (frame → regions → cards → atoms) × INSIDE-OUT (actions → bindings → feedback → coherence) | a gated rubric + a four-archetype ASCII-wireframe library (productivity-shell · saas-dashboard · marketing-site · mobile-app) |
-| **mermaid-decomposer** | create / grade advanced Mermaid diagrams on INTENT (relationship → type → skeleton → labels) × RENDER (keyword → syntax → strict-safety → legibility) | a verbatim 11-type syntax catalog, a gated M1–M6 rubric, and a **mechanized render-check** (`bin/mermaid-render-check.py`) |
-| **color-science** | answer perceptual-color questions — spaces, gamut math, contrast/APCA, harmony, CVD, pigment mixing, color naming | a TypeScript color library (`src/`, 24 spaces) + 54 interactive `examples/` demos + a deep references corpus (historical · contemporary · techniques) |
-| **typography-lettering** | answer typography questions — anatomy, classification, metrics, world scripts, accessibility, and the modern CSS text surface | a tiered references corpus by axis (history · classification · metrics · scripts · techniques · science) |
+| **design-skills** | UI / visual | `layout-decomposer` · `mermaid-decomposer` · `component-decomposer` (decomposers) · `color-science` · `typography-lettering` (reference) |
+| **code-skills** | engineering | `code-decomposer` · `regex-decomposer` · `query-decomposer` · `type-decomposer` (decomposers) · `figma-plugins` (domain build) |
+| **data-skills** | structured data | `extraction-decomposer` |
+| **meta-skills** | skills about skills | `routing-decomposer` |
+| **reasoning-skills** | deductive argument | `proof-decomposer` |
+| **ops-skills** | config / infra-as-code | `config-decomposer` |
 
-The two **decomposers** run `DECOMPOSE` / `CREATE` / `GRADE` — gates before reviews, two axes reported separately. The two **reference** skills *answer* (they explain and point at the right peer for output); they don't generate.
+What each carries:
+
+- **design-skills** — `layout-decomposer` (read/grade/design a UI, with a four-archetype ASCII-wireframe library) · `mermaid-decomposer` (advanced Mermaid on a verbatim 11-type syntax catalog + a mechanized render-check) · `component-decomposer` (zero-dependency web components, with a deterministic geometry engine — every glyph centered in a square cell, so edge padding = (height − glyph)/2) · `color-science` (perceptual color + a TypeScript color library + 54 interactive demos) · `typography-lettering` (type anatomy → world scripts → the modern CSS text surface).
+- **code-skills** — `code-decomposer` (a unit of code: right + provably runs, with an execution harness and a test-vacuity linter that attacks the "green but wrong" quadrant) · `regex-decomposer` (a pattern that means the right language and won't ReDoS) · `query-decomposer` (a SQL query at the right grain that actually plans) · `type-decomposer` (make illegal states unrepresentable, proven by legal/illegal instance sets) · `figma-plugins` (build/test Figma plugins across the sandbox↔iframe message bridge).
+- **data-skills** — `extraction-decomposer` (is a structured extraction both schema-valid *and* true to its source — the instructive inversion where the cheap gate isn't the dangerous axis).
+- **meta-skills** — `routing-decomposer` (does a skill's frontmatter description fire on the right requests and hold against the wrong ones — graded by a mechanized routing eval).
+- **reasoning-skills** — `proof-decomposer` (are the steps valid *and* do they prove the stated claim — a proof-structure DAG check catches circular reasoning + a numeric counterexample search).
+- **ops-skills** — `config-decomposer` (does a config declare the right desired-state *and* validate/plan cleanly — the plan is the contract; a safety linter catches plaintext secrets, `:latest`, wide-open permissions).
 
 ## Install
 
 ```text
 /plugin marketplace add kimgranlund/nonoun-skills
-/plugin install design-skills@nonoun-skills
+/plugin install design-skills@nonoun-skills      # …and/or code-skills, data-skills, meta-skills, reasoning-skills, ops-skills
 ```
 
 …or for local development, point Claude Code at the skills directly (they're standard skill folders):
 
 ```sh
-# symlink each into your user skills (kept in sync with the repo)
-for s in design-skills/skills/*/; do ln -s "$PWD/$s" ~/.claude/skills/; done
+# symlink every skill into your user skills (kept in sync with the repo)
+for s in */skills/*/; do ln -s "$PWD/$s" ~/.claude/skills/; done
 ```
 
 ## Develop
@@ -38,34 +72,32 @@ for s in design-skills/skills/*/; do ln -s "$PWD/$s" ~/.claude/skills/; done
 Skills are markdown + (optionally) stdlib Python. The repo is **self-contained and clean-checkout-true** — one gate proves it:
 
 ```sh
-python3 bin/check-skills.py                                    # validate every skill + run bin selftests + dogfood the render-check
-python3 design-skills/skills/mermaid-decomposer/bin/mermaid-render-check.py selftest    # the static keyword gate
-python3 design-skills/skills/mermaid-decomposer/bin/mermaid-render-check.py <file|dir>  # check a doc's ```mermaid blocks (mmdc renders when installed)
+python3 bin/check-skills.py     # validate every skill, run all bin selftests, dogfood the render-check
 ```
 
-`bin/check-skills.py` asserts, per skill (FAIL): `skill.json` parses and its `name` matches the dir; the SKILL.md `description` is ≤ 1024 chars; every `files[]` path exists; relative `.md` links resolve. It then runs each skill's `bin/*.py selftest` and dogfoods the Mermaid render-check over the reference docs. The skills-studio structural floor (`## Quick Start` · `§SelfAudit` · `## Verify Target`) is **advisory** (a WARN, not a FAIL) — the two `decomposer` skills carry it; the `ref-*`-derived reference skills use `## Invocation` + domain sections instead. CI (`.github/workflows/ci.yml`) runs the gate on every push/PR.
+`bin/check-skills.py` discovers any `*/skills/*/` containing a `skill.json` and asserts, per skill (**FAIL**): `skill.json` parses and its `name` matches the dir; the SKILL.md frontmatter `description` is ≤ 1024 chars; every `files[]` path exists; relative `.md` links resolve; each `bin/*.py` answers a `selftest` subcommand and exits 0; the Mermaid render-check passes its static keyword gate over every skill's `references/`. The skills-studio structural floor (`## Quick Start` · `§SelfAudit` · `## Verify Target`) is **advisory** (a WARN) — decomposers carry it; the `ref-*`-derived reference skills use `## Invocation` + domain sections instead. CI (`.github/workflows/ci.yml`) runs the gate on every push/PR.
 
-The full Mermaid **render** gate (`mmdc` actually rendering each block) fires only where the mermaid CLI is installed; CI installs it so the M3 render gate runs there, while the static keyword gate runs everywhere.
+The full Mermaid **render** gate (`mmdc` actually rendering each block) fires only where the mermaid CLI is installed; CI installs it, so the render gate runs there while the static keyword gate runs everywhere.
 
 ## Layout
 
 ```
 nonoun-skills/
-  .claude-plugin/marketplace.json      # the marketplace (one plugin: design-skills)
-  design-skills/
+  .claude-plugin/marketplace.json      # the marketplace (6 plugins)
+  <plugin>/                            # design- · code- · data- · meta- · reasoning- · ops-skills
     .claude-plugin/plugin.json
-    skills/
-      layout-decomposer/            # SKILL.md · skill.json · CHANGELOG · ROADMAP · references/
-      mermaid-decomposer/           # … + bin/mermaid-render-check.py
-      color-science/                   # SKILL.md · references/ · src/ (TS color lib) · examples/ (54 demos)
-      typography-lettering/            # SKILL.md · references/ (tiered by axis)
-  bin/check-skills.py                  # the self-contained CI gate
+    skills/<skill>/
+      SKILL.md · skill.json · CHANGELOG.md · ROADMAP.md
+      references/                      # loaded on demand; decomposition-method.md is always first
+      bin/*.py                         # stdlib, selftested — the mechanism gate
+  bin/check-skills.py                  # the one self-contained CI gate
   .github/workflows/ci.yml
+  HOWTO.md · CHANGELOG.md · README.md
 ```
 
 ## Conventions
 
-- **Skills are self-contained.** A skill names its `files[]` in `skill.json`, keeps SKILL.md a table-of-contents over `references/` loaded on demand, and routes deterministic checks to `bin/` (stdlib, selftested) — *computation routes to code, never to inference*.
-- **The description is the routing surface** — ≤ 1024 chars, with WHAT + WHEN + NOT. A routing-eval corpus (scored trigger/adversarial phrases) is the next maturity step for each skill (tracked in its ROADMAP).
-- **Mixed vintages are fine.** The two `decomposer` skills follow the skills-studio template (Quick Start · §SelfAudit · Verify Target); `color-science` + `typography-lettering` are reference skills (`## Invocation` + domain sections) — both valid; the gate enforces the hard contract and only advises on the template.
-- Authored and red-teamed with **skills-studio**; the decomposers were extracted from the dev-factory cockpit + the catalog corpus-reader's Mermaid work, and `color-science`/`typography-lettering` adapt `meodai/skill.ref-color`'s flat-SKILL + tiered-references shape.
+- **Skills are self-contained.** A skill names its `files[]` in `skill.json`, keeps SKILL.md a table-of-contents over `references/` loaded on demand, and routes deterministic checks to `bin/` (stdlib, selftested) — *computation routes to code, never to inference.*
+- **The description is the routing surface** — ≤ 1024 chars, WHAT + WHEN + NOT. (`routing-decomposer` is the skill that grades this property; a routing-eval corpus is the next maturity step tracked in each skill's ROADMAP.)
+- **The mechanism axis is gated where it can be, adversarially verified where it can't.** A deterministic gate is cheap but lossy — a static linter is a *pre-filter*, not a complete oracle. The hard, LLM-silent defects (a hallucinated value, an illegal state, a circular proof) get a deterministic gate *and* a fresh-context adversarial check; the skills document the gate's limits rather than overclaiming them.
+- **Three vintages, all valid.** Decomposers follow the skills-studio template (Quick Start · §SelfAudit · Verify Target); `color-science` + `typography-lettering` are reference skills (`## Invocation` + domain sections); `figma-plugins` is a domain build skill. The gate enforces the hard contract on all equally and only *advises* on the template.
