@@ -3,6 +3,21 @@
 Versioned independently of the `code-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.1 — beta
+
+`bin/model-smells.py` now reads **TypeScript and Python type definitions**, not only JSON Schema
+(closes the ROADMAP "Type-stub input" item). Input dispatches on file extension — `.json` keeps the
+unchanged JSON-Schema walk; `.ts`/`.tsx` are brace-matched and field-parsed (regex, no stdlib TS
+parser); `.py`/`.pyi` are parsed with the stdlib `ast` module (precise — `TypedDict` subclasses and
+`@dataclass` bodies), with a regex fallback for fragments that won't `ast.parse`. A directory scan
+now picks up all three. The same five finding KINDS and message style are reused; each language reads
+its own collapse tools as the clean form (a TS branded primitive / string-literal union / literal
+discriminant; a Python `NewType`/`Literal`-typed field clears the matching smell). New TS and Python
+dirty+clean selftest fixtures lock every detector; the existing JSON-Schema fixtures and assertions
+are untouched. `references/type-systems.md` documents the three-dialect dispatch. The TS field parser
+handles single-line `;`-separated fields, and constrained-name detection is camelCase-aware (`userId`),
+both locked with selftest fixtures.
+
 ## 0.2.0 — beta
 
 Promoted to beta as part of the marketplace **v0.2.0** milestone (see the root CHANGELOG). This cycle the skill gained a checked-in, sibling-collision-tested routing-eval corpus, an adversarial-review hardening pass (fixes locked as selftest fixtures), and a worked `examples/walkthrough.md` (a red→green bin proof).

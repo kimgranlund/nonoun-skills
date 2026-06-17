@@ -16,8 +16,9 @@ type-spec card, the collapse toolkit). Everything below is additive.
 
 ## `bin/model-smells.py`
 
-- [ ] **Type-stub input** — detect the smells over TypeScript `type`/`interface` and Python
-      `TypedDict`/`dataclass` text (regex pass), not just JSON Schema.
+- [x] **Type-stub input** — detect the smells over TypeScript `type`/`interface` (regex +
+      brace-matching) and Python `TypedDict`/`dataclass` (stdlib `ast`) text, not just JSON Schema.
+      Dispatched by file extension; `.ts`/`.tsx`/`.py`/`.pyi` join `.json` in a dir scan. *(0.2.1)*
 - [ ] **Nullable-confusion** smell — flag fields that are both optional and nullable (the
       absent/null/value three-state trap).
 - [ ] **Sum-without-discriminant** smell — a `oneOf` of object branches with no shared `const`

@@ -31,6 +31,28 @@ weaker gate.
   `switch` totality, no discriminated narrowing) leaks the "forgot a variant" bug. The type system
   that *forces* exhaustiveness (Rust, ML-family) gives you a second gate for free.
 
+## Model-smell pre-filter: JSON Schema, TypeScript, and Python
+
+The mechanized B3 proof (`instance-check.py`) runs over JSON Schema, but the **MODEL-axis
+pre-filter** `bin/model-smells.py` reads the host type system directly — you don't have to mirror a
+type into JSON Schema just to smell-test it. It dispatches on file extension:
+
+- **`.json`** — walked as a JSON Schema tree (the original path, unchanged).
+- **`.ts` / `.tsx`** — each `type Name = { … }` / `interface Name { … }` block is brace-matched and
+  its field lines parsed (no stdlib TS parser). It reads the language's own collapse tools as the
+  *clean* form: a branded primitive (`string & { __brand }`) clears PRIMITIVE_OBSESSION, a
+  string-literal union (`'a' | 'b'`) clears STRINGLY_TYPED_ENUM, a literal `tag`/`kind` discriminant
+  suppresses OPTIONAL_SOUP, and an index signature (`[k: string]: …`) raises OPEN_RECORD.
+- **`.py` / `.pyi`** — `TypedDict` subclasses and `@dataclass`-decorated classes are parsed with the
+  stdlib `ast` module (precise, not regex); a `Literal[…]`/`NewType` brand or a `Literal`-typed
+  discriminant is the clean form. A fragment that won't `ast.parse` falls back to a regex pass for
+  the primitive-obsession smell rather than crashing.
+
+A directory scan picks up all three at once. The five finding KINDS and message style are shared —
+the smells (boolean-blindness / optional-soup / primitive-obsession / open-record /
+stringly-typed-enum) are language-agnostic. This is a pre-filter only; the *proof* still routes a
+JSON-Schema model through `instance-check.py`.
+
 ## Choosing the target for the instance-set proof
 
 When you want a mechanized B3, model the contract in **JSON Schema** (even if the runtime type lives
