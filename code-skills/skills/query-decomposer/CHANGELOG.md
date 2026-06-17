@@ -3,6 +3,27 @@
 Versioned independently of the `code-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.1 — beta
+
+Deepened the SEMANTICS gate in `bin/sql-lint.py` with the two highest-value grain smells the
+ROADMAP tracked, each locked with must-flag **and** must-not-flag selftest fixtures (`selftest`
+still exits 0; all prior smells + their FP guards intact):
+
+- **JOIN_FANOUT** — the #1 grain killer. A query that joins a parent to ≥2 distinct tables
+  (explicit `JOIN`s + comma-`FROM` tables beyond the first) with **no** `GROUP BY`, **no**
+  `SELECT DISTINCT`, and **no** aggregate in `SELECT` can silently *multiply* rows (1:N × 1:N
+  fan-out — "returns rows, wrong grain"). Advisory; any collapsing construct suppresses it.
+  Verify with `COUNT(*)` vs `COUNT(DISTINCT key)`.
+- **OUTER_JOIN_DEMOTED** — a `LEFT`/`RIGHT [OUTER] JOIN`'d table/alias appearing in a plain
+  `WHERE` predicate (`=,<,>,<=,>=,<>,LIKE,IN`) — anything but `IS [NOT] NULL` — silently demotes
+  the outer join to an `INNER` join (the `NULL`-extended rows are filtered out, a real semantic
+  change). The `IS NULL` anti-join and predicates on the driving (LEFT) table are excluded.
+
+Both reuse the existing comment/string-stripping `normalize()` (comments can't fool them) and
+count joins on the paren-stripped top-level statement (subquery joins don't inflate the count).
+`references/grain-and-joins.md` (the centerpiece) gains both in its failure-mode tables; the two
+ROADMAP items are marked done.
+
 ## 0.2.0 — beta
 
 Promoted to beta as part of the marketplace **v0.2.0** milestone (see the root CHANGELOG). This cycle the skill gained a checked-in, sibling-collision-tested routing-eval corpus, an adversarial-review hardening pass (fixes locked as selftest fixtures), and a worked `examples/walkthrough.md` (a red→green bin proof).

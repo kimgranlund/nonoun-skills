@@ -43,10 +43,10 @@ the known figure, you are double-counting (the fan-out signature); **lower**, yo
 | Mode | What it looks like in SQL | What it does to the answer |
 |---|---|---|
 | **1:N join, then SUM** | `customers JOIN orders` then `SUM(order.amount)` grouped by customer | each customer's row repeats per order — `SUM` is *correct* here (one amount per order row), but adding a *second* 1:N join multiplies it |
-| **Two 1:N joins (the killer)** | `orders JOIN items JOIN payments` | each order's `items` × `payments` cross-multiply; `SUM(amount)` is inflated by the item count |
+| **Two 1:N joins (the killer)** | `orders JOIN items JOIN payments` | each order's `items` × `payments` cross-multiply; `SUM(amount)` is inflated by the item count (`sql-lint.py` flags this as **JOIN_FANOUT** when there's no `GROUP BY`/`DISTINCT`/aggregate to collapse it) |
 | **N:M through a bridge** | `users JOIN user_roles JOIN roles` then count users | each user repeats per role; `COUNT(*)` counts user-roles, not users |
 | **Implicit cross join** | `FROM a, b` with no `WHERE a.id = b.a_id` | every row of `a` × every row of `b` — the cartesian product (`sql-lint.py` flags this) |
-| **`NULL`-rejecting WHERE on an outer join** | `LEFT JOIN o ... WHERE o.status='paid'` | the `WHERE` drops the `NULL` rows the `LEFT JOIN` produced — silently an `INNER JOIN`, fewer rows than intended |
+| **`NULL`-rejecting WHERE on an outer join** | `LEFT JOIN o ... WHERE o.status='paid'` | the `WHERE` drops the `NULL` rows the `LEFT JOIN` produced — silently an `INNER JOIN`, fewer rows than intended (`sql-lint.py` flags this as **OUTER_JOIN_DEMOTED**; `WHERE o.id IS NULL` is the legitimate anti-join and is excluded) |
 | **Non-additive measure summed** | `SUM(rate)` or `AVG(AVG(...))` at a coarser grain | a ratio/average summed or re-averaged at the wrong grain is meaningless even with no fan-out |
 
 ## How to fix a fan-out (not the score)
@@ -69,6 +69,8 @@ an unsafe query:
 
 | Smell | Why it matters |
 |---|---|
+| **JOIN_FANOUT** | ≥2 joined tables (explicit `JOIN`s + comma-`FROM` tables beyond the first) with **no** `GROUP BY`, **no** `SELECT DISTINCT`, and **no** aggregate in `SELECT` ⇒ a 1:N × 1:N fan-out can silently *multiply* rows (the "two 1:N joins" killer above) — verify with `COUNT(*)` vs `COUNT(DISTINCT key)` (A2). Conservative: any collapsing construct suppresses it |
+| **OUTER_JOIN_DEMOTED** | a `LEFT`/`RIGHT [OUTER] JOIN`'d table whose alias/column appears in a plain `WHERE` predicate (`=,<,>,<=,>=,<>,LIKE,IN`) — anything but `IS [NOT] NULL` ⇒ the `WHERE` drops the `NULL`-extended rows and the outer join is silently an `INNER` (the dominant A3 defect above); `WHERE o.id IS NULL` is the legitimate anti-join and does not flag |
 | **IMPLICIT_CROSS_JOIN** | a `FROM` with multiple tables and no join predicate ⇒ a cartesian product (the worst fan-out) |
 | **SELECT_STAR** | hides the result columns ⇒ you can't see the grain key, and a join adds columns silently |
 | **MISSING_WHERE_DML** | `UPDATE`/`DELETE` with no `WHERE` ⇒ rewrites the whole table (the catastrophic B5 defect) |

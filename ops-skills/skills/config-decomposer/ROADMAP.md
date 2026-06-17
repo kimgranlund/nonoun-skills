@@ -8,21 +8,27 @@ plan-verdict cards, the plan-and-drift centerpiece). Everything below is additiv
 - [ ] **Structured-aware passes** — parse YAML/JSON/HCL into a tree (where a stdlib or vendored parser
       allows) so the secret/grant checks are position-accurate, not regex-approximate, cutting the
       residual false-positive surface on multi-line and heredoc values.
-- [ ] **Residual secret false-negatives (deferred).** The text-level scan now catches the common
-      secret shapes (inline single-line JSON, trailing-comma keys, YAML list items) and the multi-line
-      wildcard-array grant, but a regex floor will always miss some shapes. Known gaps to close:
-      - **Connection-string / URL-embedded secrets** — `postgres://user:realpassword@host/db`,
-        `redis://:realpassword@host`, a `DATABASE_URL` with creds in the authority — the secret is in
-        the *value's* userinfo, not behind a secret-ish key.
-      - **Base64 / encoded blobs** (a k8s `Secret` `data:` field, an inlined PEM/cert) — high entropy,
-        not a literal string the `LOOKSREAL` test models.
-      - **Unusual key names** not in the keyword set (`pwd`, `pat`, `bearer`, `dsn`, vendor-specific).
-      - **Heredoc / block-scalar** multi-line literal values.
-      Until then `config-lint` is documented as a cheap **first pass**, not a complete floor (see
-      `secrets-and-safety.md`); the deeper pass is a policy engine wired as the harness `policy` phase.
-- [ ] **More smells**: world-writable file modes, `privileged: true` / `hostPath` / `runAsUser: 0`,
-      `latest`-equivalent floating refs (a branch `?ref=main`, a `@v4` action tag), disabled TLS
-      verification, default/empty admin passwords.
+- [ ] **Residual secret false-negatives (partially closed).** The text-level scan now catches the
+      common secret shapes (inline single-line JSON, trailing-comma keys, YAML list items), the
+      multi-line wildcard-array grant, **URL-embedded credentials**, and an **expanded key set** — but
+      a regex floor will always miss some shapes. Status of the known gaps:
+      - [x] **Connection-string / URL-embedded secrets** — `postgres://user:realpassword@host/db`,
+        `redis://:realpassword@host`, a `DATABASE_URL`/`*_URL`/`dsn` with creds in the authority. Done
+        in 0.2.1 as **URL_EMBEDDED_SECRET** (literal password in `scheme://user:PASS@host` userinfo;
+        `${VAR}`/`${{…}}`/`<PASSWORD>`/`***`/`REDACTED`/no-password guarded).
+      - [x] **Unusual key names** — `pwd`, `pat`, `bearer`, `dsn` (whole-key), plus `access_key_id`,
+        `secret_key`, `private_key`, `client_secret` folded into the broad alternation. Done in 0.2.1.
+      - [ ] **Base64 / encoded blobs** (a k8s `Secret` `data:` field, an inlined PEM/cert) — high
+        entropy, not a literal string the `LOOKSREAL` test models.
+      - [ ] **Heredoc / block-scalar** multi-line literal values.
+      Until those close, `config-lint` is documented as a cheap **first pass**, not a complete floor
+      (see `secrets-and-safety.md`); the deeper pass is a policy engine wired as the harness `policy`
+      phase.
+- [ ] **More smells**: world-writable file modes, `latest`-equivalent floating refs (a branch
+      `?ref=main`, a `@v4` action tag), disabled TLS verification, default/empty admin passwords.
+      - [x] **k8s pod-security** — `privileged: true` / `hostPath` / `runAsUser: 0` /
+        `allowPrivilegeEscalation: true`. Done in 0.2.1 as **K8S_UNSAFE** (line-anchored, gated on a
+        k8s-looking doc; `runAsUser: 1000` / `allowPrivilegeEscalation: false` / non-k8s prose guarded).
 - [ ] **Allowlist / baseline file** — a committed `.config-lint-ignore` for reviewed exceptions, so a
       known-intended `0.0.0.0/0` (a public ALB) doesn't re-fire every run.
 - [ ] Emit a machine-readable report (JSON) so GRADE can fold safety findings into the report card's

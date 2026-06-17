@@ -3,6 +3,29 @@
 Versioned independently of the `ops-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.1 — beta
+
+Deepened the `bin/config-lint.py` safety floor from 5 smells to 7, with every new detection locked by
+must-FLAG **and** must-NOT-flag selftest fixtures (all existing smells + their false-positive guards
+intact). `references/secrets-and-safety.md` updated; the matching ROADMAP items marked done.
+
+- **URL_EMBEDDED_SECRET (new).** A literal password in a connection-string / URL userinfo —
+  `scheme://user:PASSWORD@host…` (postgres/mysql/redis/mongodb/amqp/https/…), including a
+  `DATABASE_URL`/`*_URL`/`dsn` value carrying creds. Detects `://[^/\s:@]*:[^/\s@]+@` where the
+  password segment is a literal. Guarded against `${VAR}` / `${{ … }}` / `{{ … }}` / `<PASSWORD>` /
+  `***` / `REDACTED` and a no-password authority (`postgres://app@db`). Must-FLAG fixtures:
+  `DATABASE_URL: "postgres://app:hunter2supersecret@db.internal:5432/app"`, `redis://:s3cr3tpass@cache:6379`.
+- **PLAINTEXT_SECRET — expanded key set.** The secret-key detection now also catches `pwd`, `pat`,
+  `bearer`, `dsn` (matched **only as a whole key**, so `path`/`pattern`/`compatibility`/`keyboard`/
+  `gateway` don't false-positive), and `access_key_id` / `secret_key` / `private_key` / `client_secret`
+  folded into the broad alternation — reusing the **same** literal-vs-reference guard, so a `${VAR}` /
+  `secretKeyRef` value still isn't flagged. Must-FLAG: `client_secret: "abc123def456ghi"`, `pat: "ghp_…"`.
+- **K8S_UNSAFE (new).** Pod-security privilege grants in a k8s-looking doc — `privileged: true`, a
+  `hostPath:` volume, `runAsUser: 0`, `allowPrivilegeEscalation: true` — each reported as its own
+  line-anchored sub-finding. Guarded: `runAsUser: 1000` and `allowPrivilegeEscalation: false` don't
+  match, and a non-k8s doc that merely mentions "privileged" in prose/comment doesn't trip (the
+  `is_k8s` gate + line anchoring).
+
 ## 0.2.0 — beta
 
 Promoted to beta as part of the marketplace **v0.2.0** milestone (see the root CHANGELOG). This cycle the skill gained a checked-in, sibling-collision-tested routing-eval corpus, an adversarial-review hardening pass (fixes locked as selftest fixtures), and a worked `examples/walkthrough.md` (a red→green bin proof).

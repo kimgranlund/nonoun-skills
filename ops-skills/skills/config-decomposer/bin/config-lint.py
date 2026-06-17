@@ -12,11 +12,13 @@ It is deliberately a STATIC smell detector, not a policy engine (that's the harn
 `checkov`/`conftest`). Its job is the cheap, always-available floor that needs no tool install.
 
 Smell kinds:
-  PLAINTEXT_SECRET   a secret-ish key (password/secret/token/api_key/...) set to a literal string
-  UNPINNED_VERSION   `:latest` or a missing image/version pin — the deploy is not reproducible
-  OPEN_NETWORK       0.0.0.0/0 or ::/0 — ingress/egress open to the entire internet
-  WILDCARD_GRANT     "*" in an IAM action/resource/principal position — over-broad permission
-  NO_RESOURCE_LIMITS a k8s container with requests/limits absent — no cap on what it can consume
+  PLAINTEXT_SECRET     a secret-ish key (password/secret/token/api_key/pwd/pat/dsn/...) set to a literal string
+  URL_EMBEDDED_SECRET  a literal password in a connection-string / URL userinfo (scheme://user:PASS@host)
+  UNPINNED_VERSION     `:latest` or a missing image/version pin — the deploy is not reproducible
+  OPEN_NETWORK         0.0.0.0/0 or ::/0 — ingress/egress open to the entire internet
+  WILDCARD_GRANT       "*" in an IAM action/resource/principal position — over-broad permission
+  NO_RESOURCE_LIMITS   a k8s container with requests/limits absent — no cap on what it can consume
+  K8S_UNSAFE           a k8s privilege grant — privileged:true / hostPath / runAsUser:0 / allowPrivilegeEscalation:true
 
   python3 bin/config-lint.py selftest
   python3 bin/config-lint.py <file | dir>
@@ -47,11 +49,23 @@ _REF = re.compile(r"""^\s*['"]?\s*(\$\{?[\w.\[\]-]+\}?         # ${VAR} / $VAR /
 # pretty-printed JSON all put the key after some `[{[,\s-]*` lead-in, not flush against the margin.
 _SECRET_KEY = re.compile(
     r"""(?im)(?:^|[{\[,\s-])\s*['"]?([A-Za-z0-9_.\-]*?(?:password|passwd|secret|token|api[_-]?key|
-        access[_-]?key|secret[_-]?key|private[_-]?key|client[_-]?secret|auth|credential)
+        access[_-]?key(?:[_-]?id)?|secret[_-]?key|private[_-]?key|client[_-]?secret|auth|credential)
         [A-Za-z0-9_.\-]*)['"]?\s*[:=]\s*
         (                                       # the value — capture ONE field, not the rest of the line:
           '[^']*' | "[^"]*"                     #   a quoted string (so inline JSON can hold more keys after)
           | [^\s,}\]]+(?:\ [^\s,}\]#]+)*        #   or a bare value up to the next field/closer/comment
+        )""", re.VERBOSE)
+
+# The short / unusual secret keys (`pwd`, `pat`, `bearer`, `dsn`) match ONLY as a WHOLE key — never as a
+# substring — or `pat` would fire on `path`/`pattern`, `dsn` on words, etc. The key boundary is a line
+# start / `{`/`[`/`,`/whitespace/`-` on the left and the assignment `:`/`=` (with optional quote) on the
+# right, with no intervening key-name chars. (`passwd` already matches above; kept here for symmetry is
+# unneeded — these are the keys the broad alternation deliberately does NOT cover.)
+_SECRET_KEY_WHOLE = re.compile(
+    r"""(?im)(?:^|[{\[,\s-])\s*['"]?(pwd|pat|bearer|dsn)['"]?\s*[:=]\s*
+        (
+          '[^']*' | "[^"]*"
+          | [^\s,}\]]+(?:\ [^\s,}\]#]+)*
         )""", re.VERBOSE)
 
 _UNPINNED = re.compile(r"""(?im)(?:^|[\s"'=:])(?:image|FROM)\b[^\n#]*?[\w./-]+:latest\b""")
@@ -70,6 +84,34 @@ _WILDCARD_GRANT_MULTILINE = re.compile(
         ["']\*["']""", re.VERBOSE)
 
 _SECRET_VALUE_LOOKSREAL = re.compile(r"""^['"]?[^\s'"#]{4,}['"]?$""")
+
+# A credential embedded in a connection-string / URL userinfo: `scheme://user:PASSWORD@host…`. The
+# password is the segment between the FIRST `:` after `://` and the `@`. We require BOTH a user and a
+# password (`user:pass@`) — a bare `scheme://host` or `scheme://user@host` has no embedded secret.
+# Group 1 = the literal password segment, tested against the placeholder/reference guard below.
+_URL_USERINFO = re.compile(
+    r"""(?ix)
+        [a-z][a-z0-9+.\-]*://         # scheme:// (postgres/mysql/redis/mongodb/amqp/https/…)
+        [^/\s:@]*                     # userinfo username (may be empty — `redis://:pass@host`)
+        :([^/\s@]+)                   # `:` then the password segment (group 1) — no `/`/`@`/space
+        @                             # `@` ends the userinfo
+    """)
+# A URL password segment that is a reference/placeholder, not a literal — SAFE (same spirit as _REF).
+_URL_PW_REF = re.compile(
+    r"""(?ix)^(?:
+          \$\{?[\w.\[\]-]*\}?            # ${VAR} / $VAR / ${PASSWORD}
+        | \$\{\{.+\}\}                   # ${{ secrets.X }}
+        | \{\{.*\}\}                     # {{ .Values.x }}
+        | <[^>]*>                        # <PASSWORD> / <CHANGEME>
+        | \*+                            # *** (masked)
+        | redacted
+        )$""")
+
+# k8s privilege-grant smells (only scanned in a k8s-looking doc). Each is a distinct sub-finding.
+_K8S_PRIVILEGED = re.compile(r"""(?im)^\s*privileged\s*:\s*true\b""")
+_K8S_HOSTPATH = re.compile(r"""(?im)^\s*hostPath\s*:""")
+_K8S_RUNASROOT = re.compile(r"""(?im)^\s*runAsUser\s*:\s*0\b""")
+_K8S_PRIVESC = re.compile(r"""(?im)^\s*allowPrivilegeEscalation\s*:\s*true\b""")
 
 
 def _strip_value(value):
@@ -106,6 +148,21 @@ def _looks_like_literal_secret(value):
     return bool(_SECRET_VALUE_LOOKSREAL.match(v))
 
 
+def _url_pw_is_literal(pw):
+    """True if a URL userinfo password segment is a real literal, not a placeholder/reference.
+
+    The whole authority can also be an env-only interpolation that the userinfo regex split on a `:`
+    inside `${...}` — `_URL_PW_REF` catches those because the captured segment still starts with the
+    interpolation/placeholder syntax.
+    """
+    pw = pw.strip()
+    if not pw:
+        return False
+    if _URL_PW_REF.match(pw):
+        return False
+    return True
+
+
 def lint_text(text, path=""):
     """Return a list of (kind, line, detail) findings for one config blob."""
     finds = []
@@ -119,6 +176,14 @@ def lint_text(text, path=""):
         for m in _SECRET_KEY.finditer(line):
             if _looks_like_literal_secret(m.group(2)):
                 finds.append(("PLAINTEXT_SECRET", i, "%s set to a literal value — use a secret ref/var" % m.group(1)))
+        for m in _SECRET_KEY_WHOLE.finditer(line):
+            if _looks_like_literal_secret(m.group(2)):
+                finds.append(("PLAINTEXT_SECRET", i, "%s set to a literal value — use a secret ref/var" % m.group(1)))
+        for m in _URL_USERINFO.finditer(line):
+            if _url_pw_is_literal(m.group(1)):
+                finds.append(("URL_EMBEDDED_SECRET", i,
+                              "credentials embedded in a connection string — the password is in the "
+                              "URL userinfo; inject it from a secret store"))
         if _OPEN_NET.search(stripped):
             finds.append(("OPEN_NETWORK", i, "0.0.0.0/0 or ::/0 — open to the entire internet"))
         if _WILDCARD_GRANT.search(line) or _WILDCARD_GRANT_LIST.search(line):
@@ -142,6 +207,23 @@ def lint_text(text, path=""):
     if is_k8s and re.search(r"(?m)^\s*containers:\s*$", text) and "resources:" not in text:
         line = next((i for i, ln in enumerate(lines, 1) if re.match(r"\s*containers:\s*$", ln)), 0)
         finds.append(("NO_RESOURCE_LIMITS", line, "k8s container(s) declare no resources.requests/limits anywhere (coarse check)"))
+
+    # k8s pod-security privilege grants. Only fire in a k8s-looking doc — so the bare word "privileged"
+    # in a non-k8s comment/prose, or a `runAsUser: 0` in some unrelated config, doesn't trip. Each is a
+    # distinct sub-finding reported at its own line. The checks are line-anchored (a real YAML key), so
+    # `allowPrivilegeEscalation: false` / `runAsUser: 1000` don't match. Gated on is_k8s OR a
+    # `securityContext:` block, so Helm/kustomize pod-spec fragments (no apiVersion/kind) are still
+    # scanned — `securityContext` is a k8s-specific key, a low-false-positive signal.
+    if is_k8s or re.search(r"(?im)^\s*securityContext\s*:", text):
+        for rx, detail in (
+            (_K8S_PRIVILEGED, "privileged: true — the container runs with full host privileges"),
+            (_K8S_HOSTPATH, "hostPath volume — mounts a host filesystem path into the pod"),
+            (_K8S_RUNASROOT, "runAsUser: 0 — the container runs as root"),
+            (_K8S_PRIVESC, "allowPrivilegeEscalation: true — the process can gain more privileges than its parent"),
+        ):
+            for m in rx.finditer(text):
+                line = text.count("\n", 0, m.start()) + 1
+                finds.append(("K8S_UNSAFE", line, detail))
 
     # de-dup identical (kind,line)
     seen, out = set(), []
@@ -192,6 +274,44 @@ BAD_K8S_NOLIMITS = "apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name:
 # --- M3 adversarial: a `*.Dockerfile`-named file (api.Dockerfile) must be SCANNED by the dir walk
 DOCKERFILE_NAMED = "FROM python:latest\nRUN pip install flask\n"
 
+# --- NEW SMELL 1: URL_EMBEDDED_SECRET — a literal password in connection-string / URL userinfo ---
+BAD_URL_SECRET = 'DATABASE_URL: "postgres://app:hunter2supersecret@db.internal:5432/app"\n'
+BAD_URL_SECRET_REDIS = 'cache:\n  url: redis://:s3cr3tpass@cache:6379\n'
+SAFE_URL_NO_PW = 'DATABASE_URL: "postgres://app@db/app"\n'           # no password segment
+SAFE_URL_VAR = 'DATABASE_URL: "postgres://app:${DB_PASSWORD}@db/app"\n'  # var interpolation
+SAFE_URL_PLACEHOLDER = 'DATABASE_URL: "postgres://app:<PASSWORD>@db/app"\n'  # placeholder
+SAFE_URL_REDACTED = 'dsn_ref: postgres://app:***@db/app\n'           # masked / redacted
+
+# --- NEW SMELL 2: expanded secret KEY set (whole-key short names + new alternation members) ---
+BAD_KEY_CLIENT_SECRET = 'oidc:\n  client_secret: "abc123def456ghi"\n'
+BAD_KEY_PAT = 'github:\n  pat: "ghp_realtokenvalue"\n'
+BAD_KEY_PWD = 'db:\n  pwd: "realdatabasepw"\n'
+BAD_KEY_ACCESS_KEY_ID = 'aws:\n  access_key_id: "AKIAIOSFODNN7EXAMPLE"\n'
+SAFE_KEY_CLIENT_SECRET_REF = 'oidc:\n  client_secret: ${OIDC_SECRET}\n'
+# whole-key guard: `keyboard:`/`gateway:` must NOT match (no `pat`/`pwd`/`dsn`/`bearer` whole-key, and
+# the broad alternation members aren't substrings of these either)
+SAFE_KEY_SUBSTRING = 'ui:\n  keyboard: "qwerty-layout"\n  gateway: "10.0.0.1"\n  path: "/var/run"\n'
+
+# --- NEW SMELL 3: K8S_UNSAFE — pod-security privilege grants in a k8s-looking doc ---
+BAD_K8S_PRIVILEGED = ('apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name: app\n'
+                      '      image: app:1.0\n      resources:\n        limits: { cpu: "1" }\n'
+                      '      securityContext:\n        privileged: true\n')
+BAD_K8S_RUNASROOT = ('apiVersion: v1\nkind: Pod\nspec:\n  securityContext:\n    runAsUser: 0\n'
+                     '  containers:\n    - name: app\n      image: app:1.0\n      resources:\n'
+                     '        limits: { cpu: "1" }\n')
+BAD_K8S_HOSTPATH = ('apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name: app\n'
+                    '      image: app:1.0\n      resources:\n        limits: { cpu: "1" }\n'
+                    '  volumes:\n    - name: hostvol\n      hostPath:\n        path: /var/run/docker.sock\n')
+# a Helm/kustomize pod-spec FRAGMENT (no apiVersion/kind) — still scanned via the securityContext gate
+BAD_K8S_FRAGMENT = ('containers:\n  - name: app\n    image: app:1.0\n'
+                    '    securityContext:\n      privileged: true\n')
+SAFE_K8S_HARDENED = ('apiVersion: v1\nkind: Pod\nspec:\n  containers:\n    - name: app\n'
+                     '      image: app:1.0\n      resources:\n        limits: { cpu: "1" }\n'
+                     '      securityContext:\n        runAsUser: 1000\n'
+                     '        allowPrivilegeEscalation: false\n')
+# a non-k8s doc that merely mentions "privileged"/"runAsUser" in prose/comment must NOT trip K8S_UNSAFE
+SAFE_NONK8S_PROSE = '# this service runs privileged: true on the legacy box\nmode: standard\nrunAsUser: 0\n'
+
 
 def selftest():
     errs = []
@@ -213,13 +333,37 @@ def selftest():
         (BAD_WILDCARD_LIST, "WILDCARD_GRANT"),
         (BAD_WILDCARD_MULTILINE, "WILDCARD_GRANT"),        # B2: multi-line `"Action": [ \n "*" \n ]`
         (BAD_K8S_NOLIMITS, "NO_RESOURCE_LIMITS"),
+        (BAD_URL_SECRET, "URL_EMBEDDED_SECRET"),           # NEW1: DATABASE_URL with literal password
+        (BAD_URL_SECRET_REDIS, "URL_EMBEDDED_SECRET"),     # NEW1: redis://:pass@host
+        (BAD_KEY_CLIENT_SECRET, "PLAINTEXT_SECRET"),       # NEW2: client_secret literal
+        (BAD_KEY_PAT, "PLAINTEXT_SECRET"),                 # NEW2: pat (whole-key)
+        (BAD_KEY_PWD, "PLAINTEXT_SECRET"),                 # NEW2: pwd (whole-key)
+        (BAD_KEY_ACCESS_KEY_ID, "PLAINTEXT_SECRET"),       # NEW2: access_key_id
+        (BAD_K8S_PRIVILEGED, "K8S_UNSAFE"),                # NEW3: privileged: true
+        (BAD_K8S_RUNASROOT, "K8S_UNSAFE"),                 # NEW3: runAsUser: 0
+        (BAD_K8S_HOSTPATH, "K8S_UNSAFE"),                  # NEW3: hostPath volume
+        (BAD_K8S_FRAGMENT, "K8S_UNSAFE"),                  # NEW3: pod-spec fragment (no apiVersion/kind)
     ):
         if want not in kinds(text):
             errs.append("missed %s (got %s)" % (want, sorted(kinds(text))))
     # referenced/placeholder secrets must NOT be flagged (the false-positive guards, intact post-B1)
-    for safe in (SAFE_SECRET_REF, SAFE_SECRET_REF_MORE):
+    for safe in (SAFE_SECRET_REF, SAFE_SECRET_REF_MORE, SAFE_KEY_CLIENT_SECRET_REF):
         if "PLAINTEXT_SECRET" in kinds(safe):
             errs.append("false positive: flagged a secret reference/placeholder as plaintext: %s" % kinds(safe))
+    # the whole-key guard: a substring key (`keyboard`/`gateway`/`path`) must NOT be a PLAINTEXT_SECRET
+    if "PLAINTEXT_SECRET" in kinds(SAFE_KEY_SUBSTRING):
+        errs.append("false positive: a substring key (keyboard/gateway/path) flagged as a plaintext secret: %s"
+                    % lint_text(SAFE_KEY_SUBSTRING))
+    # NEW1 false-positive guards: a URL with no password / a var / a placeholder / a mask must NOT trip
+    for safe in (SAFE_URL_NO_PW, SAFE_URL_VAR, SAFE_URL_PLACEHOLDER, SAFE_URL_REDACTED):
+        if "URL_EMBEDDED_SECRET" in kinds(safe):
+            errs.append("false positive: flagged a non-literal URL userinfo as an embedded secret: %s"
+                        % lint_text(safe))
+    # NEW3 false-positive guards: a hardened k8s doc (runAsUser:1000, allowPrivilegeEscalation:false)
+    # and a non-k8s doc mentioning the words in prose must NOT trip K8S_UNSAFE
+    for safe in (SAFE_K8S_HARDENED, SAFE_NONK8S_PROSE):
+        if "K8S_UNSAFE" in kinds(safe):
+            errs.append("false positive: flagged a hardened / non-k8s doc as K8S_UNSAFE: %s" % lint_text(safe))
     # a scoped multi-line action list (real verbs, no bare "*") must NOT trip the multi-line scan
     if "WILDCARD_GRANT" in kinds(SAFE_WILDCARD_SCOPED):
         errs.append("false positive: flagged a scoped (non-wildcard) action list as a wildcard grant")
@@ -263,8 +407,9 @@ def main(argv):
             for e in errs:
                 sys.stderr.write("  - %s\n" % e)
             return 1
-        print("config-lint: OK — 5 safety smells (incl. inline/trailing-comma/list secrets + multi-line wildcard) "
-              "caught; false-positive guards + api.Dockerfile scan verified")
+        print("config-lint: OK — 7 safety smells (plaintext + URL-embedded secrets, unpinned, open-net, "
+              "wildcard grant, no-limits, k8s-unsafe) caught; reference/placeholder/whole-key + "
+              "non-k8s false-positive guards + api.Dockerfile scan verified")
         return 0
     total, n = 0, 0
     for fp in _iter_files(argv[0]):

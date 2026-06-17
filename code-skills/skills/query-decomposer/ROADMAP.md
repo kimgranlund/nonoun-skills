@@ -5,11 +5,14 @@ cards, the dialect playbooks). Everything below is additive.
 
 ## `bin/sql-lint.py`
 
-- [ ] **Two-1:N-join fan-out heuristic** — the highest-value grain smell currently left to the live
+- [x] **Two-1:N-join fan-out heuristic** — the highest-value grain smell currently left to the live
       `COUNT` check: flag a query that joins two distinct 1:N tables to the same parent without an
-      intervening aggregation (needs light cardinality hints or a `*_id` naming heuristic).
-- [ ] **NULL-rejecting WHERE on an outer join** — detect `LEFT JOIN t ... WHERE t.col <op> ...`
-      (the silent `INNER` demotion), the dominant A3 defect.
+      intervening aggregation. *Shipped 0.2.1 as `JOIN_FANOUT`: ≥2 joined tables (explicit `JOIN`s +
+      comma-`FROM` beyond the first) with no `GROUP BY`/`DISTINCT`/aggregate ⇒ advisory flag.*
+- [x] **NULL-rejecting WHERE on an outer join** — detect `LEFT JOIN t ... WHERE t.col <op> ...`
+      (the silent `INNER` demotion), the dominant A3 defect. *Shipped 0.2.1 as `OUTER_JOIN_DEMOTED`:
+      a plain `WHERE` predicate (`=,<,>,<=,>=,<>,LIKE,IN`, never `IS [NOT] NULL`) on a `LEFT`/`RIGHT`-
+      joined table/alias ⇒ flag; the `IS NULL` anti-join is excluded.*
 - [ ] **Non-sargable predicate** — flag a function wrapping a likely-indexed column in `WHERE`
       (`WHERE DATE(created) = ...`), the A5/B4 smell.
 - [ ] Emit a machine-readable report (JSON) so GRADE can fold smell signals into the plan report card.

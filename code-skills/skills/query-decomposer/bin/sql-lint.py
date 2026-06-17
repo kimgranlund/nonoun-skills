@@ -11,6 +11,8 @@ SQL with regex + simple bracket/quote stripping (best-effort, not a full parser)
   IMPLICIT_CROSS_JOIN  a FROM with multiple comma-separated tables and no join predicate (cartesian)
   LIMIT_NO_ORDER       LIMIT with no ORDER BY — a nondeterministic page
   GROUP_BY_INCOMPLETE  heuristic: more non-aggregated SELECT columns than GROUP BY keys (likely gap)
+  JOIN_FANOUT          ≥2 joined tables with no GROUP BY/DISTINCT/aggregate — row grain may multiply
+  OUTER_JOIN_DEMOTED   a WHERE predicate on a LEFT/RIGHT-JOIN'd table silently demotes it to INNER
 
 Findings are advisory signals for the SEMANTICS axis (A3/A4) and EXECUTION B5 — pair with the live
 grain check (COUNT(*) vs COUNT(DISTINCT key)) and an EXPLAIN read for proof.
@@ -102,6 +104,17 @@ _OVER = re.compile(r"(?i)\bover\s*\(")
 # or TRUE/FALSE/NULL. (normalize() leaves quoted strings as '<spaces>'.)
 _LITERAL_ITEM = re.compile(r"(?i)^(?:[-+]?\d+(?:\.\d+)?|'\s*'|true|false|null)$")
 
+# JOIN_FANOUT — any explicit JOIN keyword (LEFT/RIGHT/INNER/OUTER/CROSS/FULL JOIN or bare JOIN).
+_JOIN_KW = re.compile(r"(?i)\bjoin\b")
+# OUTER_JOIN_DEMOTED — a LEFT/RIGHT [OUTER] JOIN clause: capture the joined table and its optional
+# alias. Groups: 1=table, 2=alias (None if omitted; `AS` keyword optional, never `ON`/`USING`).
+_OUTER_JOIN = re.compile(
+    r"(?i)\b(?:left|right)\s+(?:outer\s+)?join\s+"
+    r"([A-Za-z_][A-Za-z0-9_$]*(?:\.[A-Za-z_][A-Za-z0-9_$]*)*)"          # 1: table (maybe schema-qualified)
+    r"(?:\s+(?:as\s+)?(?!on\b|using\b|where\b|left\b|right\b|inner\b|join\b|on\b)"
+    r"([A-Za-z_][A-Za-z0-9_$]*))?"                                       # 2: optional alias
+)
+
 
 def analyze_sql(sql):
     """Yield (kind, line, detail) findings for a SQL string (possibly multiple statements)."""
@@ -171,6 +184,38 @@ def _analyze_one(stmt, line):
             finds.append(("GROUP_BY_INCOMPLETE", line,
                           "%d non-aggregated SELECT columns but %d GROUP BY keys — likely incomplete GROUP BY"
                           % (len(non_agg), len(gb_keys))))
+
+    # JOIN_FANOUT — ≥2 joined tables (explicit JOINs + comma-FROM tables beyond the first) and NO
+    # GROUP BY, NO SELECT DISTINCT, NO aggregate in SELECT ⇒ a 1:N × 1:N fan-out can silently multiply
+    # rows (returns rows, wrong grain). Conservative: any collapsing construct suppresses the flag.
+    # Count on the top-level statement (parens stripped) so JOINs/commas inside subqueries don't count.
+    if re.search(r"(?i)\bselect\b", top):
+        join_count = len(_JOIN_KW.findall(top))
+        comma_tables = 0
+        if from_clause:                                  # from_clause computed above (top-level FROM)
+            comma_tables = max(0, len([t for t in from_clause.split(",") if t.strip()]) - 1)
+        joined = join_count + comma_tables
+        sel_fan = _clause(stmt, "select", _SELECT_ENDS)  # full statement so SUM(...) is detectable
+        has_distinct = bool(re.search(r"(?i)^\s*distinct\b", sel_fan.strip()))
+        has_group_by = bool(gb.strip())                  # gb computed above (top-level GROUP BY)
+        has_agg = bool(_AGG.search(sel_fan))
+        if joined >= 2 and not has_group_by and not has_distinct and not has_agg:
+            finds.append(("JOIN_FANOUT", line,
+                          "%d joins with no GROUP BY/DISTINCT/aggregate — row grain may multiply; "
+                          "verify with COUNT(*) vs COUNT(DISTINCT <key>)" % joined))
+
+    # OUTER_JOIN_DEMOTED — a LEFT/RIGHT [OUTER] JOIN whose table/alias appears in WHERE under a plain
+    # comparison (=,<,>,<=,>=,<>,!=,LIKE,IN) — but NOT `IS [NOT] NULL` — silently demotes the outer
+    # join to an INNER join (the NULL-extended rows get filtered out). `WHERE o.id IS NULL` is the
+    # legitimate anti-join and must NOT flag; a predicate on the LEFT (driving) table must NOT flag.
+    where_for_outer = _clause(top, "where", ["group by", "having", "order by", "limit", "qualify", "window"])
+    if where_for_outer.strip():
+        for tbl, alias in _OUTER_JOIN.findall(top):
+            ref = alias or tbl                           # the name the WHERE would reference
+            if _outer_demoting_predicate(where_for_outer, ref):
+                finds.append(("OUTER_JOIN_DEMOTED", line,
+                              "WHERE predicate on the outer-joined '%s' demotes the LEFT JOIN to "
+                              "INNER — move it to the ON clause or use IS NULL" % ref))
     return finds
 
 
@@ -193,6 +238,24 @@ def _is_aggregated_item(item):
         return True
     if _LITERAL_ITEM.match(_strip_alias(item)):  # a bare literal/constant select item
         return True
+    return False
+
+
+def _outer_demoting_predicate(where_clause, ref):
+    """True iff `where_clause` contains a plain predicate on a column of `ref` (an outer-joined table
+    or its alias) that is NOT an `IS [NOT] NULL` test — such a predicate filters out the NULL-extended
+    rows and silently demotes the LEFT/RIGHT JOIN to INNER. `ref.col IS NULL` is the legitimate
+    anti-join and is excluded; a column on a *different* table is excluded (the `\bref\.` anchor)."""
+    col = r"\b%s\.[A-Za-z_][A-Za-z0-9_$]*\b" % re.escape(ref)
+    # the whole expression of interest must be `ref.col <op> ...`; if the operator is IS [NOT] NULL it
+    # is an anti-join, not a demotion. Match `ref.col` then look at what immediately follows.
+    for m in re.finditer(r"(?i)%s\s*" % col, where_clause):
+        tail = where_clause[m.end():].lstrip().lower()
+        if tail.startswith("is "):                       # `IS NULL` / `IS NOT NULL` — anti-join, OK
+            continue
+        # a plain comparison / membership / pattern predicate demotes the join
+        if re.match(r"(?i)(?:<=|>=|<>|!=|=|<|>|like\b|in\b|between\b)", tail):
+            return True
     return False
 
 
@@ -259,6 +322,30 @@ SQL_COMMENT_LINE = "-- a leading note\n-- another note\nDELETE FROM sessions;"
 # minor m3 — a CTE-led DELETE with no WHERE must FLAG (re.match start-anchor used to miss it):
 SQL_CTE_DELETE = "WITH stale AS (SELECT id FROM sessions WHERE expires_at < now()) DELETE FROM sessions;"
 
+# J1 — JOIN_FANOUT: ≥2 joins of a parent to distinct tables, NO GROUP BY / DISTINCT / aggregate ⇒
+# items × payments cross-multiply (the #1 grain killer). Must FLAG.
+SQL_FANOUT = ("SELECT o.id, i.sku, p.amount FROM orders o "
+              "JOIN items i ON i.order_id=o.id JOIN payments p ON p.order_id=o.id;")
+# ...and the suppressors must NOT flag:
+SQL_FANOUT_ONEJOIN = "SELECT o.id, i.sku FROM orders o JOIN items i ON i.order_id=o.id;"  # single join
+SQL_FANOUT_GROUP = ("SELECT o.id, COUNT(*) FROM orders o "
+                    "JOIN items i ON i.order_id=o.id JOIN payments p ON p.order_id=o.id GROUP BY o.id;")
+SQL_FANOUT_DISTINCT = ("SELECT DISTINCT o.id FROM orders o "
+                       "JOIN items i ON i.order_id=o.id JOIN payments p ON p.order_id=o.id;")
+SQL_FANOUT_AGG = ("SELECT SUM(p.amount) FROM orders o "
+                  "JOIN items i ON i.order_id=o.id JOIN payments p ON p.order_id=o.id;")  # aggregate rollup
+
+# O1 — OUTER_JOIN_DEMOTED: a WHERE predicate on the LEFT-JOIN'd table demotes it to INNER. Must FLAG.
+SQL_DEMOTE = ("SELECT u.id FROM users u "
+              "LEFT JOIN orders o ON o.user_id=u.id WHERE o.status='paid';")
+# ...and the safe forms must NOT flag:
+SQL_DEMOTE_ISNULL = ("SELECT u.id FROM users u "
+                     "LEFT JOIN orders o ON o.user_id=u.id WHERE o.id IS NULL;")          # anti-join
+SQL_DEMOTE_LEFTCOL = ("SELECT u.id FROM users u "
+                      "LEFT JOIN orders o ON o.user_id=u.id WHERE u.active='t';")          # predicate on LEFT table
+SQL_DEMOTE_INNER = ("SELECT u.id FROM users u "
+                    "INNER JOIN orders o ON o.user_id=u.id WHERE o.status='paid';")        # already INNER
+
 
 def selftest():
     errs = []
@@ -317,6 +404,30 @@ def selftest():
     # minor m3 — a CTE-led DELETE with no WHERE is caught
     if "MISSING_WHERE_DML" not in kinds(SQL_CTE_DELETE):
         errs.append("missed MISSING_WHERE_DML on a CTE-led DELETE (WITH ... DELETE)")
+
+    # J1 — JOIN_FANOUT: ≥2 joins with no GROUP BY/DISTINCT/aggregate must FLAG...
+    if "JOIN_FANOUT" not in kinds(SQL_FANOUT):
+        errs.append("missed JOIN_FANOUT on a 2-join query with no GROUP BY/DISTINCT/aggregate")
+    # ...and every suppressor must NOT flag
+    if "JOIN_FANOUT" in kinds(SQL_FANOUT_ONEJOIN):
+        errs.append("false positive JOIN_FANOUT on a single-join query")
+    if "JOIN_FANOUT" in kinds(SQL_FANOUT_GROUP):
+        errs.append("false positive JOIN_FANOUT on a ≥2-join query WITH GROUP BY")
+    if "JOIN_FANOUT" in kinds(SQL_FANOUT_DISTINCT):
+        errs.append("false positive JOIN_FANOUT on a ≥2-join query WITH SELECT DISTINCT")
+    if "JOIN_FANOUT" in kinds(SQL_FANOUT_AGG):
+        errs.append("false positive JOIN_FANOUT on a ≥2-join aggregate rollup (SUM(...))")
+
+    # O1 — OUTER_JOIN_DEMOTED: a plain WHERE predicate on the LEFT-JOIN'd table must FLAG...
+    if "OUTER_JOIN_DEMOTED" not in kinds(SQL_DEMOTE):
+        errs.append("missed OUTER_JOIN_DEMOTED on a WHERE predicate against the LEFT-JOIN'd table")
+    # ...and the legitimate / unaffected forms must NOT flag
+    if "OUTER_JOIN_DEMOTED" in kinds(SQL_DEMOTE_ISNULL):
+        errs.append("false positive OUTER_JOIN_DEMOTED on an IS NULL anti-join")
+    if "OUTER_JOIN_DEMOTED" in kinds(SQL_DEMOTE_LEFTCOL):
+        errs.append("false positive OUTER_JOIN_DEMOTED on a predicate against the LEFT (driving) table")
+    if "OUTER_JOIN_DEMOTED" in kinds(SQL_DEMOTE_INNER):
+        errs.append("false positive OUTER_JOIN_DEMOTED on an INNER JOIN with the same WHERE")
     return errs
 
 
@@ -329,7 +440,8 @@ def main(argv):
                 sys.stderr.write("  - %s\n" % e)
             return 1
         print("sql-lint: OK — clean query passes; SELECT_STAR / MISSING_WHERE_DML / "
-              "IMPLICIT_CROSS_JOIN / LIMIT_NO_ORDER / GROUP_BY_INCOMPLETE detectors verified")
+              "IMPLICIT_CROSS_JOIN / LIMIT_NO_ORDER / GROUP_BY_INCOMPLETE / JOIN_FANOUT / "
+              "OUTER_JOIN_DEMOTED detectors verified")
         return 0
     path = argv[0]
     files = []
