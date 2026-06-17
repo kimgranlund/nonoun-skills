@@ -16,10 +16,13 @@ extraction-report card, the inversion doctrine). Everything below is additive.
 - [ ] **Deferred — residual false-negative class:** a value that is a faithful *multi-token span* of
       the source copied into the **wrong field** still grounds (token matching is containment, not
       alignment). This is by design the **adversarial verifier's** job, not the deterministic gate's.
-- [ ] **Deferred — locale / scientific notation:** `DD.MM.YYYY`-dominant dates, non-ASCII digits, and
-      scientific-notation numbers can still produce false positives; the FAIL message now says
-      "verify" rather than asserting hallucination, but native handling (each behind its own fixtures)
-      is still future work. (Tracked below under date/number locales.)
+- [x] **EU-format & scientific NUMBERS grounded** (0.2.1) — a faithful value normalized from an
+      EU-format source (`1.234,56`) or scientific notation (`1.5e3`) now grounds, via additive
+      source-side keys (the EU pattern requires a `,\d+` decimal, so a bare `1.234` stays US — no new
+      false groundings). Locked behind selftest fixtures.
+- [ ] **Deferred — date locales / non-ASCII digits:** `DD.MM.YYYY`-dominant dates and non-ASCII digit
+      scripts can still produce false positives; the FAIL message says "verify" rather than asserting
+      hallucination, but native handling (each behind its own fixtures) is still future work.
 - [ ] **Configurable weak-grounding floor** — `MIN_TOKENS`/`MIN_CHARS` are currently constants; expose
       them so a high-recall corpus can tighten or loosen the WEAK_GROUNDING band.
 - [ ] **Fuzzy / derivable grounding** — a configurable similarity threshold for near-verbatim spans

@@ -3,6 +3,16 @@
 Versioned independently of the `data-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.1 — beta
+
+**Locale-aware numeric grounding.** A faithful value normalized from an EU-format source number
+(`1.234,56` → `1234.56`) or scientific notation (`1.5e3` → `1500`) now grounds, instead of being
+flagged as a value to verify. The fix is **additive and source-side only** — extra grounding keys for
+EU/scientific source tokens, leaving the adversarially-tuned `_num_key` and its M1 (numeric back-door)
+fixtures untouched. The EU pattern requires a `,\d+` decimal tail, so a bare `1.234` stays US-format
+(no new false groundings). Locked with selftest fixtures (EU + scientific ground; an invented value
+still does not). DD.MM.YYYY-dominant dates and non-ASCII digits remain deferred.
+
 ## 0.2.0 — beta
 
 Promoted to beta as part of the marketplace **v0.2.0** milestone (see the root CHANGELOG). This cycle the skill gained a checked-in, sibling-collision-tested routing-eval corpus, an adversarial-review hardening pass (fixes locked as selftest fixtures), and a worked `examples/walkthrough.md` (a red→green bin proof).

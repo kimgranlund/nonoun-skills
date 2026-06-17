@@ -200,8 +200,33 @@ def _num_key(text):
     return ("-" if neg and raw != "0" else "") + raw
 
 
+_EU_NUM = re.compile(r"[-+]?\d{1,3}(?:\.\d{3})+,\d+")       # 1.234,56  ·  1.234.567,89   (EU format)
+_SCI_NUM = re.compile(r"[-+]?\d+(?:\.\d+)?[eE][-+]?\d+")    # 1.5e3  ·  2E-4              (scientific)
+
+
+def _locale_num_keys(source):
+    """Extra source-side keys for EU-format (1.234,56) and scientific (1.5e3) numbers, so a faithful
+    extraction normalized to a plain number (1234.56 / 1500) still grounds. ADDITIVE — never removes a
+    US-format key. The EU pattern REQUIRES a ',\\d+' decimal tail, which disambiguates it from US
+    thousands (a bare '1.234' stays US), so this adds no spurious groundings."""
+    keys = set()
+    for t in _EU_NUM.findall(source):
+        k = _num_key(t.replace(".", "").replace(",", "."))
+        if k:
+            keys.add(k)
+    for t in _SCI_NUM.findall(source):
+        try:
+            v = float(t)
+        except ValueError:
+            continue
+        k = _num_key(str(int(v)) if v == int(v) else repr(v))
+        if k:
+            keys.add(k)
+    return keys
+
+
 def _source_num_keys(source):
-    return {_num_key(t) for t in _NUM_TOKEN.findall(source)} - {None}
+    return ({_num_key(t) for t in _NUM_TOKEN.findall(source)} | _locale_num_keys(source)) - {None}
 
 
 # the ENTIRE trimmed string must be one number token to take the numeric back door. This closes the
@@ -557,6 +582,16 @@ def selftest():
         if got != want_grounded:
             errs.append("grounding %r: got grounded=%s want %s (kind=%r)"
                         % (val, got, want_grounded, _kind(val, src)))
+
+    # 3b. locale-aware numeric grounding: a faithful value normalized from an EU-format or scientific
+    # source number still grounds; a bare US '1.234' stays US (no EU mis-read); an invented value does not.
+    locale_src = "Revenue 1.234,56 EUR, yield 1.5e3 units, ratio 1.234, count 2E-4."
+    for val, want_grounded in [(1234.56, True), (1500, True), (0.0002, True),
+                               ("1.234", True), (9999.99, False)]:
+        got = _kind(val, locale_src) not in _FAIL_KINDS
+        if got != want_grounded:
+            errs.append("locale grounding %r: got grounded=%s want %s (kind=%r)"
+                        % (val, got, want_grounded, _kind(val, locale_src)))
 
     # 4. booleans/null are skipped by the scalar walk (never grounded, never flagged).
     paths = {p for p, _ in scalar_values({"a": True, "b": None, "c": "x"})}
