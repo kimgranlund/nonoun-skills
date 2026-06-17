@@ -4,7 +4,7 @@ A home + marketplace for **general-purpose Claude Code skills** — domain-agnos
 
 Skills ship as cohesive **skill-bundle plugins** — a plugin that bundles only skills (no commands, agents, or MCP). The repo holds **6 plugins / 14 skills**, and the spine running through most of them is one technique: the **decomposer**.
 
-→ Building a skill? See **[HOWTO.md](HOWTO.md)**. Repo history: **[CHANGELOG.md](CHANGELOG.md)**.
+→ Building a skill? See **[HOWTO.md](HOWTO.md)**. Repo history: **[CHANGELOG.md](CHANGELOG.md)**. What's next: **[ROADMAP.md](ROADMAP.md)**.
 
 ## The decomposer method (the spine)
 

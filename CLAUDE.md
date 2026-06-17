@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-For the human-facing overview see [README.md](README.md); to author a new skill see [HOWTO.md](HOWTO.md); for the marketplace history see [CHANGELOG.md](CHANGELOG.md).
+For the human-facing overview see [README.md](README.md); to author a new skill see [HOWTO.md](HOWTO.md); for the marketplace history see [CHANGELOG.md](CHANGELOG.md); for cross-cutting future work see [ROADMAP.md](ROADMAP.md) (per-skill roadmaps live in each `*/skills/<skill>/ROADMAP.md`).
 
 ## What this repo is
 

@@ -4,6 +4,28 @@ Notable changes to the **nonoun-skills marketplace** — plugins, the gate, and 
 Each skill also keeps its own `CHANGELOG.md`; this file tracks the repo as a whole. Entries are
 grouped by date; the first tagged release is **v0.2.0** (2026-06-17).
 
+## 2026-06-17 — v0.2.x gate-deepening sweep (post-release)
+
+A run of single-bin mechanism-gate deepenings across the decomposers, each **additive, fixture-locked,
+and adversarially reviewed against novel inputs** (the review caught real bugs — a single-line-TS field
+parser, a too-narrow k8s gate, a rate-limited agent's dropped constant — all fixed and locked). Per-skill
+detail lives in each `CHANGELOG.md`; the cross-cutting threads:
+
+- **A self-enforcing routing gate** — `check-skills.py` now dogfoods `routing-eval` over every skill's
+  checked-in corpus and surfaces sibling-collision drift as advisory WARNs (the Phase-1 cleanup can't
+  silently rot).
+- **A consistent `--json` report mode** — `sql-lint`, `config-lint`, and `groundedness-check` emit one
+  shared schema (`{tool, ok, summary, findings:[{kind, severity, location, message}]}`) so GRADE/CI can
+  consume findings uniformly.
+- **Gate deepenings** — regex AST-ReDoS; SQL join-fanout / outer-join-demotion / non-sargable /
+  `EXPLAIN`-plan smells; config URL/base64/heredoc secrets, k8s privilege, world-writable, an allowlist;
+  type TS/Python type-stubs + the full conditional/composition/structural keyword set; extraction
+  locale numbers & dates, non-ASCII digits, `--spans` provenance, a configurable floor; proof
+  modular/divisibility counterexamples; schema-check `additionalProperties`/`uniqueItems`/`const`/`$ref`.
+- **A marketplace [ROADMAP.md](ROADMAP.md)** — the cross-cutting future work (live-harness execution,
+  the behavioral-eval layer, worked transcripts, the by-design adversarial-verifier items) is now
+  documented, with the deterministically-buildable bin backlog declared exhausted.
+
 ## 2026-06-17 — v0.2.0 (first tagged release)
 
 The maturation milestone: every full-stack skill promoted **draft → beta**, and the marketplace's
