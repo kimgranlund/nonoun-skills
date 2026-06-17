@@ -5,7 +5,7 @@ plugin; the gate (`bin/check-skills.py`) must pass for any release.
 
 ## 0.2.1 — beta
 
-**Attributes as API** folded into the Compose A3 surface (from `docs/specs/attributes-as-api.spec.md`).
+**Attributes as API** folded into the Compose A3 surface (spec: `spec/attributes-as-api.spec.md`).
 A custom element's public API is its typed **attributes** (+ reflection), declared-vs-manual
 **properties**, semantic **events**, and the **form-value** channel — not just a prop list.
 

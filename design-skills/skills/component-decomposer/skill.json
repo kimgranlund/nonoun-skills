@@ -20,6 +20,7 @@
     "examples/walkthrough.md",
     "examples/button-2xl.red.json",
     "examples/button-2xl.green.json",
+    "spec/attributes-as-api.spec.md",
     "CHANGELOG.md",
     "ROADMAP.md"
   ]
