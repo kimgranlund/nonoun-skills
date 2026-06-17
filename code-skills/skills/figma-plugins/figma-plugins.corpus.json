@@ -1,0 +1,38 @@
+{
+  "skill": "figma-plugins",
+  "_note": "Checked-in routing corpus for figma-plugins. CAVEAT: routing-eval measures LEXICAL TOKEN OVERLAP ONLY — it is a legibility aid, not a verdict (a green F1 can be a keyword list gaming the overlap; a red F1 on a paraphrase is a B4-blindness proxy artifact, not a defect). figma-plugins is a DOMAIN BUILD skill (it teaches building/reviewing/testing Figma PLUGINS across the code.js↔ui.html message bridge, the figma.variables API, the manifest, and headless testing) — NOT a *-decomposer, so the 'decompose / grade on two crossing axes' family vocabulary is itself a negative signal here. The last 2–3 positives are deliberately low-overlap paraphrases (a lexical miss on them is a proxy limit, not a routing bug). The negatives are ADVERSARIAL and each belongs to a NAMED other thing: the sharpest in-repo confusable is component-decomposer (zero-dep WEB components / Custom Elements — NOT Figma plugins); the token-FORMAT tools design-tokens-converter / ui-build-tokens / maintain-tokens (out-of-repo) own serialization between token formats, NOT plugin code; the Figma REST API owns SERVER-SIDE file/node reads (figma-plugins is the PLUGIN sandbox, not the REST API); the Figma design MCP owns 'design/generate a UI in Figma' (not building a plugin); and any *-decomposer 'grade X on two axes' request belongs to that family, not here. Re-derive when the neighbourhood changes.",
+  "siblings_in_repo": ["code-decomposer", "query-decomposer", "type-decomposer", "regex-decomposer", "component-decomposer"],
+  "global_peers": ["design-tokens-converter", "ui-build-tokens", "maintain-tokens", "brand-studio"],
+  "positives": [
+    "scaffold a Figma plugin that writes a variable collection",
+    "build a Figma plugin with a UI panel",
+    "wire my plugin's UI to the sandbox over postMessage",
+    "my plugin's postMessage from ui.html isn't reaching code.js",
+    "read and write Figma variables from a plugin",
+    "create a variable collection with Light and Dark modes from a plugin",
+    "alias my semantic Figma variables to the raw primitives from a plugin",
+    "why does my Figma plugin work in the browser but the UI is blank in Figma",
+    "why can't I use fetch or localStorage in my plugin's code.js",
+    "set up the manifest.json for my Figma plugin",
+    "test my Figma plugin headlessly by mocking the figma global",
+    "review my Figma plugin for the offline networkAccess requirement",
+    "set a Figma variable's color value from a plugin",
+    "the apply button in my plugin panel renders but nothing happens to the document"
+  ],
+  "negatives": [
+    "decompose and grade this zero-dependency web component on the compose and realize axes",
+    "design a custom select element with no native form control and check its geometry",
+    "is this Custom Element form-associated and does it expose ElementInternals",
+    "convert these CSS custom properties to DTCG JSON tokens",
+    "translate my Style Dictionary tokens into a tokens.ts module",
+    "audit my design system's token naming for drift and duplicates",
+    "fetch a file's nodes and styles from the Figma REST API server-side",
+    "pull a node's fills from the Figma REST API with an access token",
+    "design and generate a dashboard UI in Figma from this layout",
+    "create a new Figma file and lay out these screens for me",
+    "decompose and grade this function against its contract on the spec and execution axes",
+    "design a type or schema so it can't admit illegal states",
+    "score this regex for correctness against its test cases",
+    "design a brand color palette and tune the contrast tokens"
+  ]
+}

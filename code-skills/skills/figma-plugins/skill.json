@@ -18,6 +18,7 @@
     "references/packaging.md",
     "bin/check-figma-plugin.py",
     "evals/routing-corpus.json",
+    "figma-plugins.corpus.json",
     "CHANGELOG.md",
     "ROADMAP.md"
   ]
