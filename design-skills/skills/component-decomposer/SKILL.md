@@ -77,6 +77,17 @@ with zero gate failures**, reported as two separate axis scores plus the defect 
 route to code: **B1 geometry** → `bin/geometry-check.py`; **A1/A2/B2/B3/B4 contract** →
 `bin/component-contract-check.py`.
 
+## The doctrine — geometry is computed, not guessed
+
+The dimensional law — *every glyph centers in a square cell of side = the button height, so edge
+padding = (height − glyph)/2* — is the one part of this skill that is **arithmetic, not judgment**, so
+it is routed to `bin/geometry-check.py` and **machine-checked, never eyeballed**: the derived paddings,
+the square glyph-only button, the pill radius, and the composed insets all fall out of the ramp + the
+law. Everything else — the layer, the anatomy, the API surface, the platform-semantics contract — is
+*judged*. The discipline is the same one the code-family siblings share: **route the mechanizable gate
+to code, judge the rest** — a clean API can't hide off-ramp pixels, and exact pixels can't hide a
+prop-exploded API, because the two axes are scored separately and only B1 is delegated to the engine.
+
 ## The geometry foundation (the Realize axis's first gate)
 
 One law governs the whole dimensional system — `bin/geometry-check.py` is its source of truth:

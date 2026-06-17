@@ -7,10 +7,10 @@ description: >
   gantt, erDiagram, sankey-beta, kanban, architecture-beta, treeView-beta, venn-beta, ishikawa-beta, wardley-beta,
   eventmodeling). Use when picking a diagram type, authoring a Mermaid diagram, debugging why one won't render, or
   grading whether a diagram is right. Triggers: "make a sankey / gantt / ERD / architecture diagram", "why won't my
-  mermaid render", "fix this mermaid", "decompose this diagram". NOT for a UI layout / screenshot decomposed into
-  regions (layout-decomposer), a type graded for illegal states (type-decomposer), non-Mermaid diagramming
-  (graphviz/plantuml/d2), hosting/rendering the engine, or visual-style taste (brand-forge) — structure + syntax +
-  renderability only.
+  mermaid render", "fix this mermaid", "decompose this diagram". NOT for a UI layout decomposed into regions
+  (layout-decomposer), a type graded for illegal states (type-decomposer), non-Mermaid
+  (graphviz/plantuml/d2), hosting/rendering the engine, or visual-style taste (color-science/typography-lettering)
+  — structure + syntax + renderability only.
 ---
 
 # mermaid-decomposer — author a diagram on two crossing axes
@@ -20,17 +20,17 @@ A Mermaid diagram is **correct on two independent axes that walk the same hierar
 - **Intent · whole → atom** grades the **meaning the diagram claims**: the relationship → the type that expresses it → its skeleton → its elements → its labels.
 - **Render · atom → whole** grades the **picture that actually draws**: the exact keyword → the syntax that parses → strict-mode renderability → the legible whole.
 
-They **cross at the diagram type** — the type is *both* the claim (it expresses one relationship) and the grammar (it fixes the keyword + syntax that must render). That crossing is the whole technique: a diagram can be **right but broken** (correct type for the job, but a missing `-beta` or a strict-mode violation renders nothing) or **renders but wrong** (valid syntax draws cleanly, but a `flowchart` is faking a `sequenceDiagram`). Opposite defects, different fixes — so you **score and report the two axes separately**, never averaged.
+They **cross at the diagram type** — the type is *both* the claim (it expresses one relationship) and the grammar (it fixes the keyword + syntax that must render). That crossing is the whole technique: a diagram can be **right but broken** (correct type for the job, but a missing `-beta` or a strict-mode violation renders nothing) or **renders but wrong** (valid syntax draws cleanly, but a `flowchart` is faking a `sequenceDiagram`). Opposite defects, opposite fixes — so you **score and report the two axes separately**, never averaged.
 
 ## Quick Start
 
-**You bring:** what you want to show (a relationship, a dataset, a description) — and the question ("which diagram?", "write it", "why won't it render?", "is it right?"). **You get:** the right type, a render-safe diagram (exact `-beta` keyword, strict-clean), and a two-axis grade.
+**You bring:** what you want to show (a relationship, a dataset, a description) — and the question ("which diagram?", "write it", "why won't it render?", "is it right?"). **You get:** the right type, a render-safe diagram (exact `-beta` keyword, strict-clean), and a two-axis grade with the defect quadrant named.
 
 > *"Show how these services connect in our deployment."* →
 > 1. **Intent — relationship → type:** the relationship is *deployment topology* → `architecture-beta` `[gate]` (consult the type catalog). Wrong type here makes everything below the wrong structure — pick it first.
 > 2. **Render — keyword → syntax → strict:** start from the reference's verbatim minimal example (keep the `-beta` suffix `[gate]`); use only the **five built-in icons** (`cloud`/`database`/`disk`/`internet`/`server`) since the host registers no icon-packs `[gate]`; no `click`.
 > 3. **Fill the structure:** groups → services → port-edges (A3–A5); short consistent labels.
-> 4. **Verify it renders** in the target (a bake / `mermaid.live` pinned to v11, strict) — *then* report Intent + Render scores separately, gate failures first.
+> 4. **Verify it renders** in the target (a bake / `mermaid.live` pinned to v11, strict) — *then* report Intent + Render scores separately plus the quadrant cell, gate failures first.
 
 **Modes:** **CREATE** (intent → pick the type → author render-safe → verify) · **DECOMPOSE** (read a diagram → relationship + type-fit + render-walk + grade) · **GRADE** (score against the M1–M6 rubric, gates before reviews).
 

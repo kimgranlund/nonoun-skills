@@ -24,6 +24,28 @@ The axes **cross at the region/card/surface**: a panel is simultaneously a *spat
 Because they are opposites, **score and report the two axes separately. Never average them** — a single middling
 number hides which of the two defects you actually have, and they need different fixes.
 
+### The opposite-defect quadrant
+
+```
+                 B · INSIDE-OUT passes     B · INSIDE-OUT fails
+A · OUTSIDE-IN  ┌────────────────────────┬────────────────────────┐
+    passes      │      SHIPPABLE         │  pretty but dead —      │
+                │  (≥4 every review,     │  clean frame, aligned   │
+                │   zero gate fails)     │  atoms, but panels host │
+                │                        │  no verbs / a verb has  │
+                │                        │  no home                │
+                ├────────────────────────┼────────────────────────┤
+A · OUTSIDE-IN  │ functional but         │       REBUILD           │
+    fails       │ unreadable — every     │                         │
+                │ action works, but it   │                         │
+                │ all stacks in one      │                         │
+                │ column, no frame       │                         │
+                └────────────────────────┴────────────────────────┘
+```
+
+The quadrant **names the fix**: top-right needs inside-out work (bind verbs to surfaces); bottom-left needs
+outside-in work (impose a frame). Report the cell, not an average.
+
 ---
 
 ## Axis A — Outside-in (macro-layout → micro-layout)

@@ -19,6 +19,28 @@ The axes **cross at the diagram type**: the type is simultaneously the *claim* (
 
 Because they are opposites, **score and report the two axes separately. Never average them** — a single middling number hides which of the two defects you have, and they need different fixes (re-pick the type vs. fix the keyword/strict-safety).
 
+### The opposite-defect quadrant
+
+```
+                 B · RENDER passes         B · RENDER fails
+A · INTENT  ┌────────────────────────┬────────────────────────┐
+  passes    │      SHIPPABLE         │  right but broken —     │
+            │  (≥4 every review,     │  correct type for the   │
+            │   zero gate fails)     │  job, but a missing     │
+            │                        │  `-beta` / strict        │
+            │                        │  violation renders       │
+            │                        │  nothing                 │
+            ├────────────────────────┼────────────────────────┤
+A · INTENT  │ renders but wrong —    │       REBUILD           │
+  fails     │ valid syntax draws     │                         │
+            │ cleanly, but a         │                         │
+            │ `flowchart` is faking  │                         │
+            │ a `sequenceDiagram`    │                         │
+            └────────────────────────┴────────────────────────┘
+```
+
+The quadrant **names the fix**: top-right needs render work (fix the keyword / strict-safety); bottom-left needs intent work (re-pick the type). Report the cell, not an average.
+
 > The two axes are the **walk**; `mermaid-rubric.md` (M1–M6) is the **scorecard** — they are one system. Each level below names the rubric dimension it scores. `advanced-mermaid-reference.md` is the **type catalog** the walk consults.
 
 ---

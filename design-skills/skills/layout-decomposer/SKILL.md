@@ -8,7 +8,8 @@ description: >
   naming UI regions, grading whether a layout is right, or scaffolding a new app shell. Triggers: "decompose this
   UI", "what shell/layout is this", "name these regions", "is this layout right", "design an app shell",
   "wireframe a dashboard / marketing page / mobile app", "which archetype fits". NOT for visual or color design
-  (brand-forge), production CSS/component code, or copywriting — this is structure + interaction layout only.
+  (color-science / typography-lettering), production CSS/component code, or copywriting — this is structure +
+  interaction layout only.
 ---
 
 # layout-decomposer — read a UI on two crossing axes
@@ -23,12 +24,13 @@ PRD↔SPEC seam, applied to space:
 They **cross at the region / card / surface** — every panel is *both* a spatial slot (outside-in) and a functional
 home (inside-out). That crossing is the whole technique: a layout can be **pretty but dead** (the space is clean,
 but panels host no verbs) or **functional but unreadable** (every action works, but it all stacks in one column).
-Opposite defects, different fixes — so you **score and report the two axes separately**, never averaged.
+Opposite defects, opposite fixes — so you **score and report the two axes separately**, never averaged.
 
 ## Quick Start
 
 **You bring:** a screenshot, mockup, or a description of a UI — and the question ("what is this?", "is it right?",
-"design one"). **You get:** a region map (named patterns), a two-axis grade, and the matching archetype wireframe.
+"design one"). **You get:** a region map (named patterns), a two-axis grade with the defect quadrant named, and the
+matching archetype wireframe.
 
 > *"Decompose this screenshot."* →
 > 1. **Outside-in:** is there a fixed frame? `[gate]` → name the regions (header/left/canvas/right/footer) →
@@ -38,10 +40,11 @@ Opposite defects, different fixes — so you **score and report the two axes sep
 >    check each has exactly one obvious surface co-located with its object → check feedback → check that one
 >    selection updates every surface that should reflect it.
 > 3. **Name it:** match the shell to an archetype (`references/archetype-*.md`) and pull its wireframe + vocabulary.
-> 4. **Report:** Axis-A score + Axis-B score *separately*, gate failures first, with the one fix each implies.
+> 4. **Report:** Axis-A score + Axis-B score *separately* plus the quadrant cell, gate failures first, with the one
+>    fix each implies.
 
-**Modes:** **DECOMPOSE** (read an existing UI → region map + grade) · **DESIGN** (intent → pick an archetype →
-place the actions → emit a wireframe) · **GRADE** (score a layout against the rubric, gates before reviews).
+**Modes:** **DESIGN** (intent → pick an archetype → place the actions → emit a wireframe) · **DECOMPOSE** (read an
+existing UI → region map + grade) · **GRADE** (score a layout against the rubric, gates before reviews).
 
 ## The two axes (the method)
 
