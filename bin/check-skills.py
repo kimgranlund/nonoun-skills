@@ -17,6 +17,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -107,6 +108,52 @@ def _run_bin_selftests(d, fails):
     return ran
 
 
+def _routing_dogfood(skills, routing_eval, warns):
+    """Run routing-eval over every skill's checked-in `*.corpus.json` and surface precision-hole
+    collisions (a description over-triggering on a sibling's phrase) as ADVISORY warnings. The
+    routing eval is a lexical-overlap aid, not an oracle, so a collision is never a FAIL — it keeps
+    the Phase-1 sibling-collision cleanup self-enforcing without letting the lossy proxy block the gate."""
+    for d in skills:
+        corpora = sorted(f for f in os.listdir(d) if f.endswith(".corpus.json"))
+        if not corpora:
+            continue
+        desc = _frontmatter_description(os.path.join(d, "SKILL.md"))
+        if not desc:
+            continue
+        rel = os.path.relpath(d, ROOT)
+        fd, desc_path = tempfile.mkstemp(suffix=".txt")
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as fh:
+                fh.write(desc)
+            for corpus in corpora:
+                r = subprocess.run([sys.executable, routing_eval, desc_path,
+                                    os.path.join(d, corpus), "--min-f1", "0"],
+                                   capture_output=True, text=True)
+                out = r.stdout + r.stderr
+                m = re.search(r"fp=(\d+)", out)
+                if not m:
+                    if r.returncode != 0:
+                        warns.append(f"{rel}: routing-eval could not evaluate {corpus} "
+                                     f"({(r.stderr or r.stdout).strip()[:120]})")
+                    continue
+                if int(m.group(1)) == 0:
+                    continue
+                grabbed, seen = [], False
+                for line in out.splitlines():
+                    if "precision holes" in line:
+                        seen = True
+                    elif seen and "✗" in line:
+                        grabbed.append(line.split("✗", 1)[1].strip())
+                if grabbed:
+                    for g in grabbed:
+                        warns.append(f"{rel}: routing-corpus collision — description over-triggers on a "
+                                     f"sibling phrase \"{g}\" (advisory; routing-eval is a lexical-overlap aid)")
+                else:
+                    warns.append(f"{rel}: routing-corpus shows {m.group(1)} collision(s) (advisory)")
+        finally:
+            os.unlink(desc_path)
+
+
 def main(argv):
     if argv and argv[0] not in ("selftest", "check"):
         sys.stderr.write("usage: check-skills.py [selftest]\n")
@@ -116,13 +163,16 @@ def main(argv):
         sys.stderr.write("no skills found under */skills/*/\n")
         return 1
     fails, warns, selftests = [], [], []
-    render_check = None
+    render_check = routing_eval = None
     for d in skills:
         _check_skill(d, fails, warns)
         selftests += _run_bin_selftests(d, fails)
         rc = os.path.join(d, "bin", "mermaid-render-check.py")
         if os.path.isfile(rc):
             render_check = rc
+        re_path = os.path.join(d, "bin", "routing-eval.py")
+        if os.path.isfile(re_path):
+            routing_eval = re_path
     # dogfood: the render-check over every skill's reference docs — the example diagrams must pass the keyword gate
     if render_check:
         for d in skills:
@@ -131,12 +181,17 @@ def main(argv):
                 r = subprocess.run([sys.executable, render_check, refs], capture_output=True, text=True)
                 if r.returncode != 0:
                     fails.append(f"render-check over {os.path.relpath(refs, ROOT)} failed:\n{(r.stderr or r.stdout).strip()[:500]}")
+    # dogfood: routing-eval over every skill's checked-in corpus — keeps sibling-collision cleanup
+    # self-enforcing (ADVISORY: the lexical-overlap proxy never FAILs the gate)
+    if routing_eval:
+        _routing_dogfood(skills, routing_eval, warns)
     if fails:
         sys.stderr.write(f"check-skills: FAIL ({len(fails)} issue(s))\n")
         for f in fails:
             sys.stderr.write(f"  - {f}\n")
         return 1
-    print(f"check-skills: OK — {len(skills)} skill(s) valid, {len(selftests)} bin selftest(s) passed, render-check dogfooded")
+    print(f"check-skills: OK — {len(skills)} skill(s) valid, {len(selftests)} bin selftest(s) passed, "
+          f"render-check + routing-eval dogfooded")
     for d in skills:
         print(f"    ✓ {os.path.relpath(d, ROOT)}")
     if warns:

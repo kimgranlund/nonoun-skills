@@ -48,6 +48,7 @@ Skills here deliberately follow **three templates**, all valid — the gate enfo
 - relative `.md` links *inside the skill dir* resolve (a link escaping the dir is a cross-skill ref → WARN, not FAIL)
 - each `bin/*.py` responds to a `selftest` subcommand and exits 0
 - the Mermaid render-check, dogfooded over every skill's `references/`, passes its static keyword gate (so don't put a malformed ```mermaid block in any reference doc)
+- the gate also **dogfoods `routing-eval` over every skill's `*.corpus.json`** and surfaces sibling-routing collisions as **advisory** WARNs (never a FAIL — the lexical-overlap proxy is an aid, not an oracle). A *new* collision warning after a description edit means you re-introduced sibling overlap; sharpen the `NOT for …` fence (see `routing-decomposer`)
 
 Core principle: **skills are self-contained and computation routes to code, never to inference.** Deterministic checks live in a skill's `bin/` as selftested stdlib Python; `SKILL.md` stays a table-of-contents over `references/`.
 
