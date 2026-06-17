@@ -73,6 +73,16 @@ params — so top-level `figma.showUI(...)` is a no-op on the mock, and the func
 over the mock you control. (Guard any `if (typeof module !== "undefined") module.exports = …` so it's
 inert here.)
 
+> ⚠ **`new Function` runs the file's top level — only point it at code YOU authored.** This is the
+> exact `eval`/`new Function`-on-untrusted-content the §SelfAudit trust boundary forbids. It is safe
+> here because in BUILD/TEST *your own* `code.js` is the thing under test — first-party, not data you
+> ingested. It is **not** safe in REVIEW when the plugin dir is a third-party artifact you're auditing:
+> loading its `code.js` with `new Function` is arbitrary code execution with full `fs`/`process` scope.
+> **For an under-review (untrusted) plugin: run `bin/check-figma-plugin.py` (pure static analysis, no
+> execution) for the audit, and only ever execute it inside a locked-down `node:vm` context with no
+> `require`/`fs`/`net` — or not at all.** The mock harness is a first-party regression tool, not an
+> auditing sandbox.
+
 ## Static gate (no JS run)
 
 `bin/check-figma-plugin.py` covers the mechanical floor: manifest shape, `main`/`ui` exist, offline

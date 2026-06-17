@@ -4,7 +4,7 @@ description: >
   Build, review, and test Figma plugins on the model that a plugin is TWO execution contexts joined
   by a message channel — a sandboxed code.js (the figma API, but NO DOM/fetch/localStorage) and a
   ui.html iframe (full DOM, but NO document access) — declared by manifest.json. Covers the 3-file
-  architecture, the UI<->sandbox postMessage contract both ways, the figma.variables API
+  architecture, the UI↔sandbox postMessage contract both ways, the figma.variables API
   (collections, Light/Dark modes, setValueForMode {r,g,b,a} 0-1, createVariableAlias cascades, async
   getters under documentAccess dynamic-page), the offline networkAccess constraint, bundling ui.html
   as one self-contained file, and TESTING headlessly by mocking the figma global. Use when scaffolding a Figma
@@ -108,8 +108,14 @@ A Figma plugin is real when, **inside Figma** (Plugins → Development → Impor
 - it **imports without a manifest error** and the UI renders (not blank — the #4 single-file trap), AND
 - **one real round-trip works**: a UI action posts a message, `code.js` performs the document mutation,
   and the **result is observable in the Figma document** — a variable collection appears in the
-  Variables panel, a node is created/edited on the canvas, `figma.notify` confirms a count. "Files
-  present" / "`code.js` parses" is NOT done — the proof is a document change you can see in Figma.
+  Variables panel, a node is created/edited on the canvas. "Files present" / "`code.js` parses" is NOT
+  done — the proof is a document change you can see in Figma.
+- **the outcome is recorded, not just flashed.** A transient `figma.notify` toast leaves nothing to
+  audit after the fact. Have the apply handler **return a structured result** — `{created, updated,
+  aliased, errors:[…]}` — post it back over the bridge for the UI to render/persist, and make a thrown
+  error a *surfaced* message (an `errors[]` entry + a UI line), never a swallowed exception with no
+  notify. The recorded result, not the toast, is what lets a human confirm "did the last apply succeed?"
+  without re-running.
 
 Headless proxy for CI (no Figma): `bin/check-figma-plugin.py` is green AND a `code.js`-logic test on a
 **mocked `figma`** asserts the same mutation (see `references/testing.md`). The mock gate stands in for,
@@ -125,9 +131,12 @@ Run on any plugin you build or review (BUILD/REVIEW/TEST). Each maps to a real f
   plugin genuinely needs the network, in which case the domains are explicit and justified. A plugin
   that **both reads the document and has network access is an exfiltration vector** (document → a
   remote): keep those mutually exclusive unless the remote is essential *and* trusted, and never let
-  untrusted imported content choose the URL.
+  untrusted imported content choose the URL. (`bin/check-figma-plugin.py` **warns** when `code.js` both
+  reads the document and has non-`none` `networkAccess`.)
 - **[gate] Manifest wiring** — `main` + (if a UI) `ui` point at files that exist; `editorType` set;
   `documentAccess` is `"dynamic-page"` and the code uses the **async** variable/node getters.
+  (`bin/check-figma-plugin.py` **fails** a SYNC getter — `getLocalVariables()`/`getNodeById()`/… — under
+  `documentAccess:"dynamic-page"`; the async-getter requirement is now mechanically gated, not just prose.)
 - **[gate] Bridge envelope** — every cross-context message uses the `{pluginMessage: …}` envelope, both
   directions; the UI reads `e.data.pluginMessage`, not `e.data`.
 - **[gate] Single-file UI** — `ui.html` is self-contained (no relative `import`/`fetch` of sibling

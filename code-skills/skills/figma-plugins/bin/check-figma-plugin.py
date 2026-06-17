@@ -27,6 +27,17 @@ SANDBOX_FORBIDDEN = re.compile(
 # UI boot blanks the panel. Advisory, not a hard gate: guarded use (try/catch) is legitimate.
 WEB_STORAGE = re.compile(r"\b(?:localStorage|sessionStorage|indexedDB)\b|\bdocument\.cookie\b")
 
+# SYNC variable/node/style getters that THROW under documentAccess:"dynamic-page" (gotcha #2).
+# The async variants have an `Async` between the name and the `(`, so `name\s*\(` matches the
+# SYNC form only — the regex naturally excludes getLocalVariablesAsync(, getNodeByIdAsync(, …
+SYNC_GETTERS = re.compile(
+    r"\bget(?:LocalVariables|LocalVariableCollections|NodeById|LocalTextStyles|"
+    r"LocalPaintStyles|LocalEffectStyles|LocalGridStyles)\s*\("
+)
+# Document-READ surfaces. Combined with non-'none' networkAccess this is the exfiltration
+# trifecta (document → a remote) — advisory, since a trusted+essential remote is legitimate.
+DOC_READ = re.compile(r"\bfigma\.(?:variables\b|currentPage\b|root\b|getNodeBy|getStyleBy|getLocalVariables)")
+
 
 def strip_comments(src):
     src = re.sub(r"/\*[\s\S]*?\*/", "", src)   # block comments
@@ -73,8 +84,34 @@ def check_plugin(d):
         hit = SANDBOX_FORBIDDEN.search(code)
         if hit:
             errs.append("sandbox file calls a non-sandbox API: " + hit.group(0).strip())
+        # gotcha #2: under documentAccess "dynamic-page" the SYNC getters throw — require async.
+        if m.get("documentAccess") == "dynamic-page":
+            sg = SYNC_GETTERS.search(code)
+            if sg:
+                errs.append("sandbox calls a SYNC getter under documentAccess 'dynamic-page' "
+                            "(throws in Figma): " + sg.group(0).strip() + " — use the *Async variant")
 
     return errs
+
+
+def exfil_warnings(d, m):
+    """Advisory (non-failing): the exfiltration trifecta. A sandbox that READS the document AND
+    has network access can ship the document to a remote. Keep those mutually exclusive unless the
+    remote is essential + trusted (and never let untrusted imported content choose the URL)."""
+    main = m.get("main")
+    if not main or not os.path.isfile(os.path.join(d, main)):
+        return []
+    na = m.get("networkAccess")
+    domains = na.get("allowedDomains") if isinstance(na, dict) else ([] if na == "none" else None)
+    online = bool(domains) and domains != ["none"]
+    if not online:
+        return []
+    code = strip_comments(open(os.path.join(d, main), encoding="utf-8").read())
+    if DOC_READ.search(code):
+        return ["sandbox both READS the document (figma.variables/currentPage/getNodeBy…) AND has "
+                "network access (networkAccess ≠ none) — the exfiltration trifecta. Keep them mutually "
+                "exclusive unless the remote is essential + trusted; never let imported content pick the URL."]
+    return []
 
 
 def storage_warnings(d, m):
@@ -159,6 +196,37 @@ def selftest():
         if storage_warnings(gsg, gm):
             fails.append("guarded localStorage in ui.html wrongly warned")
 
+        # SYNC getter under documentAccess dynamic-page → HARD fail (gotcha #2).
+        sg = os.path.join(t, "sg")
+        _write(sg, {"name": "s", "id": "s", "main": "code.js", "editorType": ["figma"],
+                    "documentAccess": "dynamic-page", "networkAccess": "none"},
+               "const v = figma.variables.getLocalVariables();")
+        if not any("SYNC getter" in x for x in check_plugin(sg)):
+            fails.append("sync getter under dynamic-page did not fail: " + str(check_plugin(sg)))
+        # the ASYNC variant must NOT trip it.
+        ag = os.path.join(t, "ag")
+        _write(ag, {"name": "a", "id": "a", "main": "code.js", "editorType": ["figma"],
+                    "documentAccess": "dynamic-page", "networkAccess": "none"},
+               "const v = await figma.variables.getLocalVariablesAsync();")
+        if any("SYNC getter" in x for x in check_plugin(ag)):
+            fails.append("async getter wrongly flagged as sync: " + str(check_plugin(ag)))
+
+        # Exfiltration trifecta: doc-read + network → advisory WARN, NOT a hard fail.
+        xm = {"name": "x", "id": "x", "main": "code.js", "editorType": ["figma"],
+              "networkAccess": {"allowedDomains": ["api.example.com"]}}
+        xf = os.path.join(t, "xf")
+        _write(xf, xm, "const v = await figma.variables.getLocalVariablesAsync();")
+        if not exfil_warnings(xf, xm):
+            fails.append("doc-read + network did not warn (trifecta)")
+        if check_plugin(xf):  # advisory only — must NOT fail the hard gate
+            fails.append("trifecta wrongly failed the hard gate: " + str(check_plugin(xf)))
+        # offline doc-read must NOT warn.
+        om = {"name": "o", "id": "o", "main": "code.js", "editorType": ["figma"], "networkAccess": "none"}
+        of = os.path.join(t, "of")
+        _write(of, om, "const v = await figma.variables.getLocalVariablesAsync();")
+        if exfil_warnings(of, om):
+            fails.append("offline doc-read wrongly warned")
+
     return fails
 
 
@@ -181,7 +249,7 @@ def main(argv):
     # Advisory warnings never fail the gate — they flag a likely "blank in Figma" footgun.
     try:
         m = json.load(open(os.path.join(argv[0], "manifest.json"), encoding="utf-8"))
-        for w in storage_warnings(argv[0], m):
+        for w in storage_warnings(argv[0], m) + exfil_warnings(argv[0], m):
             print("  WARN:", w)
     except Exception:  # noqa: BLE001 - manifest already validated above
         pass

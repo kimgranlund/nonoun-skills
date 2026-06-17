@@ -1,5 +1,32 @@
 # Changelog — figma-plugins
 
+## 0.1.2 — 2026-06-17 — full 9-critic promote review (verdict CONDITIONAL → stays draft)
+
+Ran the skills-studio `promote` complete review: Stage-0 gates, D1–D10 holistic scan, and the full
+9-critic council. Three Criticals blocked `stable`; folded the cheap+correct findings, deferred the
+expensive ones to the ROADMAP gate. **Status stays `draft`.**
+
+- **Stage-0 fix:** the description contained angle brackets (`UI<->sandbox`) → `quick_validate --strict`
+  rejected it. Replaced with `UI↔sandbox` in `SKILL.md` + `skill.json`.
+- **Simon (Critical) — `new Function` self-contradiction.** `testing.md` recommended loading `code.js`
+  via `new Function`, which the §SelfAudit trust boundary forbids for untrusted content. Scoped it
+  explicitly to **first-party** code (BUILD/TEST); for an under-review third-party plugin, run the static
+  `bin/` gate and only ever execute inside a locked-down `node:vm`.
+- **Charity (Critical) — unrecorded Verify Target.** A transient `figma.notify` leaves nothing to audit.
+  The Verify Target now requires the apply handler to **return a structured result** (`{created, updated,
+  aliased, errors[]}`) surfaced over the bridge, and a thrown error to be a *surfaced* message — so "did
+  the last apply succeed?" is answerable without re-running.
+- **`[gate]` inflation (Boris/Huyen/Karpathy/Simon/Wlaschin/Farley) — mechanized two convergent checks.**
+  `check-figma-plugin.py` now **fails** a SYNC getter under `documentAccess:"dynamic-page"` (gotcha #2,
+  async naturally excluded) and **warns** on the document-read + network exfiltration trifecta. §SelfAudit
+  updated to point at the now-mechanized checks; two new selftest fixtures each way.
+- **Asserted-not-measured F1 (Boris/Karpathy/Huyen).** `routing-corpus.json` `_note` no longer claims a
+  measured "F1 1.0" — relabelled author-estimated/hypothesis, with the scorer-run owed before stable.
+- **Dangling routes (Steve).** Fixed adversarial routes that named non-existent skills (`brand-or-color`
+  → `brand-studio`; the REST-API adversarial → `none`).
+- **Elon (Critical) — N=1 overclaim** + **behavioral evals / 2nd-plugin generalization**: deferred to the
+  ROADMAP "Validation owed before stable" gate (genuinely expensive; can't be folded in a doc pass).
+
 ## 0.1.1 — 2026-06-16 — the sandboxed-iframe storage trap
 
 Folded a hard-won lesson from running the HCT generator as a plugin: Figma's plugin **iframe** can deny
