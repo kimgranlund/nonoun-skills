@@ -1,6 +1,6 @@
 {
   "name": "figma-plugins",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "status": "draft",
   "target": "agent",
   "description": "Build, review, and test Figma plugins on the model that a plugin is TWO execution contexts joined by a message channel — a sandboxed code.js (the figma API, but NO DOM/fetch/localStorage) and a ui.html iframe (full DOM, but NO document access) — declared by manifest.json. Covers the 3-file architecture, the UI<->sandbox postMessage contract both ways, the figma.variables API (collections, Light/Dark modes, setValueForMode {r,g,b,a} 0-1, createVariableAlias cascades, async getters under documentAccess dynamic-page), the offline networkAccess constraint, bundling ui.html as one self-contained file, and TESTING headlessly by mocking the figma global. Use when scaffolding a Figma plugin, wiring its UI to the sandbox, reading/writing Figma variables or nodes, or debugging 'works in the browser but not in Figma'. NOT for the Figma REST API (server-side), widget/FigJam/Slides specifics, marketplace publishing, or design-token format conversion (design-tokens-converter).",

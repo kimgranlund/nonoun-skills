@@ -10,11 +10,19 @@ A Figma plugin runs as **two isolated JS realms** that share no scope and no glo
 | Can touch the document | **yes** (the only place) | **no** |
 | DOM / rendering | **no** | yes |
 | Network | **no** by default (and discouraged) | `fetch`/etc. **iff** `manifest.networkAccess` allows the domain |
-| Persistence | `figma.clientStorage` (async, plugin-scoped) | `localStorage` works but is iframe-scoped & cleared aggressively — prefer routing to clientStorage |
+| Persistence | `figma.clientStorage` (async, plugin-scoped) | `localStorage` **may throw** — Figma's iframe can DENY web storage (`SecurityError`); guard it or route to clientStorage |
 | Module system | a single file; no `import` of siblings at runtime | a single file; the iframe has no repo-rooted module graph |
 
 They communicate **only** by message passing (see `message-bridge.md`). Treating them as one app is
 the master failure: DOM/`fetch` in the sandbox, or document access from the iframe.
+
+> **The iframe is sandboxed too** — "full DOM" is not "a normal browser tab." Figma's plugin iframe
+> can **deny web storage**: `localStorage`/`sessionStorage` **throw a `SecurityError`** instead of
+> returning `null`. An unguarded read at UI boot throws *before first paint* → a **blank panel**. The
+> giveaway: if a *separate* inline `<script>` (e.g. an Apply button) still renders, it looks like "the
+> UI loaded but is empty" — the tell-tale of a boot crash, not a layout bug. Wrap every web-storage
+> access in `try/catch` and degrade to in-memory, or persist via `figma.clientStorage` over the bridge.
+> This is the single-file trap (gotcha #4) one level deeper: works in a browser tab, blank inside Figma.
 
 ## When you need each
 

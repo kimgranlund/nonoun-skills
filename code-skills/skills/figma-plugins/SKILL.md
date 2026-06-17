@@ -66,7 +66,7 @@ Install: **Figma → Plugins → Development → Import plugin from manifest** �
 `python3 bin/check-figma-plugin.py <plugin-dir>` — static gate: manifest shape, `main`/`ui` files
 exist, `networkAccess` is offline, and `code.js` calls no DOM/network API. (`selftest` runs fixtures.)
 
-## The four things that bite
+## The five things that bite
 
 1. **Sandbox purity.** A `document.`, `fetch(`, `localStorage`, or `import(` in `code.js` throws (or
    silently no-ops) inside Figma but *passes a browser smoke test* — the #1 "works in the browser,
@@ -80,6 +80,13 @@ exist, `networkAccess` is offline, and `code.js` calls no DOM/network API. (`sel
 4. **`ui.html` must be ONE file.** The iframe has no module graph rooted at your repo — relative
    `import`/`fetch` of sibling files fail. **Inline everything** (bundle to a single HTML), or the UI
    loads blank in Figma while working when served locally.
+5. **The iframe's browser is sandboxed too.** "Full DOM" ≠ "a normal browser tab." Figma's plugin
+   iframe can **deny web storage** — `localStorage`/`sessionStorage` **throw a `SecurityError`**, not
+   return `null`. An unguarded read at boot crashes the UI to a **blank panel** *before first paint*
+   (and a *separate* inline `<script>`, e.g. an Apply button, may still render — so it looks like "the
+   UI loaded but is empty," the signature of a boot crash). Wrap every web-storage access in `try/catch`
+   and degrade to in-memory, or persist via `figma.clientStorage` over the bridge. Gotcha #4 one level
+   deeper: works in a browser tab, blank inside Figma.
 
 ## The message bridge (memorize this)
 
@@ -125,6 +132,10 @@ Run on any plugin you build or review (BUILD/REVIEW/TEST). Each maps to a real f
   directions; the UI reads `e.data.pluginMessage`, not `e.data`.
 - **[gate] Single-file UI** — `ui.html` is self-contained (no relative `import`/`fetch` of sibling
   files that won't resolve in the iframe).
+- **[gate] UI storage guarded** — every `localStorage`/`sessionStorage` access in `ui.html` is wrapped
+  in `try/catch` (or it routes to `figma.clientStorage` over the bridge): Figma's iframe can DENY web
+  storage, and an unguarded read at boot blanks the UI before first paint. (`bin/check-figma-plugin.py`
+  warns when `ui.html` touches web storage with no `try/catch`.)
 - **[review] Color boundary** — colors crossing into the `figma` API are `{r,g,b,a}` in 0..1.
 - **[review] Idempotent apply** — re-running the plugin finds-or-creates (no duplicate collections /
   nodes on a second run).

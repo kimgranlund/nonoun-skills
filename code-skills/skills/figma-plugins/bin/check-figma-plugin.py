@@ -23,6 +23,10 @@ SANDBOX_FORBIDDEN = re.compile(
     r"\bdocument\.|\bwindow\.|\bfetch\s*\(|new\s+XMLHttpRequest|new\s+WebSocket|\blocalStorage\b|\bimport\s*\("
 )
 
+# Web storage that Figma's plugin iframe can DENY (SecurityError) — an unguarded access at
+# UI boot blanks the panel. Advisory, not a hard gate: guarded use (try/catch) is legitimate.
+WEB_STORAGE = re.compile(r"\b(?:localStorage|sessionStorage|indexedDB)\b|\bdocument\.cookie\b")
+
 
 def strip_comments(src):
     src = re.sub(r"/\*[\s\S]*?\*/", "", src)   # block comments
@@ -73,6 +77,27 @@ def check_plugin(d):
     return errs
 
 
+def storage_warnings(d, m):
+    """Advisory (non-failing): ui.html web storage that looks unguarded.
+
+    Figma's plugin iframe can DENY web storage — localStorage/sessionStorage throw a
+    SecurityError, not return null, so an unguarded read at boot blanks the UI (works in a
+    browser tab, blank inside Figma). Heuristic: flag only when ui.html touches web storage
+    yet has NO try/catch anywhere — a guarded plugin (any `try {`) is assumed deliberate.
+    """
+    ui = m.get("ui")
+    if not ui or not os.path.isfile(os.path.join(d, ui)):
+        return []
+    src = strip_comments(open(os.path.join(d, ui), encoding="utf-8").read())
+    if WEB_STORAGE.search(src) and not re.search(r"\btry\s*\{", src):
+        return [
+            "ui.html uses web storage (localStorage/sessionStorage/…) with no try/catch anywhere — "
+            "Figma's iframe can DENY it (SecurityError → blank UI). Guard every access, or persist via "
+            "figma.clientStorage over the bridge."
+        ]
+    return []
+
+
 def _write(d, manifest, code, ui=None):
     os.makedirs(d, exist_ok=True)
     json.dump(manifest, open(os.path.join(d, "manifest.json"), "w"))
@@ -116,6 +141,24 @@ def selftest():
         if any("sandbox file calls" in x for x in e):
             fails.append("a comment naming the APIs tripped sandbox purity: " + str(e))
 
+        # UNGUARDED web storage in ui.html (no try/catch) → advisory warning.
+        usg = os.path.join(t, "usg")
+        gm = {"name": "u", "id": "u", "main": "code.js", "ui": "ui.html",
+              "editorType": ["figma"], "networkAccess": "none"}
+        _write(usg, gm, "figma.showUI(__html__);",
+               "<script>var s=localStorage.getItem('k');</script>")
+        if not storage_warnings(usg, gm):
+            fails.append("unguarded localStorage in ui.html did not warn")
+        if check_plugin(usg):  # storage is advisory only — must NOT fail the gate
+            fails.append("unguarded ui.html storage wrongly failed the hard gate: " + str(check_plugin(usg)))
+
+        # GUARDED web storage (try/catch present) → NO warning.
+        gsg = os.path.join(t, "gsg")
+        _write(gsg, gm, "figma.showUI(__html__);",
+               "<script>try{var s=localStorage.getItem('k');}catch(e){}</script>")
+        if storage_warnings(gsg, gm):
+            fails.append("guarded localStorage in ui.html wrongly warned")
+
     return fails
 
 
@@ -135,6 +178,13 @@ def main(argv):
         for e in errs:
             print("  -", e)
         return 1
+    # Advisory warnings never fail the gate — they flag a likely "blank in Figma" footgun.
+    try:
+        m = json.load(open(os.path.join(argv[0], "manifest.json"), encoding="utf-8"))
+        for w in storage_warnings(argv[0], m):
+            print("  WARN:", w)
+    except Exception:  # noqa: BLE001 - manifest already validated above
+        pass
     print("OK:", argv[0], "— manifest shape + sandbox purity + network surface")
     return 0
 
