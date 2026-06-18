@@ -2,7 +2,7 @@
 
 A home + marketplace for **general-purpose Claude Code skills** — domain-agnostic authoring aids that aren't tied to any one plugin's job. Versioned, validated, and installable, kept separate from the product plugins (which live in [`nonoun-plugins`](https://github.com/kimgranlund/nonoun-plugins)) so the skills don't bloat a plugin's standing context or stretch its scope.
 
-Skills ship as cohesive **skill-bundle plugins** — a plugin that bundles only skills (no commands, agents, or MCP). The repo holds **6 plugins / 14 skills**, and the spine running through most of them is one technique: the **decomposer**.
+Skills ship as cohesive **skill-bundle plugins** — a plugin that bundles only skills (no commands, agents, or MCP). The repo holds **11 plugins / 37 skills**, and the spine running through most of them is one technique: the **decomposer**.
 
 → Building a skill? See **[HOWTO.md](HOWTO.md)**. Repo history: **[CHANGELOG.md](CHANGELOG.md)**. What's next: **[ROADMAP.md](ROADMAP.md)**.
 
@@ -37,21 +37,31 @@ The non-decomposer skills follow two other vintages: deep **reference** skills t
 
 | Plugin | Domain | Skills |
 | --- | --- | --- |
-| **design-skills** | UI / visual | `layout-decomposer` · `mermaid-decomposer` · `component-decomposer` (decomposers) · `color-science` · `typography-lettering` (reference) |
-| **code-skills** | engineering | `code-decomposer` · `regex-decomposer` · `query-decomposer` · `type-decomposer` (decomposers) · `figma-plugins` (domain build) |
+| **design-skills** | UI / visual | decomposers `layout-` · `mermaid-` · `component-decomposer` · reference `color-science` · `typography-lettering` · `ref-polyfills` · verifiers `color-` · `focus-` · `i18n-` · `perf-` · `safety-verifier` |
+| **code-skills** | engineering | `code-` · `regex-` · `query-` · `type-` · `architecture-decomposer` (decomposers) · `figma-plugins` (domain build) |
 | **data-skills** | structured data | `extraction-decomposer` |
 | **meta-skills** | skills about skills | `routing-decomposer` |
 | **reasoning-skills** | deductive argument | `proof-decomposer` |
 | **ops-skills** | config / infra-as-code | `config-decomposer` |
+| **general-skills** | domain-agnostic methods | `research-survey` · `viz-2x2` · `tool-stress` |
+| **knowledge-skills** | knowledge bases | `meta-expert-author` · `meta-theory-author` · `plan-knowledge` · `ops-knowledge` |
+| **manager-skills** | exec writing & reporting | `report-brief` · `-progress` · `-state` · `-strategic` · `resume-author` |
+| **skills-skills** | authoring skills | `skills-studio` · `skills-refactor` · `meta-app-scaffold` |
+| **plugins-skills** | authoring plugins | `plugin-decomposer` |
 
 What each carries:
 
-- **design-skills** — `layout-decomposer` (read/grade/design a UI, with a four-archetype ASCII-wireframe library) · `mermaid-decomposer` (advanced Mermaid on a verbatim 11-type syntax catalog + a mechanized render-check) · `component-decomposer` (zero-dependency web components, with a deterministic geometry engine — every glyph centered in a square cell, so edge padding = (height − glyph)/2) · `color-science` (perceptual color + a TypeScript color library + 54 interactive demos) · `typography-lettering` (type anatomy → world scripts → the modern CSS text surface).
-- **code-skills** — `code-decomposer` (a unit of code: right + provably runs, with an execution harness and a test-vacuity linter that attacks the "green but wrong" quadrant) · `regex-decomposer` (a pattern that means the right language and won't ReDoS) · `query-decomposer` (a SQL query at the right grain that actually plans) · `type-decomposer` (make illegal states unrepresentable, proven by legal/illegal instance sets) · `figma-plugins` (build/test Figma plugins across the sandbox↔iframe message bridge).
+- **design-skills** — `layout-decomposer` (read/grade/design a UI, with a four-archetype ASCII-wireframe library) · `mermaid-decomposer` (advanced Mermaid on a verbatim 11-type syntax catalog + a mechanized render-check) · `component-decomposer` (zero-dependency web components, with a deterministic geometry engine — every glyph centered in a square cell, so edge padding = (height − glyph)/2) · `color-science` (perceptual color + a TypeScript color library + 54 interactive demos) · `typography-lettering` (type anatomy → world scripts → the modern CSS text surface) · `ref-polyfills` (CSS/JS feature support, polyfills, the Baseline landscape) · the **verifiers** `color-`/`focus-`/`i18n-`/`perf-`/`safety-verifier` (gate a UI surface on contrast, focus order, i18n, perf budgets, and safety — each a card-based `bin/` check).
+- **code-skills** — `code-decomposer` (a unit of code: right + provably runs, with an execution harness and a test-vacuity linter that attacks the "green but wrong" quadrant) · `regex-decomposer` (a pattern that means the right language and won't ReDoS) · `query-decomposer` (a SQL query at the right grain that actually plans) · `type-decomposer` (make illegal states unrepresentable, proven by legal/illegal instance sets) · `architecture-decomposer` (a system on STRUCTURE × INTEGRITY, with an acyclicity/layering/coupling checker) · `figma-plugins` (build/test Figma plugins across the sandbox↔iframe message bridge).
 - **data-skills** — `extraction-decomposer` (is a structured extraction both schema-valid *and* true to its source — the instructive inversion where the cheap gate isn't the dangerous axis).
 - **meta-skills** — `routing-decomposer` (does a skill's frontmatter description fire on the right requests and hold against the wrong ones — graded by a mechanized routing eval).
 - **reasoning-skills** — `proof-decomposer` (are the steps valid *and* do they prove the stated claim — a proof-structure DAG check catches circular reasoning + a numeric counterexample search).
 - **ops-skills** — `config-decomposer` (does a config declare the right desired-state *and* validate/plan cleanly — the plan is the contract; a safety linter catches plaintext secrets, `:latest`, wide-open permissions).
+- **general-skills** — `research-survey` (systematic investigation & optimization: bisect, ablation, hill-climb, sweep) · `viz-2x2` (build/critique a 2×2 matrix) · `tool-stress` (stress-test a tool / MCP interface). *Domain-agnostic, reusable anywhere.*
+- **knowledge-skills** — `meta-expert-author` · `meta-theory-author` · `plan-knowledge` · `ops-knowledge` (build and maintain knowledge bases and reference corpora).
+- **manager-skills** — the `report-brief`/`-progress`/`-state`/`-strategic` family + `resume-author` (executive writing & reporting tools).
+- **skills-skills** — `skills-studio` (the skill lifecycle: author/score/critique/eval) · `skills-refactor` · `meta-app-scaffold` (the meta-tooling for authoring Claude Code skills).
+- **plugins-skills** — `plugin-decomposer` (a plugin on BUNDLE × MANIFEST — the right components for one job *and* it actually loads, with a manifest linter; the nonoun-native peer to plugins-factory).
 
 ## Install
 
@@ -83,7 +93,7 @@ The full Mermaid **render** gate (`mmdc` actually rendering each block) fires on
 
 ```
 nonoun-skills/
-  .claude-plugin/marketplace.json      # the marketplace (6 plugins)
+  .claude-plugin/marketplace.json      # the marketplace (11 plugins)
   <plugin>/                            # design- · code- · data- · meta- · reasoning- · ops-skills
     .claude-plugin/plugin.json
     skills/<skill>/

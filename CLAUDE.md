@@ -8,13 +8,13 @@ For the human-facing overview see [README.md](README.md); to author a new skill 
 
 `nonoun-skills` is a **marketplace + home for general-purpose Claude Code skills** — domain-agnostic authoring aids kept separate from product plugins (which live in `nonoun-plugins`) so they don't bloat a plugin's standing context. Skills ship as **skill-bundle plugins**: a plugin that bundles *only* skills — no commands, agents, or MCP.
 
-There is no application to run. The deliverable is the skill content itself; the repo's job is to keep it valid, self-contained, and installable. It currently holds **6 plugins / 14 skills**, and the spine through most of them is one technique: the **decomposer**.
+There is no application to run. The deliverable is the skill content itself; the repo's job is to keep it valid, self-contained, and installable. It currently holds **11 plugins / 37 skills**, and the spine through most of them is one technique: the **decomposer**.
 
 ## Layout & the chain
 
 ```
-.claude-plugin/marketplace.json   # the marketplace — lists the 6 plugins
-<plugin>/                         # design- · code- · data- · meta- · reasoning- · ops-skills
+.claude-plugin/marketplace.json   # the marketplace — lists the 11 plugins
+<plugin>/                         # design- · code- · data- · meta- · reasoning- · ops- · general- · knowledge- · manager- · skills- · plugins-skills
   .claude-plugin/plugin.json      #   plugin manifest (version lives here)
   skills/<skill>/                 #   each SKILL is a self-contained folder
 bin/check-skills.py               # the one repo-wide gate (stdlib only)
@@ -62,7 +62,7 @@ Core principle: **skills are self-contained and computation routes to code, neve
 
 ```sh
 # The one gate — validate every skill, run all bin selftests, dogfood the render-check.
-# A fresh clone proves itself with this alone (no external tooling). Currently: 14 skills, 19 selftests.
+# A fresh clone proves itself with this alone (no external tooling). Currently: 37 skills, 26 selftests.
 python3 bin/check-skills.py
 
 # Any single bin tool exposes its self-test:

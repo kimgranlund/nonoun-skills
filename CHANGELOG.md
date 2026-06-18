@@ -4,6 +4,31 @@ Notable changes to the **nonoun-skills marketplace** — plugins, the gate, and 
 Each skill also keeps its own `CHANGELOG.md`; this file tracks the repo as a whole. Entries are
 grouped by date; the first tagged release is **v0.2.0** (2026-06-17).
 
+## 2026-06-18 — v0.3.0: the graduation (root library → marketplace)
+
+The marketplace nearly tripled — **6 plugins / 14 skills → 11 plugins / 37 skills** — by graduating
+the reusable, domain-agnostic skills from the root `~/.claude/skills` library into versioned, gated,
+corpus-tested nonoun plugins. Each graduate was adapted to the contract (name==dir, ≤1024 description,
+resolving links, fences rewritten to in-repo peers) and matured to the routing standard.
+
+- **Five new plugins.** `general-skills` (research-survey · viz-2x2 · tool-stress), `knowledge-skills`
+  (meta-expert-author · meta-theory-author · plan-knowledge · ops-knowledge), `manager-skills`
+  (report-brief/-progress/-state/-strategic · resume-author), `skills-skills` (skills-studio ·
+  skills-refactor · meta-app-scaffold), `plugins-skills` (plugin-decomposer).
+- **design-skills → 0.5.0** (+6): `ref-polyfills` (reference) and the `ui-verify-*` family renamed to
+  the **`*-verifier`** category (color/focus/i18n/perf/safety), each now backed by a card-based `bin/`
+  mechanism gate (contrast ratio, CWV budgets, tabindex/focus, lang/dir/hardcoded-strings, the
+  blast-radius×reversibility safety matrix).
+- **code-skills → 0.5.0** (+1): `architecture-decomposer` — a net-new STRUCTURE × INTEGRITY decomposer
+  with a Tarjan-SCC / layering / coupling `bin/` (graduated from the root `arch-system` knowledge).
+- **plugin-decomposer** — a net-new BUNDLE × MANIFEST decomposer (a plugin manifest/structure linter).
+- **Maturation.** All 22 graduated imports carry sibling-tested routing corpora + sharpened NOT-for
+  fences (cross-fenced within families: the verifiers, the report-* family, expert↔theory,
+  studio↔refactor); the gate's routing dogfood confirms the imports add zero new collisions.
+- **Collision cleanup.** As each plugin was installed, its root twin was retired to
+  `~/.claude/skills-retired/` (reversible) — **26 twins** total — so every request routes to exactly
+  one (installed nonoun) skill. Gate green throughout: 37 skills, 26 bin selftests.
+
 ## 2026-06-17 — v0.2.x gate-deepening sweep (post-release)
 
 A run of single-bin mechanism-gate deepenings across the decomposers, each **additive, fixture-locked,
