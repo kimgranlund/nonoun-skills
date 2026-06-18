@@ -1,0 +1,31 @@
+{
+  "skill_name": "ops-knowledge",
+  "version": "1.1.0",
+  "note": "Routing eval for ops-knowledge — applying structured operations (UPSERT/DEDUPE/MERGE/SUPERSEDE/RETRACT/RENAME/RECONCILE/NORMALIZE/EXTRACT/AUDIT) to PROJECT knowledge files. trigger_phrases should route here; adversarial_phrases belong to a sibling (ops-memory for user-memory, ops-repo for repo brain, plan-knowledge for bootstrap, maintain-tokens for tokens, ops-postmortem for incidents) or to no skill (one-off chat answers).",
+  "trigger_phrases": [
+    { "id": "T01", "phrase": "UPSERT this fact into the project knowledge", "expected": true },
+    { "id": "T02", "phrase": "DEDUPE the knowledge base — this is documented in three places", "expected": true },
+    { "id": "T03", "phrase": "MERGE these two sections into one", "expected": true },
+    { "id": "T04", "phrase": "SUPERSEDE the old database decision with the new one", "expected": true },
+    { "id": "T05", "phrase": "RETRACT this entry — it's wrong", "expected": true },
+    { "id": "T06", "phrase": "RECONCILE these two sources that disagree", "expected": true },
+    { "id": "T07", "phrase": "update the project files with what we learned today", "expected": true },
+    { "id": "T08", "phrase": "add this to the knowledge base", "expected": true },
+    { "id": "T09", "phrase": "these project files are outdated, clean them up", "expected": true },
+    { "id": "T10", "phrase": "find duplicates in the knowledge base and consolidate them", "expected": true },
+    { "id": "T11", "phrase": "audit the knowledge base for stale, conflicting, or orphaned entries", "expected": true },
+    { "id": "T12", "phrase": "rename the 'Quick Start' section and fix all the references", "expected": true },
+    { "id": "T13", "phrase": "normalize these entries to the same format", "expected": true },
+    { "id": "T14", "phrase": "extract the webhooks section into its own file", "expected": true }
+  ],
+  "adversarial_phrases": [
+    { "id": "A01", "phrase": "reconcile my user-memory entries after the refactor", "expected": false, "routes_to": "ops-memory", "note": "user-memory entries (~/.claude/.../memory/), not project knowledge files" },
+    { "id": "A02", "phrase": "audit my repo's AGENTS.md and .brain docs for drift", "expected": false, "routes_to": "ops-repo", "note": "repo brain files with trip-wires/CI, not Claude Projects knowledge" },
+    { "id": "A03", "phrase": "bootstrap a new knowledge base from scratch for this project", "expected": false, "routes_to": "plan-knowledge", "note": "initial setup; ops-knowledge takes over for ongoing maintenance" },
+    { "id": "A04", "phrase": "clean up our messy design tokens", "expected": false, "routes_to": "maintain-tokens", "note": "CSS/design-token system, a different drift class" },
+    { "id": "A05", "phrase": "write a blameless postmortem for the outage", "expected": false, "routes_to": "ops-postmortem", "note": "incident writeup, not a knowledge-base mutation" },
+    { "id": "A06", "phrase": "just answer this question — I'm not saving it anywhere", "expected": false, "note": "one-off chat answer never written to a persisted file; no operation applies" },
+    { "id": "A07", "phrase": "update this CSS variables file", "expected": false, "routes_to": "maintain-tokens", "note": "token file maintenance, not structured knowledge ops" },
+    { "id": "A08", "phrase": "harvest new learnings from this repo into memory entries", "expected": false, "routes_to": "ops-repo", "note": "ops-repo's harvest path WRITES new entries; ops-knowledge maintains EXISTING project knowledge" }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "manager-skills",
+  "version": "0.1.0",
+  "description": "Management & communication skills — executive writing and reporting tools. The report family — report-brief (a tight decision brief), report-progress (progress / status update), report-state (a state-of report), report-strategic (a strategic brief) — plus resume-author (resumes / CVs). Writing tools for leadership communication: exec summaries, status, briefs. Skills only — no commands, agents, or MCP. Self-contained.",
+  "author": {
+    "name": "Kim",
+    "email": "kim.granlund@gmail.com"
+  },
+  "homepage": "https://github.com/kimgranlund/nonoun-skills",
+  "license": "MIT",
+  "keywords": ["skills", "management", "reporting", "exec-summary", "status-report", "progress", "strategic", "writing", "communication", "resume"]
+}

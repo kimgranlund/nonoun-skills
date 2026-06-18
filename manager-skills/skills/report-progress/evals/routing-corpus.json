@@ -1,0 +1,30 @@
+{
+  "$schema": "https://anthropic.com/schemas/skill-evals.v1.json",
+  "skill": "report-progress",
+  "version": "0.1.0",
+  "description": "Routing accuracy corpus — phrases that should/should not activate report-progress. Adversarial cases discriminate it from siblings, especially report-state (single-project task status vs broad current-state snapshot), the hard routing boundary flagged in the 2026-05-31 review.",
+  "trigger_phrases": [
+    "weekly progress report for the project",
+    "project status update with RAG and blockers",
+    "sprint report with completed and in-progress items",
+    "what's the status of project X",
+    "PM report with milestone tracker and next steps",
+    "blockers report — what's preventing progress",
+    "punch list of completed and outstanding items",
+    "milestone report with target dates and RAG",
+    "weekly update for stakeholders",
+    "project health check with owners and dates",
+    "how are we doing on the initiative this week",
+    "status report with risks, decisions, and next steps"
+  ],
+  "adversarial_phrases": [
+    "comprehensive state of the union for the whole platform",
+    "current-state snapshot with a health matrix across domains",
+    "write a strategic report with glossary and recommendations",
+    "intel brief with BLUF and confidence levels",
+    "get me up to speed on this topic quickly",
+    "write the PRD with requirements",
+    "design the system architecture"
+  ],
+  "notes": "Adversarials route to siblings: broad current-state/health-matrix/state-of-the-union → report-state; strategic/glossary/recommendations → report-strategic; BLUF/confidence/get-up-to-speed → report-brief; PRD → plan-prd; architecture → arch-system (not a report). report-progress owns a single bounded project's task status — completed/in-progress/blockers/milestones/next-steps with owners and dates."
+}

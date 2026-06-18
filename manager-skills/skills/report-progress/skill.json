@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schemas.adia.ai/skill/v1.json",
+  "name": "report-progress",
+  "version": "1.1.0",
+  "description": "Author project manager\u2013style progress reports covering scope, status, completed work, in-progress items, blockers, risks, milestones, and next steps. Applies PM tradecraft: RAG (Red/Amber/Green) status signals, action owners, risk register format, and punch lists. Use when reporting on a project, sprint, initiative, or any bounded body of work \u2014 to stakeholders, leadership, or for your own records. Triggers on: progress report, status report, project update, sprint report, what's the status of, punch list, blockers report, milestone report, PM report, weekly update, project health check, how are we doing on X, or any request to document the current status of a project or task set with owners, dates, and next steps. Peers with report-state (broader current-state), report-strategic (strategic framing), and plan-prd (requirements authoring).",
+  "status": "draft",
+  "authors": [
+    "kim"
+  ],
+  "tags": [
+    "reports",
+    "planning"
+  ],
+  "depends_on": [],
+  "peer_skills": [
+    "report-state",
+    "report-strategic",
+    "plan-prd",
+    "viz-2x2"
+  ],
+  "files": [
+    "CHANGELOG.md",
+    "ROADMAP.md",
+    "SKILL.md",
+    "references/format.md",
+    "references/rag-system.md",
+    "references/risk-register.md",
+    "skill.json",
+    "evals/routing-corpus.json",
+    "reviews/2026-05-31-skills-critique-full-panel.md"
+  ],
+  "target": "agent"
+}

@@ -1,0 +1,29 @@
+{
+  "skill_name": "meta-app-scaffold",
+  "version": "1.12.2",
+  "note": "Routing baseline v1.12.1. meta-app-scaffold scaffolds apps/{name}/ directory foundations. Adversarials distinguish from skills-studio (skill authoring), ops-repo (auditing), plan-spec (spec-only), ref-gen-ui-systems (genui reference), ui-orchestrator (UI generation), and plain file creation. 3 adversarial cases added in v1.12.1 per promote-mode council findings (Huyen Critical: R=0.58; corpus was 2.4:1 trigger-to-adversarial ratio).",
+  "trigger_phrases": [
+    { "id": "T01", "phrase": "scaffold a new app", "expected": true },
+    { "id": "T02", "phrase": "bootstrap apps/billing-demo", "expected": true },
+    { "id": "T03", "phrase": "create an apps/ foundation", "expected": true },
+    { "id": "T04", "phrase": "new reference app", "expected": true },
+    { "id": "T05", "phrase": "set up app-foundation", "expected": true },
+    { "id": "T06", "phrase": "start a new playground app", "expected": true },
+    { "id": "T07", "phrase": "new app like apps/tasks", "expected": true },
+    { "id": "T08", "phrase": "scaffold a project under apps/", "expected": true },
+    { "id": "T09", "phrase": "create the folder structure for my new demo app", "expected": true },
+    { "id": "T10", "phrase": "set up the canonical layout for a new app", "expected": true },
+    { "id": "T11", "phrase": "reverse-engineer the existing app into spec and plan docs", "expected": true },
+    { "id": "T12", "phrase": "I want to start a clone-and-run app with skills and spec folders", "expected": true }
+  ],
+  "adversarial_phrases": [
+    { "id": "A01", "phrase": "create a new skill for my app", "expected": false, "routes_to": "skills-studio" },
+    { "id": "A02", "phrase": "audit my apps/ directory for stale docs", "expected": false, "routes_to": "ops-repo" },
+    { "id": "A03", "phrase": "write a spec for this feature", "expected": false, "routes_to": "plan-spec" },
+    { "id": "A04", "phrase": "create a Claude Code plugin with a manifest", "expected": false, "note": "meta-app-scaffold explicitly does NOT create plugins; this should escalate/clarify" },
+    { "id": "A05", "phrase": "scaffold a single HTML file for a demo", "expected": false, "note": "single-file demos are not meta-app-scaffold territory; out of scope per When NOT to use" },
+    { "id": "A06", "phrase": "scaffold a new skill for my project", "expected": false, "routes_to": "skills-studio", "note": "skill authoring → skills-studio, not app foundation scaffolding" },
+    { "id": "A07", "phrase": "set up the folder structure for this entire repository", "expected": false, "routes_to": "ops-repo", "note": "repo-level structure → ops-repo; meta-app-scaffold is scoped to apps/{name}/ only" },
+    { "id": "A08", "phrase": "create the spec and plan docs for this feature without scaffolding the app directory", "expected": false, "routes_to": "plan-spec", "note": "spec/plan doc authoring without folder scaffold → plan-spec; meta-app-scaffold produces the directory structure first" }
+  ]
+}

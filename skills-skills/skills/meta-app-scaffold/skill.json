@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schemas.adia.ai/skill/v1.json",
+  "name": "meta-app-scaffold",
+  "version": "1.13.0",
+  "description": "Create the apps/{name}/ directory tree \u2014 folder skeleton with spec/, plan/, and app/ axes plus seeded README, BRIEF, SPEC, ROADMAP stub files \u2014 for reference apps, playground apps, and clone-and-run demo apps. Greenfield mode chains meta-expert-author and plan-spec for substantive content. Reverse-engineering mode derives spec from existing app source via verified-surface protocol. NOT for creating skills or skill files (use skills-studio); NOT for auditing or repairing existing repo docs (use ops-repo).",
+  "status": "draft",
+  "authors": [
+    "kim"
+  ],
+  "codeowners": [],
+  "tags": [
+    "scaffold",
+    "bootstrap",
+    "app-foundation",
+    "monorepo",
+    "claude-code-plugin-layout",
+    "agent-skills-v1",
+    "prd",
+    "spec",
+    "plan",
+    "roadmap",
+    "milestones",
+    "reverse-engineering",
+    "meta-skill"
+  ],
+  "depends_on": [],
+  "peer_skills": [
+    "meta-expert-author",
+    "plan-spec",
+    "plan-prd",
+    "skills-studio",
+    "arch-system",
+    "ops-repo"
+  ],
+  "files": [
+    "CHANGELOG.md",
+    "ROADMAP.md",
+    "SKILL.md",
+    "examples/apps-tasks-walkthrough.md",
+    "references/composition.md",
+    "references/layout.md",
+    "references/reverse-engineering.md",
+    "references/templates.md",
+    "skill.json",
+    "evals/routing-corpus.json",
+    "scripts/scaffold_app.py"
+  ],
+  "target": "agent"
+}

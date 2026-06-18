@@ -1,0 +1,12 @@
+{
+  "name": "skills-skills",
+  "version": "0.1.0",
+  "description": "Skills for authoring and optimizing Claude Code SKILLS — the meta-tooling for the skill ecosystem itself. skills-studio (the skill lifecycle: author / edit / optimize, score against the best-practices rubric, the 9-critic adversarial council, behavioral evals, routing corpora), skills-refactor (refactor or split an existing skill), and meta-app-scaffold (scaffold a skill / reference-app foundation). Skills only — no commands, agents, or MCP. Self-contained.",
+  "author": {
+    "name": "Kim",
+    "email": "kim.granlund@gmail.com"
+  },
+  "homepage": "https://github.com/kimgranlund/nonoun-skills",
+  "license": "MIT",
+  "keywords": ["skills", "skill-authoring", "skills-studio", "refactor", "scaffold", "meta", "routing", "eval", "critique", "optimization"]
+}

@@ -1,0 +1,786 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "_comment": "Machine-parseable registry of all best-practices rubrics. Consume this to discover rubrics, check adoption, and validate system scores. See README.md for dimension-type conventions. The optional `foundation` field on a rubric links it to its theory doc in foundations/; scripts/check-foundations-coverage.py gates that every foundations/*.md has exactly one rubric pointing back to it.",
+  "library": "agentic-systems-best-practices",
+  "version": "0.15.0",
+  "status": "draft",
+  "critics": [
+    {
+      "id": "boris-cherny",
+      "layer": "authoring",
+      "lens": "PEV loop, harness quality, vanilla > ceremony"
+    },
+    {
+      "id": "steve-yegge",
+      "layer": "scale",
+      "lens": "Platform vs. product, N=20+ coordination, API surface"
+    },
+    {
+      "id": "elon-musk",
+      "layer": "complexity",
+      "lens": "Delete-first, minimum viable, first principles"
+    },
+    {
+      "id": "charity-majors",
+      "layer": "runtime",
+      "lens": "Post-deploy feedback, production observability"
+    },
+    {
+      "id": "andrej-karpathy",
+      "layer": "model",
+      "lens": "Task verifiability, jagged capability distribution"
+    },
+    {
+      "id": "simon-willison",
+      "layer": "security",
+      "lens": "Trust boundaries, lethal trifecta, structural injection defense"
+    },
+    {
+      "id": "scott-wlaschin",
+      "layer": "composition",
+      "lens": "Make illegal states unrepresentable, type-driven design, signature honesty"
+    },
+    {
+      "id": "chip-huyen",
+      "layer": "orchestration",
+      "lens": "Workflows vs. agents (the determinism boundary), tool contracts, measured failure modes"
+    },
+    {
+      "id": "david-farley",
+      "layer": "delivery",
+      "lens": "Reproducibility, automated deployment pipeline, idempotency, testability = determinism"
+    }
+  ],
+  "dimension_types": {
+    "gate": "Scoreable mechanically \u2014 routing F1, pass/fail, counts, linter output. Can be an automated CI check.",
+    "review": "Requires expert human judgment \u2014 quality of verify target, inversion completeness, discoverability.",
+    "hypothesis": "Stated as an observable property but not yet empirically verified across invocations. Track with timing data."
+  },
+  "rubrics": [
+    {
+      "name": "skills-holistic",
+      "file": "rubrics/skills-holistic.md",
+      "version": "0.2.0",
+      "layer": "authoring",
+      "primary_critic": "boris-cherny",
+      "key_question": "Does this skill address all ten load-bearing quality dimensions \u2014 instructions, control mode, rubrics, mechanization, evaluation, extensibility, security, observability, context engineering, and plan anatomy?",
+      "dimensions": 10,
+      "dimension_breakdown": {
+        "gate": [
+          "D3-rubric-quality",
+          "D4-mechanization",
+          "D5-evaluation",
+          "D7-security-trust-boundaries"
+        ],
+        "review": [
+          "D1-instructions-harness",
+          "D2-control-mode",
+          "D6-extensibility",
+          "D8-observability",
+          "D9-context-engineering",
+          "D10-plan-anatomy"
+        ]
+      },
+      "anti_patterns_count": 4,
+      "hard_tests_count": 10,
+      "minimum_scale": "solo",
+      "note": "Meta-rubric synthesizing all ten load-bearing skill quality dimensions. Use at creation time (does this new skill address all 10?) and at evaluation time (does this existing skill score holistically?). Individual dimension rubrics provide drill-down detail. D9 (Context Engineering) and D10 (Plan Anatomy) were promoted from cross-cutting rubrics in v0.2.0; governance stays cross-cutting (team/system scale) \u2014 see the rubric's \u00a7Scope.",
+      "dependencies": [
+        "harness-design",
+        "skills-authoring",
+        "prompt-control-modes",
+        "inversion-and-abstraction",
+        "evaluation-workflows",
+        "skill-extensibility",
+        "security-and-scope-containment",
+        "observability-and-telemetry",
+        "context-engineering",
+        "plan-anatomy"
+      ],
+      "empirical_applications": 1,
+      "empirical_application_notes": "First application 2026-05-31 (v0.2.0): fresh-context dogfood scoring core-agent-loops v0.1.7 \u2014 core-agent-loops/reviews/2026-05-31-holistic-10dim-dogfood-scorecard.md. D9/D10 discriminated; the run surfaced a novel Critical two prior 9-critic panels missed (now fixed in core-agent-loops v0.1.8)."
+    },
+    {
+      "name": "harness-design",
+      "file": "rubrics/harness-design.md",
+      "foundation": "foundations/instructions-harness-foundations.md",
+      "version": "0.1.0",
+      "layer": "authoring",
+      "primary_critic": "boris-cherny",
+      "key_question": "What belongs in AGENTS.md, and what does bloat look like?",
+      "dimensions": 6,
+      "minimum_scale": "solo",
+      "dependencies": [],
+      "empirical_applications": 0
+    },
+    {
+      "name": "agentic-coding",
+      "file": "rubrics/agentic-coding.md",
+      "version": "0.1.1",
+      "layer": "authoring",
+      "primary_critic": "boris-cherny",
+      "key_question": "Does this system close the Plan\u2192Execute\u2192Verify loop reliably?",
+      "dimensions": 8,
+      "minimum_scale": "solo",
+      "dependencies": [
+        "harness-design",
+        "prompt-control-modes"
+      ],
+      "empirical_applications": 0
+    },
+    {
+      "name": "prompt-control-modes",
+      "file": "rubrics/prompt-control-modes.md",
+      "foundation": "foundations/control-mode-foundations.md",
+      "version": "0.1.0",
+      "layer": "authoring",
+      "primary_critic": "boris-cherny",
+      "key_question": "Does the prompt's control mode match the task's entropy, risk, and desired autonomy?",
+      "dimensions": 6,
+      "minimum_scale": "solo",
+      "dependencies": [],
+      "empirical_applications": 0
+    },
+    {
+      "name": "context-engineering",
+      "file": "rubrics/context-engineering.md",
+      "foundation": "foundations/context-engineering-foundations.md",
+      "version": "0.1.0",
+      "layer": "authoring",
+      "primary_critic": "boris-cherny",
+      "key_question": "Is context a precision instrument or a dumping ground?",
+      "dimensions": 6,
+      "minimum_scale": "solo",
+      "dependencies": [],
+      "empirical_applications": 0
+    },
+    {
+      "name": "skills-authoring",
+      "file": "rubrics/skills-authoring.md",
+      "version": "0.2.0",
+      "layer": "authoring",
+      "primary_critic": "andrej-karpathy",
+      "key_question": "Does this skill compound over invocations, or accumulate drift?",
+      "dimensions": 7,
+      "dimension_breakdown": {
+        "gate": [
+          "D1-description",
+          "D5-drift-resistance",
+          "D7-roadmap-presence"
+        ],
+        "review": [
+          "D2-discoverability",
+          "D3-inversion",
+          "D4-pev-binding",
+          "D6-compounding"
+        ],
+        "hypothesis": [
+          "D6-compounding"
+        ]
+      },
+      "minimum_scale": "solo",
+      "dependencies": [
+        "harness-design",
+        "context-engineering"
+      ],
+      "empirical_applications": 0
+    },
+    {
+      "name": "tool-use",
+      "file": "rubrics/tool-use.md",
+      "version": "0.1.0",
+      "layer": "authoring",
+      "primary_critic": "elon-musk",
+      "key_question": "Are tools contracts with clear success criteria, or guesses with side effects?",
+      "dimensions": 6,
+      "minimum_scale": "solo",
+      "dependencies": [],
+      "empirical_applications": 0
+    },
+    {
+      "name": "evaluation-workflows",
+      "file": "rubrics/evaluation-workflows.md",
+      "foundation": "foundations/eval-foundations.md",
+      "version": "0.1.1",
+      "layer": "authoring",
+      "primary_critic": "chip-huyen",
+      "key_question": "Are systems tested adversarially with fresh context, or self-confirmed by their builders?",
+      "dimensions": 7,
+      "minimum_scale": "solo",
+      "dependencies": [
+        "skills-authoring"
+      ],
+      "empirical_applications": 0
+    },
+    {
+      "name": "inversion-and-abstraction",
+      "file": "rubrics/inversion-and-abstraction.md",
+      "version": "0.1.0",
+      "layer": "authoring",
+      "primary_critic": "elon-musk",
+      "key_question": "Is the agent deciding and observing, or manually executing what a script should do?",
+      "dimensions": 6,
+      "minimum_scale": "solo",
+      "dependencies": [
+        "skills-authoring",
+        "tool-use"
+      ],
+      "empirical_applications": 0
+    },
+    {
+      "name": "progressive-context-construction",
+      "file": "rubrics/progressive-context-construction.md",
+      "version": "0.1.0",
+      "layer": "authoring",
+      "primary_critic": "boris-cherny",
+      "key_question": "Does context grow with the task, or arrive fully-formed as noise before the first action?",
+      "dimensions": 6,
+      "minimum_scale": "solo",
+      "dependencies": [
+        "context-engineering"
+      ],
+      "empirical_applications": 0
+    },
+    {
+      "name": "multi-agent-coordination",
+      "file": "rubrics/multi-agent-coordination.md",
+      "version": "0.1.0",
+      "layer": "scale",
+      "primary_critic": "steve-yegge",
+      "key_question": "Is agent isolation structural or behavioral \u2014 and what happens when behavioral contracts break?",
+      "dimensions": 6,
+      "minimum_scale": "team",
+      "dependencies": [
+        "agentic-coding",
+        "harness-design",
+        "security-and-scope-containment"
+      ],
+      "empirical_applications": 0
+    },
+    {
+      "name": "observability-and-telemetry",
+      "file": "rubrics/observability-and-telemetry.md",
+      "foundation": "foundations/observability-foundations.md",
+      "version": "0.1.0",
+      "layer": "runtime",
+      "primary_critic": "charity-majors",
+      "key_question": "Can you answer the 5-minute test from telemetry, or is all analysis anecdotal?",
+      "dimensions": 7,
+      "minimum_scale": "team",
+      "dependencies": [
+        "agentic-coding",
+        "evaluation-workflows"
+      ],
+      "empirical_applications": 0
+    },
+    {
+      "name": "generative-ui-reasoning",
+      "file": "rubrics/generative-ui-reasoning.md",
+      "version": "0.1.0",
+      "layer": "authoring",
+      "primary_critic": "boris-cherny",
+      "key_question": "Does the agent reason top-down from intent to decision before emitting components, or does it prematurely render?",
+      "dimensions": 7,
+      "dimension_breakdown": {
+        "gate": [
+          "D1-premature-rendering",
+          "D2-decision-completeness",
+          "D3-traceability",
+          "D4-operational-model"
+        ],
+        "review": [
+          "D5-role-differentiation",
+          "D6-entry-point-handling",
+          "D7-output-contract"
+        ]
+      },
+      "minimum_scale": "solo",
+      "dependencies": [
+        "agentic-coding",
+        "prompt-control-modes",
+        "evaluation-workflows"
+      ],
+      "empirical_applications": 0
+    },
+    {
+      "name": "security-and-scope-containment",
+      "file": "rubrics/security-and-scope-containment.md",
+      "foundation": "foundations/security-foundations.md",
+      "version": "0.1.1",
+      "layer": "security",
+      "primary_critic": "simon-willison",
+      "key_question": "Does agent privilege match task scope, and is the lethal trifecta structurally prevented?",
+      "dimensions": 7,
+      "minimum_scale": "solo",
+      "dependencies": [
+        "tool-use",
+        "harness-design"
+      ],
+      "empirical_applications": 0
+    },
+    {
+      "name": "mechanization-best-practices",
+      "file": "rubrics/mechanization-best-practices.md",
+      "foundation": "foundations/mechanization-foundations.md",
+      "version": "0.1.0",
+      "layer": "authoring",
+      "primary_critic": "david-farley",
+      "key_question": "Are repeatable, testable, failure-prone procedures moved out of prose into deterministic mechanisms \u2014 and chosen at the right enforcement level (script / validator / hook / CI gate / workflow / policy)?",
+      "dimensions": 7,
+      "minimum_scale": "solo",
+      "dependencies": [
+        "inversion-and-abstraction",
+        "tool-use",
+        "agentic-coding",
+        "security-and-scope-containment",
+        "evaluation-workflows",
+        "observability-and-telemetry"
+      ],
+      "empirical_applications": 0
+    },
+    {
+      "name": "skill-extensibility",
+      "file": "rubrics/skill-extensibility.md",
+      "foundation": "foundations/extensibility-foundations.md",
+      "version": "0.1.0",
+      "layer": "authoring",
+      "primary_critic": "boris-cherny",
+      "key_question": "Does the skill learn from observed evidence without bloating the cold-start surface \u2014 with placement discipline, regression safety, and a closed observe \u2192 classify \u2192 place \u2192 verify \u2192 monitor \u2192 prune/promote/mechanize loop?",
+      "dimensions": 8,
+      "minimum_scale": "solo",
+      "dependencies": [
+        "skills-authoring",
+        "harness-design",
+        "progressive-context-construction",
+        "inversion-and-abstraction",
+        "mechanization-best-practices",
+        "evaluation-workflows",
+        "observability-and-telemetry",
+        "security-and-scope-containment"
+      ],
+      "empirical_applications": 0
+    },
+    {
+      "name": "worktree-operations",
+      "file": "rubrics/worktree-operations.md",
+      "version": "0.1.0",
+      "layer": "scale",
+      "primary_critic": "david-farley",
+      "key_question": "Is multi-agent Git/worktree state typed and bounded \u2014 with manifest-backed lifecycle, path ownership, validation gates, and recovery protocol \u2014 or is integration a conflict-accumulation lane?",
+      "dimensions": 7,
+      "dimension_breakdown": {
+        "gate": [
+          "D1-isolation-and-ownership",
+          "D2-manifest-backed-lifecycle-state",
+          "D3-path-ownership-and-shared-surface-control",
+          "D5-validation-before-integration"
+        ],
+        "review": [
+          "D4-staging-and-commit-discipline",
+          "D6-integration-ordering-and-batch-control",
+          "D7-recovery-abandonment-and-archive-safety"
+        ]
+      },
+      "minimum_scale": "team",
+      "dependencies": [
+        "harness-design",
+        "context-engineering",
+        "progressive-context-construction",
+        "inversion-and-abstraction",
+        "tool-use",
+        "evaluation-workflows"
+      ],
+      "empirical_applications": 0
+    },
+    {
+      "name": "agents-ux-wireframing-ascii",
+      "file": "rubrics/agents-ux-wireframing-ascii.md",
+      "version": "0.1.0",
+      "layer": "authoring",
+      "primary_critic": "boris-cherny",
+      "key_question": "Does the agent produce an ASCII wireframe (structural reasoning artifact) between intent and implementation \u2014 covering region traceability, ownership, state, and responsive behavior \u2014 or does it collapse directly from prompt to polished components?",
+      "dimensions": 10,
+      "dimension_breakdown": {
+        "gate": [
+          "D1-intent-to-structure-traceability",
+          "D2-structural-hierarchy-clarity",
+          "D3-interaction-ownership",
+          "D4-state-coverage",
+          "D5-responsive-decomposition",
+          "D9-reviewability-and-diffability"
+        ],
+        "review": [
+          "D6-density-and-information-priority",
+          "D7-semantic-component-mapping",
+          "D8-annotation-discipline",
+          "D10-appropriate-fidelity"
+        ]
+      },
+      "wireframe_levels": [
+        "region",
+        "interaction",
+        "state",
+        "responsive",
+        "component"
+      ],
+      "anti_patterns_count": 10,
+      "minimum_scale": "solo",
+      "dependencies": [
+        "generative-ui-reasoning",
+        "context-engineering",
+        "progressive-context-construction",
+        "evaluation-workflows"
+      ],
+      "empirical_applications": 1
+    },
+    {
+      "name": "prd-authoring",
+      "file": "rubrics/prd-authoring.md",
+      "version": "0.1.0",
+      "layer": "product-authoring",
+      "primary_critic": "steve-yegge",
+      "key_question": "Does the PRD establish shared product intent for the human team \u2014 problem, users, outcomes, scope boundaries, tradeoffs \u2014 without collapsing into a disguised implementation plan or a vague feature list?",
+      "dimensions": 8,
+      "dimension_breakdown": {
+        "gate": [
+          "D1-problem-statement-clarity",
+          "D2-goals-non-goals-balance",
+          "D3-user-persona-specificity",
+          "D4-success-metrics-measurability",
+          "D5-implementation-prescription-avoidance"
+        ],
+        "review": [
+          "D6-tradeoff-acknowledgment",
+          "D7-prioritization-clarity",
+          "D8-outcome-orientation"
+        ]
+      },
+      "anti_patterns_count": 7,
+      "hard_tests_count": 5,
+      "minimum_scale": "team",
+      "dependencies": [
+        "context-engineering",
+        "progressive-context-construction"
+      ],
+      "downstream_rubrics": [
+        "spec-authoring"
+      ],
+      "source": "/Users/kimba/Downloads/prd-vs-spec-agentic-coding-workflows.md (sections 2, 6, 10, 13.1)"
+    },
+    {
+      "name": "spec-authoring",
+      "file": "rubrics/spec-authoring.md",
+      "version": "0.1.0",
+      "layer": "agent-coding",
+      "primary_critic": "boris-cherny",
+      "key_question": "Does the SPEC define an execution contract bounded enough for a coding agent to implement, verify, and stop safely \u2014 or does it leave ambiguity that the agent fills with its own assumptions, producing over-edits, under-implementations, or unsafe refactors?",
+      "dimensions": 10,
+      "dimension_breakdown": {
+        "gate": [
+          "D1-scope-non-scope-explicit",
+          "D2-behavioral-precision",
+          "D3-typed-data-contracts",
+          "D4-api-service-contracts",
+          "D5-ui-component-contracts",
+          "D6-file-module-map-present",
+          "D7-acceptance-criteria-mapped"
+        ],
+        "review": [
+          "D8-source-prd-link",
+          "D9-stop-and-escalate-conditions",
+          "D10-conservative-edit-framing"
+        ]
+      },
+      "anti_patterns_count": 8,
+      "hard_tests_count": 7,
+      "minimum_scale": "solo",
+      "dependencies": [
+        "prd-authoring",
+        "context-engineering",
+        "harness-design"
+      ],
+      "companion_rubrics": [
+        "agents-ux-wireframing-ascii",
+        "composite-css-composition-discipline"
+      ],
+      "source": "/Users/kimba/Downloads/prd-vs-spec-agentic-coding-workflows.md (sections 3, 7, 8, 11, 13.2)"
+    },
+    {
+      "name": "composite-css-composition-discipline",
+      "file": "rubrics/composite-css-composition-discipline.md",
+      "version": "0.1.0",
+      "layer": "gen-ui-authoring",
+      "primary_critic": "boris-cherny",
+      "key_question": "When an agent composes UI from primitives + composites with their own @scope CSS, does it respect the layered contracts (composition grammars, intrinsic display, slot vocabularies) or override them in ways that silently break the child's intrinsic layout?",
+      "dimensions": 8,
+      "dimension_breakdown": {
+        "gate": [
+          "D1-composition-grammar-respect",
+          "D2-parent-child-display-boundary",
+          "D3-control-group-size-consistency",
+          "D4-container-query-grid-alignment",
+          "D6-slot-vocabulary-use"
+        ],
+        "review": [
+          "D5-default-vs-contract-distinction",
+          "D7-embedded-composite-visual-debt-ack",
+          "D8-wrapper-primitive-attribute-forwarding"
+        ]
+      },
+      "anti_patterns_count": 5,
+      "hard_tests_count": 4,
+      "minimum_scale": "solo",
+      "dependencies": [
+        "agents-ux-wireframing-ascii",
+        "generative-ui-reasoning"
+      ],
+      "empirical_applications": 1,
+      "source_incidents": [
+        "2026-05-24 billing-overview CSS-illiteracy postmortem (chat-ui)",
+        "2026-05-24 8-demo grandfather-elimination + 4 cross-composite cycle (chat-ui)"
+      ]
+    },
+    {
+      "name": "report-authoring",
+      "file": "rubrics/report-authoring.md",
+      "version": "0.1.0",
+      "layer": "document-authoring",
+      "primary_critic": "simon-willison",
+      "key_question": "Does the report give its reader a trustworthy, decision-ready picture \u2014 every claim traceable to a named source, signals calibrated and honest, the bottom line first, and ingested material treated as data rather than instructions \u2014 or is it a well-formatted document whose assertions cannot be verified?",
+      "dimensions": 7,
+      "dimension_breakdown": {
+        "gate": [
+          "D1-claim-evidence-traceability",
+          "D2-source-provenance-trust-boundary",
+          "D5-recommendation-actionability",
+          "D7-uncertainty-gap-surfacing"
+        ],
+        "review": [
+          "D3-bluf-pyramid-structure",
+          "D4-audience-fit",
+          "D6-calibrated-signal-discipline-honesty"
+        ]
+      },
+      "anti_patterns_count": 6,
+      "hard_tests_count": 5,
+      "minimum_scale": "solo",
+      "dependencies": [
+        "security-and-scope-containment",
+        "context-engineering"
+      ],
+      "companion_rubrics": [
+        "prd-authoring",
+        "spec-authoring"
+      ],
+      "scoring_targets": [
+        "report-strategic",
+        "report-brief",
+        "report-state",
+        "report-progress"
+      ],
+      "empirical_applications": 0,
+      "source": "Derived 2026-05-31 from the report-* family review (4 blind skills-studio passes that converged on these dimensions)."
+    },
+    {
+      "name": "plan-anatomy",
+      "file": "rubrics/plan-anatomy.md",
+      "version": "0.1.0",
+      "layer": "authoring",
+      "primary_critic": "scott-wlaschin",
+      "key_question": "Are the agent's plans well-structured bridges from intent to reliable execution \u2014 verifiable subgoals, explicit dependencies, checkpoints before expensive steps, real-state completion criteria, recovery paths \u2014 or vague sequences the model improvises through, producing different execution paths from identical inputs?",
+      "dimensions": 7,
+      "dimension_breakdown": {
+        "gate": [
+          "D2-dependency-and-ordering",
+          "D3-checkpoint-design",
+          "D4-decision-point-specification",
+          "D5-completion-criteria"
+        ],
+        "review": [
+          "D1-goal-decomposition-quality",
+          "D6-recovery-paths",
+          "D7-plan-representation-quality"
+        ]
+      },
+      "anti_patterns_count": 7,
+      "hard_tests_count": 10,
+      "minimum_scale": "solo",
+      "foundation": "foundations/plan-anatomy-foundations.md",
+      "dependencies": [
+        "agentic-coding",
+        "prompt-control-modes"
+      ],
+      "empirical_applications": 0
+    },
+    {
+      "name": "governance",
+      "file": "rubrics/governance.md",
+      "version": "0.1.0",
+      "layer": "runtime",
+      "primary_critic": "david-farley",
+      "key_question": "Does the system have explicit governance \u2014 change control, eval governance, role separation, audit trails, policy-as-code, and override authority \u2014 or does it rely on informal norms and govern by whoever-happened-to-make-the-change?",
+      "dimensions": 7,
+      "dimension_breakdown": {
+        "gate": [
+          "D1-change-control",
+          "D2-eval-governance",
+          "D4-audit-trail",
+          "D5-policy-encoding",
+          "D6-override-authority"
+        ],
+        "review": [
+          "D3-role-separation",
+          "D7-human-override-of-agent-decisions"
+        ]
+      },
+      "anti_patterns_count": 6,
+      "hard_tests_count": 8,
+      "minimum_scale": "team",
+      "foundation": "foundations/governance-foundations.md",
+      "dependencies": [
+        "evaluation-workflows",
+        "observability-and-telemetry",
+        "security-and-scope-containment"
+      ],
+      "empirical_applications": 0
+    },
+    {
+      "name": "cold-start-orientation",
+      "file": "rubrics/cold-start-orientation.md",
+      "version": "0.1.0",
+      "layer": "authoring",
+      "primary_critic": "boris-cherny",
+      "key_question": "Can a first-time user answer 'use [skill]' and 'how should I use [skill]?' helpfully from SKILL.md alone, without loading reference files or reading beyond line 50?",
+      "dimensions": 6,
+      "dimension_breakdown": {
+        "gate": [
+          "D1-quick-start-presence",
+          "D3-worked-example-embedded",
+          "D5-concept-inline-definition"
+        ],
+        "review": [
+          "D2-first-screen-coverage",
+          "D4-example-specificity",
+          "D6-mode-clarity"
+        ]
+      },
+      "anti_patterns_count": 4,
+      "hard_tests_count": 6,
+      "minimum_scale": "solo",
+      "dependencies": [
+        "skills-authoring",
+        "harness-design"
+      ],
+      "empirical_applications": 0
+    },
+    {
+      "name": "rubric-quality",
+      "file": "rubrics/rubric-quality.md",
+      "foundation": "foundations/rubric-foundations.md",
+      "version": "0.1.0",
+      "layer": "authoring",
+      "primary_critic": "scott-wlaschin",
+      "key_question": "Does this rubric produce consistent, calibrated scores \u2014 or does it generate noise through adjective-only anchors, mislabeled criteria, and unverified hypotheses asserted as facts?",
+      "dimensions": 6,
+      "dimension_breakdown": {
+        "gate": [
+          "D1-label-completeness",
+          "D3-behavioral-anchor-quality",
+          "D5-hypothesis-measurement-plan"
+        ],
+        "review": [
+          "D2-label-accuracy",
+          "D4-criterion-independence",
+          "D6-calibration-potential"
+        ]
+      },
+      "anti_patterns_count": 4,
+      "hard_tests_count": 6,
+      "minimum_scale": "solo",
+      "dependencies": [
+        "skills-authoring",
+        "evaluation-workflows"
+      ],
+      "empirical_applications": 0
+    },
+    {
+      "name": "expert-council-design",
+      "file": "rubrics/expert-council-design.md",
+      "version": "0.1.0",
+      "layer": "meta-evaluation",
+      "primary_critic": "scott-wlaschin",
+      "key_question": "Is the skill's panel of critics/personas a well-designed instrument \u2014 voices grounded in verifiable authority, the set partitioning the space without redundancy, persona the right control mode, output falsifiable, and the panel proven to discriminate a failing artifact, not only bless good ones?",
+      "dimensions": 5,
+      "dimension_breakdown": {
+        "gate": [
+          "C2-non-redundancy-coverage",
+          "C4-falsifiable-persona-output"
+        ],
+        "review": [
+          "C1-authority-grounding",
+          "C3-control-mode-fitness"
+        ],
+        "hypothesis": [
+          "C5-calibration-discrimination"
+        ]
+      },
+      "anti_patterns_count": 5,
+      "hard_tests_count": 5,
+      "minimum_scale": "solo",
+      "companion_rubrics": [
+        "rubric-quality",
+        "multi-agent-coordination",
+        "prompt-control-modes"
+      ],
+      "scoring_targets": [
+        "brand-studio",
+        "core-agentic-ux-best-practices",
+        "skills-studio"
+      ],
+      "empirical_applications": 0,
+      "source": "Derived 2026-05-31 from the brand-studio re-review (skills-studio dogfood) \u2014 no home existed for scoring the critic panel a skill ships, distinct from the rubrics it ships."
+    },
+    {
+      "name": "runtime-compatibility",
+      "file": "rubrics/runtime-compatibility.md",
+      "foundation": "foundations/runtime-environment-foundations.md",
+      "description": "Validates runtime target (agent/chat/both), tool usage consistency, \u00a7SelfAudit gates, artifact sandbox safety, graceful degradation, and MCP documentation.",
+      "load_when": "Always during score/promote \u2014 prerequisite gate before D1-D10. Also when authoring to validate target declaration.",
+      "dimensions": [
+        "D0-runtime-target",
+        "D1-tool-consistency",
+        "D2-selfaudit-gates",
+        "D3-artifact-quality",
+        "D4-graceful-degradation",
+        "D5-mcp-docs"
+      ],
+      "scope": [
+        "agent",
+        "chat",
+        "both"
+      ]
+    }
+  ],
+  "adoption_contract": {
+    "_comment": "Systems adopting these rubrics should declare which rubrics they implement and their current scores. This enables automated adoption tracking and regression detection.",
+    "example": {
+      "system": "my-agentic-fleet",
+      "rubrics_adopted": [
+        "harness-design/v0.1.0",
+        "skills-authoring/v0.1.0"
+      ],
+      "scores": {
+        "harness-design/v0.1.0": {
+          "D1-structural-clarity": 4,
+          "D2-token-economy": 3,
+          "D3-rule-quality": 4,
+          "D4-skill-surfacing": 3,
+          "D5-pev-binding": 2,
+          "D6-corrective-feedback": 3
+        }
+      },
+      "last_scored": "2026-05-23",
+      "scored_by": "human-reviewer"
+    }
+  }
+}

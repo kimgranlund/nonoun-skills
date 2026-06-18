@@ -1,0 +1,28 @@
+{
+  "$schema": "https://anthropic.com/schemas/skill-evals.v1.json",
+  "skill": "viz-2x2",
+  "version": "0.1.0",
+  "description": "Routing accuracy corpus — phrases that should/should not activate viz-2x2.",
+  "trigger_phrases": [
+    "make a 2×2",
+    "make a 2x2 of [topic]",
+    "show me the trade-offs as a quadrant diagram",
+    "I want a quadrant diagram comparing four approaches",
+    "four modes of X — visualize them",
+    "compare these four scenarios",
+    "trade-off framework",
+    "strategic positioning map",
+    "visualize the relationships between these four things",
+    "build a matrix of [topic]",
+    "comparison matrix for these four archetypes",
+    "draw a 2×2 with [axis A] on one side and [axis B] on the other"
+  ],
+  "adversarial_phrases": [
+    "show me a ranking of these options",
+    "make a flowchart of this decision",
+    "compare these three things",
+    "compare these six things",
+    "draw a Venn diagram"
+  ],
+  "notes": "Adversarial cases test wrong-cardinality (3 or 6, not 4), wrong-shape (ranking, flowchart, Venn), and gradient-vs-quadrant ambiguity. The trigger phrases mirror the WHAT+WHEN+NEG clause in skill.json description."
+}

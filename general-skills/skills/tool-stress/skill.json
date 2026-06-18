@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schemas.adia.ai/skill/v1.json",
+  "name": "tool-stress",
+  "version": "1.0.1",
+  "description": "Orchestrate stress-test and evaluation campaigns against any system",
+  "status": "stable",
+  "authors": [
+    "kim"
+  ],
+  "tags": [
+    "research-survey",
+    "testing"
+  ],
+  "depends_on": [
+    "research-survey"
+  ],
+  "peer_skills": [
+    "research-survey"
+  ],
+  "files": [
+    "CHANGELOG.md",
+    "ROADMAP.md",
+    "SKILL.md",
+    "skill.json"
+  ],
+  "target": "agent"
+}

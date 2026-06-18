@@ -1,0 +1,30 @@
+{
+  "$schema": "https://schemas.adia.ai/skill/v1.json",
+  "name": "research-survey",
+  "version": "1.0.1",
+  "description": "Systematic research-survey and optimization skill for any domain",
+  "status": "stable",
+  "authors": [
+    "kim"
+  ],
+  "tags": [
+    "research-survey"
+  ],
+  "depends_on": [],
+  "peer_skills": [
+    "tool-stress"
+  ],
+  "files": [
+    "CHANGELOG.md",
+    "ROADMAP.md",
+    "SKILL.md",
+    "references/ablation.md",
+    "references/adversarial.md",
+    "references/autoresearch.md",
+    "references/bisect.md",
+    "references/hill-climb.md",
+    "references/sweep.md",
+    "skill.json"
+  ],
+  "target": "agent"
+}

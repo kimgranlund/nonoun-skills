@@ -1,0 +1,30 @@
+{
+  "$schema": "https://anthropic.com/schemas/skill-evals.v1.json",
+  "skill": "report-state",
+  "version": "0.1.0",
+  "description": "Routing accuracy corpus — phrases that should/should not activate report-state. Adversarial cases discriminate it from siblings, especially report-progress (current-state snapshot vs project task status), the hard routing boundary flagged in the 2026-05-31 review.",
+  "trigger_phrases": [
+    "state of the union for [domain]",
+    "current state report on our systems",
+    "situation report — where do we stand",
+    "baseline the platform before the migration",
+    "what's the state of things across the portfolio",
+    "assess our current capabilities with a health matrix",
+    "system health check with RAG and trend",
+    "portfolio review — what's healthy and what isn't",
+    "landscape report of the domain",
+    "comprehensive current-state snapshot with health signals",
+    "neutral baseline of the system's current conditions",
+    "state of X — what exists, what works, what's trending"
+  ],
+  "adversarial_phrases": [
+    "weekly project status with blockers, milestones, and next steps",
+    "sprint report for the team",
+    "how are we doing on project X this week",
+    "write a strategic report with glossary and recommendations",
+    "intel brief with BLUF and confidence levels",
+    "get me up to speed on this topic quickly",
+    "write the PRD for this feature"
+  ],
+  "notes": "Adversarials route to siblings: project/sprint/blockers/milestones/this-week → report-progress (the closest, scope-narrow sibling); strategic/glossary/recommendations → report-strategic; BLUF/confidence/get-up-to-speed → report-brief; PRD → plan-prd. report-state owns the broad current-state snapshot (inventory + health matrix + trajectory + gaps), not a single project's task status."
+}

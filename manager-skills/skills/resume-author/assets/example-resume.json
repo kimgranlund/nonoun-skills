@@ -1,0 +1,107 @@
+{
+  "$schema": "https://jsonresume.org/schema/1.0.0/resume.json",
+  "basics": {
+    "name": "Jane Q. Candidate",
+    "label": "Senior Software Engineer",
+    "email": "jane.candidate@example.com",
+    "phone": "+1 415 555 0123",
+    "url": "https://jane.dev",
+    "summary": "Senior software engineer with 9 years building distributed data infrastructure. Strong in Python, Go, and Kafka/Flink streaming systems; previously lead engineer on a real-time fraud platform serving 12M MAU. Reduced fraud false-positive rate from 8.2% to 2.1% over two years.",
+    "location": {
+      "city": "San Francisco",
+      "region": "CA",
+      "countryCode": "US"
+    },
+    "profiles": [
+      { "network": "LinkedIn", "url": "https://linkedin.com/in/janecandidate" },
+      { "network": "GitHub", "url": "https://github.com/janecandidate" }
+    ]
+  },
+  "skills": [
+    { "name": "Languages", "keywords": ["Python", "Go", "SQL", "TypeScript", "Bash"] },
+    { "name": "Distributed", "keywords": ["Apache Kafka", "Apache Flink", "Apache Spark", "Redis", "PostgreSQL", "Cassandra"] },
+    { "name": "Cloud & Infra", "keywords": ["AWS (EC2, S3, EKS, RDS, Kinesis)", "Terraform", "Docker", "Kubernetes"] },
+    { "name": "ML & Observability", "keywords": ["scikit-learn", "XGBoost", "Datadog", "OpenTelemetry", "Grafana"] }
+  ],
+  "work": [
+    {
+      "name": "FinTech Co",
+      "position": "Senior Software Engineer",
+      "url": "https://fintech.example",
+      "startDate": "2022-03",
+      "endDate": "2025-04",
+      "location": "San Francisco, CA",
+      "summary": "Lead engineer for the real-time payments fraud detection platform serving 12M monthly active users.",
+      "highlights": [
+        "Reduced fraud false-positive rate from 8.2% to 2.1% (measured by 90-day chargeback rate) by replacing rule-based scoring with a gradient-boosted model on a 200-feature training set.",
+        "Shipped event-streaming pipeline (Apache Kafka, Apache Flink) handling 2B events/day, cutting end-to-end fraud-decision latency from 1.4s to 180ms.",
+        "Led a team of 5 engineers and ran the on-call rotation; reduced P1 incidents by 60% over 18 months through runbook standardization and observability work (Datadog, OpenTelemetry)."
+      ]
+    },
+    {
+      "name": "DataCorp",
+      "position": "Software Engineer",
+      "startDate": "2019-07",
+      "endDate": "2022-02",
+      "location": "San Francisco, CA",
+      "summary": "Backend engineer on the analytics ingestion platform.",
+      "highlights": [
+        "Migrated 14 batch ETL jobs from Airflow to a stream-based architecture (Apache Spark Structured Streaming), reducing data freshness from 6 hours to 90 seconds.",
+        "Designed and shipped a multi-tenant rate-limiting service in Go (Redis token bucket) handling 240K req/s, replacing a Lua-on-NGINX implementation that capped at 30K req/s."
+      ]
+    },
+    {
+      "name": "Startup Co",
+      "position": "Software Engineer",
+      "startDate": "2016-08",
+      "endDate": "2019-06",
+      "location": "San Francisco, CA",
+      "summary": "Full-stack engineer at a 12-person Series A startup.",
+      "highlights": [
+        "Built the initial billing platform (Python, PostgreSQL, Stripe) processing $14M ARR by departure.",
+        "Owned the production AWS deployment from launch through Series B; codified infrastructure as Terraform across 3 environments."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "institution": "Stanford University",
+      "area": "Computer Science",
+      "studyType": "Master of Science",
+      "startDate": "2014-09",
+      "endDate": "2016-06",
+      "score": "3.9/4.0",
+      "courses": ["Distributed Systems", "Machine Learning"]
+    },
+    {
+      "institution": "University of California, Berkeley",
+      "area": "Electrical Engineering and Computer Sciences",
+      "studyType": "Bachelor of Science",
+      "startDate": "2010-09",
+      "endDate": "2014-05",
+      "score": "3.7/4.0"
+    }
+  ],
+  "certificates": [
+    {
+      "name": "AWS Certified Solutions Architect – Professional",
+      "date": "2024-08",
+      "issuer": "Amazon Web Services",
+      "url": "https://aws.amazon.com/verification/"
+    }
+  ],
+  "projects": [
+    {
+      "name": "ratelimit-rs",
+      "description": "Open-source distributed rate limiter in Rust, 2.3K GitHub stars",
+      "url": "https://github.com/janecandidate/ratelimit-rs",
+      "startDate": "2023-06",
+      "endDate": "2024-12",
+      "highlights": [
+        "Implemented token-bucket and sliding-window algorithms with a Redis backend; benchmarked at 180K req/s on a single node.",
+        "Cited in two Rust ecosystem talks at RustConf 2024."
+      ],
+      "keywords": ["Rust", "Redis", "Distributed Systems"]
+    }
+  ]
+}

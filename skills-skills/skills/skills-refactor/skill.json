@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schemas.adia.ai/skill/v1.json",
+  "name": "skills-refactor",
+  "version": "0.3.0",
+  "description": "Restructure a skill or skill-set across a skill library \u2014 rename, merge, retire, or split \u2014 rewiring every live cross-reference while preserving dated history and re-verifying the gate suite. Use whenever you rename a skill (e.g. drop a prefix), fold/merge two skills into one, retire/deprecate an obsolete skill, or split one skill into several \u2014 and need every peer_skills entry, routing pointer, rubric-load path, gate-script key, README/AGENTS catalog row, and routing baseline updated without breaking the metadata/gate checks or rewriting changelogs and review docs. Triggers on: rename skill X to Y, merge skills A and B, fold X into Y, retire this skill, deprecate X, split X into A and B, consolidate these two skills, drop the core- prefix, rewire the references after renaming. NOT for authoring a new skill or fixing one skill's content (skills-studio), or repo-doc audits (ops-repo).",
+  "status": "draft",
+  "authors": [
+    "kim"
+  ],
+  "codeowners": [],
+  "tags": [
+    "skills",
+    "refactor",
+    "rename",
+    "merge",
+    "retire",
+    "split",
+    "library-maintenance",
+    "meta"
+  ],
+  "depends_on": [],
+  "peer_skills": [
+    "skills-studio",
+    "ops-repo",
+    "meta-expert-author"
+  ],
+  "files": [
+    "SKILL.md",
+    "skill.json",
+    "CHANGELOG.md",
+    "ROADMAP.md",
+    "references/operations.md",
+    "evals/routing-corpus.json",
+    "scripts/refactor-scan.py"
+  ],
+  "target": "agent"
+}

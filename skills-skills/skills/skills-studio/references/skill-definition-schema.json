@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.adia.ai/skill/v1.json",
+  "title": "Typed Skill Definition",
+  "description": "Primary artifact of a typed skill. Defines identity, typed contracts (input/output schemas), adapters, invariants, and composition edges. The companion SKILL.md teaches the agent how to perform the NLP-to-schema mapping.",
+  "type": "object",
+  "required": ["$schema", "name", "version", "description", "domain", "interface", "invariants", "composition", "status", "files"],
+  "additionalProperties": false,
+  "$comment": "Reconciled 2026-05-31 with the actual library convention: identity/maintenance fields are FLAT at top level (status/authors/tags/files/depends_on/peer_skills), matching every other skill and scripts/check-skill-metadata.py. The nested `meta` block is retained as an optional legacy form; new typed skills use the flat fields.",
+  "properties": {
+
+    "$schema": {
+      "const": "https://schemas.adia.ai/skill/v1.json"
+    },
+
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Kebab-case identifier. Must match directory name and SKILL.md frontmatter."
+    },
+
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semver. Patch = prose changes. Minor = new optional fields or adapters. Major = breaking schema changes."
+    },
+
+    "description": {
+      "type": "string",
+      "minLength": 50,
+      "description": "Trigger description for skill routing. Should be pushy — include direct triggers, indirect phrasings, synonyms."
+    },
+
+    "domain": {
+      "enum": ["analysis", "design", "implementation", "architecture"],
+      "description": "Primary domain. Determines position in composition chains."
+    },
+
+    "interface": {
+      "type": "object",
+      "required": ["input", "output"],
+      "additionalProperties": false,
+      "description": "The typed contract. What enters, what exits, what tunes behavior.",
+      "properties": {
+        "input": { "$ref": "#/$defs/SchemaRef" },
+        "output": { "$ref": "#/$defs/SchemaRef" },
+        "config": { "$ref": "#/$defs/SchemaRef" }
+      }
+    },
+
+    "adapters": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Explicit bridges to other skills. Every cross-skill type mismatch requires a named adapter.",
+      "properties": {
+        "inbound": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Adapter" },
+          "description": "Transform other skills' output into this skill's input."
+        },
+        "outbound": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/Adapter" },
+          "description": "Transform this skill's output into other skills' input."
+        }
+      }
+    },
+
+    "invariants": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/Invariant" },
+      "description": "Properties that hold for every valid output regardless of input."
+    },
+
+    "composition": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Declared edges in the skill pipeline graph.",
+      "properties": {
+        "upstream": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Skills whose output this skill can consume."
+        },
+        "downstream": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Skills that can consume this skill's output."
+        },
+        "peer": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Skills that operate alongside without producer-consumer relationship."
+        }
+      }
+    },
+
+    "meta": {
+      "type": "object",
+      "required": ["status", "authors", "tags", "files"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "enum": ["draft", "active", "deprecated"] },
+        "authors": { "type": "array", "items": { "type": "string" } },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "depends_on": { "type": "array", "items": { "type": "string" } },
+        "peer_skills": { "type": "array", "items": { "type": "string" } },
+        "files": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "All files in the skill directory (relative paths)."
+        },
+        "lineage": { "type": "string", "description": "Parent skill if forked." }
+      }
+    },
+
+    "status": { "enum": ["draft", "active", "stable", "complete", "deprecated"], "description": "Flat top-level field (library convention)." },
+    "authors": { "type": "array", "items": { "type": "string" } },
+    "tags": { "type": "array", "items": { "type": "string" } },
+    "depends_on": { "type": "array", "items": { "type": "string" } },
+    "peer_skills": { "type": "array", "items": { "type": "string" } },
+    "codeowners": { "type": "array", "items": { "type": "string" } },
+    "files": { "type": "array", "items": { "type": "string" }, "description": "All .md/.json files in the skill dir (relative paths). Flat, matching scripts/check-skill-metadata.py." }
+  },
+
+  "$defs": {
+
+    "SchemaRef": {
+      "type": "object",
+      "required": ["$ref"],
+      "properties": {
+        "$ref": {
+          "type": "string",
+          "description": "Path to JSON Schema file. Use './schemas/input.json' for local, 'shared://primitives/OKLCHColor' for shared library."
+        },
+        "description": {
+          "type": "string",
+          "description": "What this schema represents in domain terms."
+        }
+      }
+    },
+
+    "Adapter": {
+      "type": "object",
+      "required": ["name", "from_skill", "from_schema", "to_schema", "transforms", "drops", "defaults", "lossy", "reversible"],
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-zA-Z][a-zA-Z0-9]*$",
+          "description": "camelCase adapter name."
+        },
+        "from_skill": { "type": "string" },
+        "from_schema": { "$ref": "#/$defs/SchemaRef" },
+        "to_schema": { "$ref": "#/$defs/SchemaRef" },
+        "transforms": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Field mappings. Format: 'source.path → target.path'."
+        },
+        "drops": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["field", "reason"],
+            "properties": {
+              "field": { "type": "string" },
+              "reason": { "type": "string", "description": "The design judgment behind dropping this field." }
+            }
+          }
+        },
+        "defaults": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["field", "value", "reason"],
+            "properties": {
+              "field": { "type": "string" },
+              "value": {},
+              "reason": { "type": "string" }
+            }
+          }
+        },
+        "lossy": { "type": "boolean" },
+        "reversible": { "type": "boolean" }
+      }
+    },
+
+    "Invariant": {
+      "type": "object",
+      "required": ["id", "description", "enforcement"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^INV-\\d{3}$"
+        },
+        "description": { "type": "string" },
+        "enforcement": {
+          "enum": ["schema", "runtime", "convention"],
+          "description": "'schema' = encoded in JSON Schema (cheapest). 'runtime' = eval assertion. 'convention' = instruction-only (last resort)."
+        },
+        "schema_path": {
+          "type": "string",
+          "description": "If 'schema' enforcement, the path where the constraint is encoded."
+        }
+      }
+    }
+  }
+}

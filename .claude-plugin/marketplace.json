@@ -127,6 +127,26 @@
         "decomposition",
         "rubric"
       ]
+    },
+    {
+      "name": "general-skills",
+      "source": "./general-skills",
+      "description": "Domain-agnostic, general-purpose skills — reusable across any project, tied to no single domain. research-survey (systematic investigation & optimization: bisect, ablation, hill-climb, adversarial probe, sweep, root-cause), viz-2x2 (build and critique a 2x2 matrix — axis independence, quadrant balance, placement), and tool-stress (stress-test a tool / MCP interface for an agent). Skills only — no commands, agents, or MCP. Self-contained."
+    },
+    {
+      "name": "knowledge-skills",
+      "source": "./knowledge-skills",
+      "description": "Knowledge-authoring skills — building and maintaining knowledge bases and reference corpora. meta-expert-author (author comprehensive [domain]-expert skills via wave-based parallel-agent research-survey, with tiered citations), meta-theory-author (peer-reviewed-source theory skills), plan-knowledge (stand up a project knowledge base), and ops-knowledge (capture and structure operational knowledge). Skills only — no commands, agents, or MCP. Self-contained."
+    },
+    {
+      "name": "manager-skills",
+      "source": "./manager-skills",
+      "description": "Management & communication skills — executive writing and reporting tools. The report family — report-brief (a tight decision brief), report-progress (progress / status update), report-state (a state-of report), report-strategic (a strategic brief) — plus resume-author (resumes / CVs). Writing tools for leadership communication: exec summaries, status, briefs. Skills only — no commands, agents, or MCP. Self-contained."
+    },
+    {
+      "name": "skills-skills",
+      "source": "./skills-skills",
+      "description": "Skills for authoring and optimizing Claude Code SKILLS — the meta-tooling for the skill ecosystem itself. skills-studio (the skill lifecycle: author / edit / optimize, score against the best-practices rubric, the 9-critic adversarial council, behavioral evals, routing corpora), skills-refactor (refactor or split an existing skill), and meta-app-scaffold (scaffold a skill / reference-app foundation). Skills only — no commands, agents, or MCP. Self-contained."
     }
   ]
 }

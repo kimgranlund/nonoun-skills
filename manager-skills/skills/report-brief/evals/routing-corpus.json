@@ -1,0 +1,30 @@
+{
+  "$schema": "https://anthropic.com/schemas/skill-evals.v1.json",
+  "skill": "report-brief",
+  "version": "0.1.0",
+  "description": "Routing accuracy corpus — phrases that should/should not activate report-brief. Adversarial cases discriminate it from its near-synonymous siblings (report-strategic, report-state, report-progress), the hard routing boundary flagged in the 2026-05-31 review.",
+  "trigger_phrases": [
+    "write an intel brief on [topic]",
+    "CIA-style briefing with BLUF and confidence levels",
+    "get me up to speed on [topic] quickly",
+    "domain brief for a subject-matter expert",
+    "primer on X with key judgments and intelligence gaps",
+    "what do I need to know about X",
+    "write a brief on the competitive landscape",
+    "BLUF assessment with confidence annotations",
+    "subject-matter expert brief that survives executive scrutiny",
+    "dense confidence-annotated knowledge transfer on [topic]",
+    "intelligence briefing with competing hypotheses",
+    "rapid domain knowledge transfer brief"
+  ],
+  "adversarial_phrases": [
+    "write a full strategic report with glossary and context-setting",
+    "strategic analysis for a mixed audience with recommendations",
+    "current state of the union for our platform",
+    "system health check with a RAG matrix",
+    "weekly project status report with blockers and milestones",
+    "sprint progress update",
+    "write the PRD for this feature"
+  ],
+  "notes": "Adversarials route to siblings: full strategic/context-setting/recommendation document → report-strategic; current-state/health-matrix → report-state; project/sprint status + blockers + milestones → report-progress; PRD → plan-prd. report-brief owns dense, fast, confidence-annotated knowledge transfer (BLUF, key judgments, intel gaps)."
+}

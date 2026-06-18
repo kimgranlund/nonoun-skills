@@ -1,0 +1,58 @@
+{
+  "$schema": "https://anthropic.com/schemas/skill-evals.v1.json",
+  "skill": "viz-2x2",
+  "version": "0.1.0",
+  "description": "Behavioral evals — adversarial cases testing axis independence, cardinality, and structural correctness.",
+  "evals": [
+    {
+      "id": "axis-correlated-gradient",
+      "input": "Make a 2×2 where one axis is 'more features' and the other is 'more cost'.",
+      "expected_behavior": "Axes are correlated (more features ≈ more cost in most realistic contexts). Skill should surface the correlation, attempt to find an example in every quadrant, and propose independent axes if the user's intent doesn't survive the validation check.",
+      "checks": [
+        "Skill runs the axis-independence test (can you name a real example in each quadrant?)",
+        "Skill explicitly names the correlation",
+        "Skill proposes alternative independent axes OR confirms with user before proceeding"
+      ]
+    },
+    {
+      "id": "wrong-cardinality-five",
+      "input": "Make a 2×2 of these five project management styles: Agile, Waterfall, Kanban, Lean, Scrumban.",
+      "expected_behavior": "Five archetypes don't fit a 2×2 (which has exactly four quadrants). Skill should clarify whether the user wants to (a) drop one, (b) merge two, or (c) use a different visualization shape.",
+      "checks": [
+        "Skill notes the cardinality mismatch",
+        "Skill does not silently merge or drop archetypes without asking",
+        "Skill offers explicit options"
+      ]
+    },
+    {
+      "id": "all-quadrants-bad",
+      "input": "Make a 2×2 where all four quadrants are anti-patterns.",
+      "expected_behavior": "If no quadrant is the sweet spot, the matrix has no recommendation to make. Skill should clarify intent (is this educational? a comparison of failure modes? a teaching matrix?) and skip the teal/sweet-spot color assignment.",
+      "checks": [
+        "Skill questions the strategic framing — what is the matrix arguing?",
+        "Skill does not assign teal to any quadrant if all are anti-patterns",
+        "Color discipline preserved (coral/gray/purple span the four)"
+      ]
+    },
+    {
+      "id": "vague-trade-offs-no-axes",
+      "input": "Show me the trade-offs.",
+      "expected_behavior": "User hasn't named the two axes or the four archetypes. Skill should ask for the two dimensions and the things being compared before generating anything.",
+      "checks": [
+        "Skill prompts for the two independent dimensions",
+        "Skill prompts for the four things being compared",
+        "Skill does not invent axes from scratch"
+      ]
+    },
+    {
+      "id": "static-tier-list-disguised",
+      "input": "Make a 2×2 ranking these four approaches from best to worst.",
+      "expected_behavior": "A ranking is a 1-dimensional ordering, not a 2-dimensional matrix. Skill should clarify that the user may want a tier list (use a ranked list) or identify two independent dimensions that produce the ranking as an emergent property.",
+      "checks": [
+        "Skill notes the 1D vs 2D mismatch",
+        "Skill explains why a 2×2 isn't the right shape for pure ranking",
+        "Skill offers the right alternative (markdown ranked list)"
+      ]
+    }
+  ]
+}

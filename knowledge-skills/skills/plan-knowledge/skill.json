@@ -1,0 +1,25 @@
+{
+  "$schema": "https://schemas.adia.ai/skill/v1.json",
+  "name": "plan-knowledge",
+  "version": "1.0.0",
+  "description": "Build retrieval-optimized knowledge bases for Claude Projects",
+  "status": "stable",
+  "authors": [
+    "kim"
+  ],
+  "tags": [
+    "planning"
+  ],
+  "depends_on": [],
+  "peer_skills": [],
+  "files": [
+    "CHANGELOG.md",
+    "ROADMAP.md",
+    "SKILL.md",
+    "references/claude-code-integration.md",
+    "references/knowledge-types.md",
+    "references/retrieval-authoring.md",
+    "skill.json"
+  ],
+  "target": "agent"
+}

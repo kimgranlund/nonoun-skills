@@ -1,0 +1,12 @@
+{
+  "name": "general-skills",
+  "version": "0.1.0",
+  "description": "Domain-agnostic, general-purpose skills — reusable across any project, tied to no single domain. research-survey (systematic investigation & optimization: bisect, ablation, hill-climb, adversarial probe, sweep, root-cause), viz-2x2 (build and critique a 2x2 matrix — axis independence, quadrant balance, placement), and tool-stress (stress-test a tool / MCP interface for an agent). Skills only — no commands, agents, or MCP. Self-contained.",
+  "author": {
+    "name": "Kim",
+    "email": "kim.granlund@gmail.com"
+  },
+  "homepage": "https://github.com/kimgranlund/nonoun-skills",
+  "license": "MIT",
+  "keywords": ["skills", "general-purpose", "research", "optimization", "bisect", "ablation", "2x2", "matrix", "stress-test", "method"]
+}

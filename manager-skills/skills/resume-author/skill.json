@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schemas.adia.ai/skill/v1.json",
+  "name": "resume-author",
+  "version": "1.0.0",
+  "description": "Author resumes optimized to survive AI-driven hiring pipelines (parser \u2192 ranker \u2192 human). Produces a typed JSON Resume source and a parser-friendly DOCX with built-in parse verification.",
+  "status": "stable",
+  "authors": [
+    "kim"
+  ],
+  "tags": [
+    "resume",
+    "cv",
+    "ats",
+    "ai-screening",
+    "job-search",
+    "json-resume",
+    "career"
+  ],
+  "depends_on": [],
+  "peer_skills": [],
+  "files": [
+    "CHANGELOG.md",
+    "ROADMAP.md",
+    "SKILL.md",
+    "skill.json",
+    "references/json-resume-schema.md",
+    "references/format-spec.md",
+    "references/ats-platform-quirks.md",
+    "references/content-patterns.md",
+    "references/parse-verification.md",
+    "scripts/render_docx.py",
+    "scripts/extract_plaintext.py",
+    "assets/example-resume.json"
+  ],
+  "target": "agent"
+}

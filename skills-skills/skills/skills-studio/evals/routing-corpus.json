@@ -1,0 +1,41 @@
+{
+  "$schema": "https://anthropic.com/schemas/skill-evals.v1.json",
+  "skill": "skills-studio",
+  "version": "0.2.0",
+  "description": "Routing corpus for the unified skill-lifecycle tool (author/edit/optimize + score/critique/eval). Rebuilt 2026-05-31 for the v3.0.0 meta-skill fold: triggers cover both authoring and evaluation; adversarials route to the specialized authors and adjacent skills that remain separate.",
+  "trigger_phrases": [
+    "complete review of this skill using skills-studio",
+    "thorough review of {skill} using skills-studio",
+    "full review of this skill",
+    "promote this skill to stable",
+    "is this skill ready to promote?",
+    "comprehensive evaluation of this skill",
+    "run the full review on {skill}",
+    "create a skill for [domain]",
+    "build a new skill that does Y",
+    "help me write a SKILL.md for a code-review assistant",
+    "turn this workflow into a reusable skill",
+    "edit this skill — it's routing wrong",
+    "improve / optimize this skill's description for triggering accuracy",
+    "create skill.json and a routing corpus for my new skill",
+    "score this skill against best practices",
+    "rubric audit / best-practices scorecard for this skill",
+    "run the 9-critic panel on this skill",
+    "run a Boris review on this skill",
+    "what would Elon delete from this skill?",
+    "adversarial eval of this skill / Simon Willison security review",
+    "which dimensions fail for this skill?",
+    "measure this skill's performance with test cases and variance",
+    "benchmark this skill across prompts"
+  ],
+  "adversarial_phrases": [
+    "build a comprehensive domain-expert skill like ref-dashboard",
+    "make a knowledge-base reference skill for [domain] with research waves",
+    "build a peer-reviewed academic theory skill",
+    "write a PRD for this feature",
+    "audit my repo for stale docs",
+    "design a new MCP server for our API",
+    "design the orchestration loop for this goal"
+  ],
+  "notes": "Adversarials route to siblings that stay separate: comprehensive domain-expert / knowledge-base skills → meta-expert-author; peer-reviewed theory skills → meta-theory-author; PRDs → plan-prd; repo doc audits → ops-repo; MCP design → core-mcp-best-practices; agent-loop orchestration → core-agent-loops. skills-studio owns the general skill lifecycle — authoring, scoring, critiquing, and measuring skills themselves."
+}

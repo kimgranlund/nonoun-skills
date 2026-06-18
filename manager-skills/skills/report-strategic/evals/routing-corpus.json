@@ -1,0 +1,30 @@
+{
+  "$schema": "https://anthropic.com/schemas/skill-evals.v1.json",
+  "skill": "report-strategic",
+  "version": "0.1.0",
+  "description": "Routing accuracy corpus — phrases that should/should not activate report-strategic. Adversarial cases discriminate it from its three near-synonymous siblings (report-brief, report-state, report-progress), the hard routing boundary flagged in the 2026-05-31 review.",
+  "trigger_phrases": [
+    "write a strategic report on [topic]",
+    "strategy brief for leadership",
+    "leadership briefing with findings and recommendations",
+    "executive report that grounds readers in shared vocabulary first",
+    "strategic analysis for a mixed audience",
+    "findings report with context-setting and recommendations",
+    "strategic overview of [domain]",
+    "strategic assessment with evidence and takeaways",
+    "thought-leadership document that must be self-contained",
+    "produce a formal strategic document with recommendations",
+    "strategic positioning analysis for the org",
+    "write up the strategy with glossary, context, findings, and recommendations"
+  ],
+  "adversarial_phrases": [
+    "give me a one-page intel brief with confidence levels",
+    "BLUF assessment of the vendor in three sentences",
+    "what is the current health of our platform right now",
+    "current-state snapshot of the system",
+    "weekly project status with blockers, RAG, and next steps",
+    "sprint update for the team",
+    "write the PRD for this feature"
+  ],
+  "notes": "Adversarials route to siblings: intel-brevity/BLUF/confidence → report-brief; current-state/health-snapshot → report-state; project/sprint status + blockers + RAG → report-progress; PRD → plan-prd. report-strategic owns context-setting + strategic recommendation for a mixed/external audience."
+}

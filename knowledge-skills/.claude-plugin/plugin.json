@@ -1,0 +1,12 @@
+{
+  "name": "knowledge-skills",
+  "version": "0.1.0",
+  "description": "Knowledge-authoring skills — building and maintaining knowledge bases and reference corpora. meta-expert-author (author comprehensive [domain]-expert skills via wave-based parallel-agent research-survey, with tiered citations), meta-theory-author (peer-reviewed-source theory skills), plan-knowledge (stand up a project knowledge base), and ops-knowledge (capture and structure operational knowledge). Skills only — no commands, agents, or MCP. Self-contained.",
+  "author": {
+    "name": "Kim",
+    "email": "kim.granlund@gmail.com"
+  },
+  "homepage": "https://github.com/kimgranlund/nonoun-skills",
+  "license": "MIT",
+  "keywords": ["skills", "knowledge", "knowledge-base", "reference", "expert-skill", "theory", "research-survey", "documentation", "corpus"]
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://schemas.adia.ai/skill/v1.json",
+  "name": "report-brief",
+  "version": "1.1.0",
+  "description": "Author CIA-style intelligence briefings that rapidly convey expert knowledge on any topic \u2014 technical, competitive, or domain-specific. Applies intelligence-community analytical tradecraft: Bottom Line Up Front (BLUF), key judgments with explicit confidence levels, source assessment, competing-hypotheses analysis, and explicit coverage of intelligence gaps. Use when a reader needs to become operationally fluent on a topic quickly, when domain expertise must be transferable, or when a subject-matter brief must survive executive scrutiny. Triggers on: briefing, intel brief, domain brief, subject-matter expert brief, get me up to speed on, write a brief on, primer on X, what do I need to know about X, CIA-style brief, BLUF, or any request to rapidly convey domain knowledge. Output is dense, structured, and confidence-annotated. Peers with report-strategic, report-state, and ref-* skills.",
+  "status": "draft",
+  "authors": [
+    "kim"
+  ],
+  "tags": [
+    "reports"
+  ],
+  "depends_on": [],
+  "peer_skills": [
+    "report-strategic",
+    "report-state",
+    "research-survey"
+  ],
+  "files": [
+    "CHANGELOG.md",
+    "ROADMAP.md",
+    "SKILL.md",
+    "references/tradecraft.md",
+    "references/format.md",
+    "references/confidence-lexicon.md",
+    "skill.json",
+    "evals/routing-corpus.json",
+    "reviews/2026-05-31-skills-critique-full-panel.md"
+  ],
+  "target": "agent"
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://anthropic.com/schemas/skill-evals.v1.json",
+  "skill": "skills-refactor",
+  "version": "0.1.0",
+  "description": "Routing accuracy corpus — phrases that should/should not activate skills-refactor. The hard boundary the adversarials target: skills-refactor RESTRUCTURES an existing skill (rename / merge / retire / split + rewire the library) vs skills-studio, which works on a skill's CONTENT (author / edit / optimize / score / critique).",
+  "trigger_phrases": [
+    "rename skill X to Y and fix all the references",
+    "merge skills A and B into one",
+    "fold X into Y",
+    "retire this skill",
+    "deprecate skill X",
+    "split X into A and B",
+    "consolidate these two overlapping skills",
+    "drop the core- prefix from this skill",
+    "rewire all the cross-references after renaming this skill",
+    "absorb X's capability into Y and retire X",
+    "combine the two evaluator skills into one",
+    "this skill should be renamed — update peer_skills and the catalog"
+  ],
+  "adversarial_phrases": [
+    "create a new skill for writing database migrations",
+    "fix a bug in this skill's instructions",
+    "improve this skill's description so it routes better",
+    "score this skill against best practices",
+    "run the critics on this skill",
+    "build a comprehensive domain-expert skill",
+    "audit my repo's docs and skills for drift"
+  ],
+  "notes": "Adversarials route to siblings: create/fix/optimize/score/critique a skill → skills-studio (the single-skill lifecycle — content, not structure); build a domain-expert skill → meta-expert-author; repo doc/skill drift audit → ops-repo. skills-refactor owns the library-level structural ops (rename/merge/retire/split) and the cross-reference rewire + gate re-verification they require."
+}
