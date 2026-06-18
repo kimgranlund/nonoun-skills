@@ -227,3 +227,40 @@ Each interactive-role token:
 - `focus-ring/recipes.json` — three canonical recipes (outer, inner-outer, inset), color strategies, prefers-contrast and forced-colors handling.
 - `offsets/per-surface.json` — ring-offset and ring-radius per element radius.
 - `keyboard/affordances.json` — per-role tab order, activation keys, escape behavior, arrow-key navigation (per WAI-ARIA APG).
+
+## Mechanism gate — `bin/focus-check.py`
+
+The facts of focus management are **mechanical**, so they route to code, not inference: a `tabindex` value either is or isn't positive; a focusable element either declares a visible focus indicator or it doesn't; an open modal either traps focus or it doesn't. `bin/focus-check.py` is the deterministic gate over those facts (stdlib-only, `selftest`-locked with good + bad fixtures). What it deliberately does **not** judge is whether the resulting order is *sensible* — whether the tab walk matches reading order and task flow is a review that stays in this SKILL.md (`ORDER_MISMATCH` only *surfaces* the reorder a positive tabindex caused; it cannot tell you the intended order).
+
+Feed it a **focus order card** (JSON) describing one view's keyboard-focus structure:
+
+```json
+{
+  "elements": [
+    {"id": "skip-link", "tabindex": 0,  "focusable": true,  "visible_focus": true},
+    {"id": "hero-cta",  "tabindex": 3,  "focusable": true,  "visible_focus": false},
+    {"id": "decoration","tabindex": -1, "focusable": false}
+  ],
+  "dom_order": ["skip-link", "nav", "hero-cta", "footer"],
+  "modal": {"open": true, "trap": false, "restore_focus": false}
+}
+```
+
+Per-element: `tabindex` (0 = natural, -1 = programmatic-only, >0 = the explicit-positive anti-pattern), `focusable`, and `visible_focus` (paints a visible indicator when focused).
+
+| Check | Severity | Fires when |
+|---|---|---|
+| `POSITIVE_TABINDEX` | **gate (FAIL)** | any element with `tabindex > 0` — it overrides DOM order and jumps ahead of every `tabindex:0` element |
+| `NO_VISIBLE_FOCUS` | **gate (FAIL)** | a `focusable:true` element with `visible_focus:false` (WCAG 2.4.7) |
+| `MODAL_NO_TRAP` | **gate (FAIL)** | an **open** modal with `trap:false` — focus can escape to the page behind it (gate only while open) |
+| `ORDER_MISMATCH` | advisory (WARN) | with positive tabindex present, the resulting tab walk diverges from `dom_order` — surfaces the reorder for review |
+| `MODAL_NO_RESTORE` | advisory (WARN) | an open modal with `restore_focus:false` — recoverable, so advisory |
+
+A check whose data is absent is **skipped and reported** (no `elements[]` → element checks skip; no `dom_order` → order check skips; no `modal` → modal checks skip) — never a silent pass. A malformed card yields a clear error, not a crash.
+
+```sh
+python3 bin/focus-check.py selftest            # good + bad fixtures; exits 0
+python3 bin/focus-check.py <card.json | dir>   # lint a card (or every *.focus.json in a dir)
+```
+
+The gate is **necessary, not sufficient**: a clean run means no *mechanical* focus defect — it does not prove the order is the right order. Confirm the sequence makes sense by walking it.

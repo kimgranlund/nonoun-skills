@@ -170,6 +170,27 @@ Each token carries:
 }
 ```
 
+## Mechanism gate — `bin/contrast-check.py`
+
+WCAG contrast is **arithmetic**, not a matter of taste — so the contrast floor is **routed to code, never to inference**. An LLM judging "looks readable" fails silently exactly where a pair lands a few hundredths under 4.5:1. CVD safety and perceptual evenness, by contrast, are perceptual judgments and **stay a review** in this skill (Step 2 decomposition, the anti-patterns list).
+
+`python3 bin/contrast-check.py <card.json | dir>` reads a **color surface card** — the foreground/background pairs that carry text or UI indication — and flags any pair below its AA floor:
+
+```json
+{ "pairs": [
+  {"name": "body text",   "fg": "#1a1a1a", "bg": "#ffffff", "size": "normal", "role": "text"},
+  {"name": "muted label", "fg": "#767676", "bg": "#ffffff", "size": "normal", "role": "text"},
+  {"name": "card border", "fg": "#949494", "bg": "#ffffff",                    "role": "ui"}
+]}
+```
+
+Per pair (only `fg` + `bg` required): `name` (report label), `fg`/`bg` (`#rgb`, `#rrggbb`, or `rgb()/rgba()` — rgba alpha is ignored; a malformed color is a clear per-pair error, not a crash), `size` (`normal` default | `large`), `role` (`text` default | `ui`/non-text). For each pair it computes the WCAG 2.x ratio (sRGB → linearized relative luminance → `(L1+0.05)/(L2+0.05)`) and emits:
+
+- **`CONTRAST_FAIL_AA`** *(gate, exit 1)* — text below **4.5** (normal) / **3.0** (large); ui/non-text below **3.0**.
+- **`CONTRAST_FAIL_AAA`** *(advisory WARN)* — text below **7.0** (normal) / **4.5** (large), only when the pair already clears AA. (No AAA tier for graphics — WCAG 1.4.11 keeps the ui floor at 3.0.)
+
+`--json` emits a machine-readable report. The gate is a **lossy pre-filter, not an oracle**: a clean run proves the arithmetic floor holds — it does **not** prove the palette CVD-safe or perceptually even, which is why those remain reviews. `python3 bin/contrast-check.py selftest` exits 0, locked by good + bad fixtures (the `#777` ≈ 4.48 near-miss, a 3:1-as-normal-text fail, `#767676` ≈ 4.54 AA-pass, a 3:1 pair passing as `large`/`ui`, malformed colors, and the verified `#777777` on `#ffffff` ≈ 4.48:1 ratio math).
+
 ## Invariants
 
 1. **L monotonic across the ramp.** Step N's L < Step N+1's L (dark-to-light convention).

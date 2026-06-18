@@ -16,6 +16,7 @@
     "ROADMAP.md",
     "SKILL.md",
     "audit/event-schema.json",
+    "bin/safety-check.py",
     "blast-reversibility/matrix.json",
     "defaults/confirm-posture.json",
     "friction/recipes.json",

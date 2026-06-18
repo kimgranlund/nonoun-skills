@@ -187,6 +187,41 @@ type SafetySchema = {
 - **INV-SAF-001** — Every proof cites specific schema paths or CSS rules it evaluates (enforcement: convention)
 - **INV-SAF-002** — Remediation suggestions are scoped to the schema/artifact that can fix them (enforcement: convention)
 
+## Mechanism gate
+
+The placement of an action on the (blast × reversibility) plane is judgment; checking that the *declared* friction matches the coordinate is arithmetic. The arithmetic routes to `bin/safety-check.py` (stdlib, selftested) over a **destructive-action card** — the small artifact you emit per action before attaching a UI affordance:
+
+```json
+{ "name": "delete account", "verb": "delete",
+  "blast_radius": "low|medium|high|critical",        // a COUNT, not an adjective
+  "reversibility": "instant|session|minutes|days|irreversible",  // a DURATION, not a boolean
+  "has_confirm": false, "confirm_type": "type-to-confirm|reauth|confirm|click|none",
+  "has_undo": false, "has_audit_event": false,
+  "bulk": true, "has_preview": false, "default_focus": "cancel|destructive" }
+```
+
+```sh
+python3 bin/safety-check.py <card.json | dir>     # *.action.json in a dir; --json for a report
+python3 bin/safety-check.py selftest              # good + bad + malformed fixtures, exits 0
+```
+
+**Mechanical → code** (the linter decides these from the coordinate):
+
+| Flag | Severity | Rule |
+|---|---|---|
+| `UNGUARDED_DESTRUCTIVE` | GATE | high-blast **or** irreversible action with no confirm **and** no undo |
+| `NO_UNDO` | GATE / advisory | irreversible + no undo + no confirm → gate; a *reversible* action lacking undo → advisory (undo > confirm) |
+| `WEAK_CONFIRM` | GATE / advisory | high-blast guarded only by a single click / plain confirm — gate when **irreversible** (matrix mandates type-to-confirm), advisory otherwise |
+| `DEFAULT_DESTRUCTIVE` | GATE | confirm dialog default-focuses the destructive CTA (INV-5) |
+| `OVER_CONFIRM` | advisory | low-blast reversible action gated by heavy friction (confirmation fatigue — undo over confirm) |
+| `NO_AUDIT` / `NO_PREVIEW` | advisory | high/irreversible with no audit event (INV-7); bulk with no count+preview (INV-4) |
+
+Absent data is **reported as a SKIP, never a silent PASS**: an action with no coordinate can't be placed on the plane, and an undeclared `has_audit_event` / `has_preview` is skipped, not assumed-clean.
+
+**Judgment → review** (stays in SKILL.md, the linter cannot see these): whether the blast radius was *counted* honestly (`self,1` vs `org,10k`); whether the named consequence in the confirm copy is truthful; whether the recovery path is real or a flag set to `true` on paper; whether the audit event is actually *surfaced* to the user vs merely logged; whether type-to-confirm names the **resource** (not the user's email).
+
+A clean run is **necessary, not sufficient** — a lossy pre-filter, not an oracle. It proves the declared friction matches the declared coordinate; it does not prove the action is safe. Confirm the dangerous case (high-blast / irreversible) adversarially.
+
 ## Typed Interface
 
 **Domain:** `ui-design`

@@ -223,6 +223,47 @@ type PerceivedPerformanceSchema = {
 - `ui-compose-responsive` supplies container-query scoping for skeletons that match the final layout.
 - `ui-audit-quality` runs perf checks: recipe per operation, skeleton/spinner decision, CLS budget, image dimensions, streaming posture, cancel affordance, no-fake-progress.
 
+## Mechanism gate — `bin/budget-check.py`
+
+Perceived-latency judgment (skeleton vs spinner, streaming presentation, what feedback a surface
+owes) stays a **review** — it's where the LLM is strong. But one half of this skill is pure
+arithmetic: a *measured* number against a *budgeted* number. **Computation routes to code, never to
+inference**, so that comparison is a deterministic, self-tested stdlib gate. The bin is necessary,
+not sufficient: a clean budget run does not prove the surface *feels* fast — confirm perceived
+performance with the reviews above.
+
+It reads a **performance budget card** (JSON) — measured metrics paired with their budget:
+
+```json
+{
+  "page": "/checkout",
+  "metrics": { "lcp_ms": 3200, "cls": 0.18, "inp_ms": 150, "tbt_ms": 420,
+               "bundle_kb": 680, "image_kb": 1200, "requests": 95 },
+  "budget":  { "lcp_ms": 2500, "cls": 0.1, "inp_ms": 200, "tbt_ms": 300,
+               "bundle_kb": 300, "image_kb": 500, "requests": 50 }
+}
+```
+
+Per metric (lower is better for all), it classifies:
+
+| Outcome | When | Result |
+|---|---|---|
+| **FAIL** (gate) | measured over the CWV **poor** line — `lcp_ms > 4000`, `cls > 0.25`, `inp_ms > 500` | blocks (exit 1); poor is poor regardless of an indulgent local budget |
+| **ADVISORY** | over budget but not poor | a regression to watch, not a hard block |
+| **OK** | within the effective budget | — |
+| **SKIPPED** | no measured value **and** no effective budget | reported, never a silent pass |
+
+Core Web Vitals carry **canonical default budgets** — `lcp_ms 2500`, `cls 0.1`, `inp_ms 200`,
+`tbt_ms 300` — applied when the card omits the key. `bundle_kb` / `image_kb` / `requests` have no
+universal "good" number, so they are checked **only** when the card supplies a budget for them
+(otherwise reported as skipped). A non-numeric value (including JSON `true`) → a clear malformed-card
+error, never a crash.
+
+```sh
+python3 bin/budget-check.py selftest          # good + bad fixtures; exits 0
+python3 bin/budget-check.py <card.json | dir>  # dir walk picks up *.budget.json
+```
+
 ## Bundled reference files
 
 - `thresholds/perception.json` — canonical latency → recipe table.

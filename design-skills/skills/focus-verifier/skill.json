@@ -15,6 +15,7 @@
     "CHANGELOG.md",
     "ROADMAP.md",
     "SKILL.md",
+    "bin/focus-check.py",
     "focus-ring/recipes.json",
     "focus-verifier.corpus.json",
     "keyboard/affordances.json",

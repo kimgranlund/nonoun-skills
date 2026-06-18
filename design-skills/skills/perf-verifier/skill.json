@@ -15,6 +15,7 @@
     "CHANGELOG.md",
     "ROADMAP.md",
     "SKILL.md",
+    "bin/budget-check.py",
     "cancellation/contract.json",
     "cls/budget.json",
     "decisions/skeleton-vs-spinner.json",

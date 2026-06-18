@@ -129,6 +129,30 @@ type LocaleSchema = {
 };
 ```
 
+## Mechanism gate — `bin/i18n-check.py`
+
+Two kinds of i18n defect are different in kind. Whether a surface declares `dir`/`lang` and whether it carries **hardcoded (untranslated) string literals** are **mechanical attributes** — a surface either has them or it does not — so they are **routed to code, never to inference**. An LLM judging "looks localized" misses a missing `dir` or a stray literal exactly where it matters. Whether a *translation reads naturally*, whether a line-height suits a script, or whether a mirroring policy is the right one stays a **review** (Step 3 typography, Step 6 iconography, the anti-patterns list).
+
+`python3 bin/i18n-check.py <card.json | dir>` reads an **i18n surface card** — the text-bearing surfaces plus the system-wide locale posture:
+
+```json
+{ "surfaces": [
+    {"id": "header", "has_lang": true, "has_dir": true, "hardcoded_strings": ["Save","Cancel"], "expansion_safe": false}
+  ],
+  "rtl_supported": false,
+  "locale_formats": {"dates": false, "numbers": true, "currency": false} }
+```
+
+Per surface (only `id` required): `has_lang`/`has_dir` (mechanical — absent/false on a text surface fails), `hardcoded_strings[]` (untranslated literals — non-empty fails), `expansion_safe` (headroom for translation growth), `text:false` to mark a non-text surface (skips the lang/dir gate). Top-level: `rtl_supported`, `locale_formats.{dates,numbers,currency}`. It flags:
+
+- **`MISSING_LANG`** / **`MISSING_DIR`** *(gate, exit 1)* — a text surface with `has_lang`/`has_dir` false or absent.
+- **`HARDCODED_STRING`** *(gate, exit 1)* — a surface whose `hardcoded_strings[]` is non-empty.
+- **`NO_EXPANSION_ROOM`** *(advisory WARN)* — `expansion_safe:false`; DE/FI run ~+35%, RU ~+100%.
+- **`NO_RTL`** *(advisory WARN)* — `rtl_supported:false`; escalated when a surface declares `dir` handling (RTL appears in scope).
+- **`NO_LOCALE_FORMAT`** *(advisory WARN)* — a `locale_formats` family is false; route it through `Intl.*`.
+
+Absent data is **skipped, not silently passed**: a card with no `surfaces`/`rtl_supported`/`locale_formats` reports each missing section as a skip, so an empty card is never a false "OK". A malformed card (not an object, `surfaces` not a list, `hardcoded_strings` not a list) yields a clear per-card error, not a crash. `--json` emits a machine-readable report. The gate is a **lossy pre-filter, not an oracle** — clearing it means `dir`/`lang` are present and no literals were declared; it does **not** prove the translations read naturally, the script metrics are right, or the bidi isolation holds, which is why those remain reviews. `python3 bin/i18n-check.py selftest` exits 0, locked by good + bad fixtures (the `has_lang:false` → MISSING_LANG and `hardcoded_strings` non-empty → HARDCODED_STRING must-flags, the all-true clean must-not-flag, scoped vs unscoped NO_RTL, the empty-card skips, and malformed input).
+
 ## Invariants
 
 1. No physical-axis CSS (`left/right/margin-left/padding-right`) on text-bearing surfaces.

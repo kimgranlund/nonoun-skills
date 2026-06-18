@@ -15,6 +15,7 @@
     "CHANGELOG.md",
     "ROADMAP.md",
     "SKILL.md",
+    "bin/i18n-check.py",
     "bidi/isolation-points.json",
     "formatting/intl-surfaces.json",
     "i18n-verifier.corpus.json",
