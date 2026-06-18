@@ -1,0 +1,38 @@
+{
+  "skill": "ref-polyfills",
+  "_note": "This skill's checked-in routing corpus. NOTE: ref-polyfills is a REFERENCE skill — it ANSWERS browser-support / polyfill / transpilation / Baseline / feature-detection / browser-bug questions and points at peers (ui-build-components, analyze-css) for output; it does NOT generate components, debug a stylesheet, build ramps, or grade on two axes. Its frontmatter uses ## Invocation + domain sections, not the decomposer template, but the corpus still applies: does the description route on real browser-support questions and hold against its design-skills siblings? Positives span the question families (will-browsers-support-X / do-I-need-a-polyfill-for-Y / is-Z-Baseline / how-do-I-feature-detect-W / transpile-target / known-browser-bug) plus 2-3 indirect/symptom paraphrases. Negatives are drawn ADVERSARIALLY from real in-repo design-skills siblings — color-science (color math/contrast/conversions, NOT browser support), component-decomposer (decompose/grade a web component, not its browser support), color-verifier (BUILD an OKLCH ramp), focus-verifier (focus-ring/hit-target tokens), i18n-verifier (locale primitives), perf-verifier (perceived latency/CLS), safety-verifier (blast-radius/undo) — plus GLOBAL peers analyze-css (debug/review a stylesheet) and ui-build-components (GENERATE component code), and the cross-family near-misses (routing-decomposer / mermaid-decomposer / regex-decomposer / skills-studio). IMPORTANT: routing-eval measures LEXICAL TOKEN OVERLAP only — it is a legibility aid, not a verdict. The indirect/symptom positives deliberately share few surface words and may score recall 0.000; that is a proxy limit (paraphrase-blindness), not a description defect. Re-derive when the neighbourhood changes.",
+  "siblings_in_repo": ["color-science", "typography-lettering", "component-decomposer", "layout-decomposer", "mermaid-decomposer", "color-verifier", "focus-verifier", "i18n-verifier", "perf-verifier", "safety-verifier"],
+  "global_peers": ["skills-studio", "analyze-css", "ui-build-components"],
+  "positives": [
+    "do I still need a polyfill for the Temporal API at a modern baseline",
+    "will browsers support CSS anchor positioning across Chrome Firefox and Safari",
+    "is URLPattern Baseline yet or do I have to ship a polyfill for Firefox",
+    "how do I feature-detect the Popover API before I use it",
+    "what browserslist target should I transpile to and does Babel preset-env need core-js",
+    "is the polyfill.io CDN safe to use in production",
+    "should I use a ponyfill or a shim for Set methods like intersection and union",
+    "why is Safari rendering my oklch color-mix with a red shift",
+    "do I need a shim for structuredClone or is it native everywhere now",
+    "what's the modern esbuild and swc target config for our support floor",
+    "is light-dark() supported and why is it silently no-opping in my CSS",
+    "what replaced inset-area in Chrome and which browsers ship position-area",
+    "can I drop core-js entirely if I only support Chrome 125 Safari 17.4 Firefox 129",
+    "@supports query for container queries vs a JS feature detection fallback"
+  ],
+  "negatives": [
+    "convert this OKLCH color to sRGB and check whether it's in gamut (color-science)",
+    "is this text-on-background contrast accessible under APCA or WCAG 2.2 AA (color-science)",
+    "simulate this palette for protanopia and deuteranopia color blindness (color-science)",
+    "decompose and grade this web component's prop API and geometry on two axes (component-decomposer)",
+    "build a no-native-form-element custom element with ElementInternals (component-decomposer)",
+    "build an OKLCH ramp from this brand anchor and assign semantic roles (color-verifier)",
+    "derive focus-ring tokens and hit-target minimums for WCAG 2.5.8 (focus-verifier)",
+    "emit the locale invariants for bidi and number formatting across scripts (i18n-verifier)",
+    "our loading UX feels slow and CLS is eroding trust — fix the perceived latency (perf-verifier)",
+    "this destructive action needs undo-over-confirm and an audit trail (safety-verifier)",
+    "what's wrong with this CSS and why are my margins collapsing (analyze-css)",
+    "generate the component code for a reusable select with a popover listbox (ui-build-components)",
+    "grade this skill's frontmatter description for routing precision and recall (routing-decomposer)",
+    "render a mermaid diagram of our build pipeline (mermaid-decomposer)"
+  ]
+}

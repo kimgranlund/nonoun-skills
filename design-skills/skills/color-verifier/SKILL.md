@@ -1,6 +1,6 @@
 ---
 name: color-verifier
-description: Generate, extend, and verify OKLCH color ramps and semantic mappings that satisfy contrast, hue-stability, and perceptual-evenness constraints. Use when the user needs to build a ramp from a brand anchor, extend an existing palette to a full scale, assign semantic roles, or verify that a proposed palette holds up under every (theme × scheme × contrast) combination.
+description: Generate, extend, and verify OKLCH color ramps and semantic mappings that satisfy contrast, hue-stability, and perceptual-evenness constraints. Use when the user needs to build a ramp from a brand anchor, extend an existing palette to a full scale, assign semantic roles, or verify that a proposed palette holds up under every (theme × scheme × contrast) combination — including contrast ratios, WCAG/APCA pass-fail, and color-blind (CVD) safety. NOT for focus order, keyboard nav, or focus-ring contrast (focus-verifier); NOT for RTL/bidi, locale Intl formatting, or text-expansion (i18n-verifier); NOT for loading skeleton/spinner, CLS, or perceived-latency budgets (perf-verifier); NOT for destructive-action undo/type-to-confirm or audit-trail UX (safety-verifier); NOT for color-space theory or palette/harmony math (color-science); NOT for building a color-picker or swatch component (component-decomposer).
 ---
 
 # color-verifier

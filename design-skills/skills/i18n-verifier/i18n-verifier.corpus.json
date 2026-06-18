@@ -1,0 +1,36 @@
+{
+  "skill": "i18n-verifier",
+  "_note": "i18n-verifier's checked-in routing corpus — the test of record. POSITIVES cover the verify/check/audit-my-UI-for-internationalization families across phrasing (RTL / bidi, logical vs physical CSS axes, locale-sensitive Intl formatting of numbers/dates/currencies, pluralization, text-expansion budgets, script metrics, encoding, icon mirroring). NEGATIVES are ADVERSARIAL: the OTHER FOUR sibling verifiers' concerns (each a NEGATIVE here, labelled with its owning sibling), plus color-science (color theory/math) and component-decomposer (BUILDING a control, not verifying its locale behaviour). routing-eval measures lexical overlap only; a paraphrase positive may score recall 0 (proxy limit, not a defect).",
+  "siblings_in_repo": ["color-verifier", "focus-verifier", "perf-verifier", "safety-verifier", "color-science", "component-decomposer"],
+  "positives": [
+    "verify my UI supports RTL for Arabic and Hebrew",
+    "check that my CSS uses logical properties instead of left and right",
+    "audit my UI for internationalization across scripts and locales",
+    "do my numbers, dates, and currencies flow through Intl formatting per locale",
+    "verify my buttons have enough text-expansion headroom for German and Russian",
+    "check pluralization uses ICU MessageFormat and never string concatenation",
+    "is the line-height correct for CJK and Devanagari scripts",
+    "verify user-generated strings are bidi-isolated when interpolated into chrome",
+    "audit my icons for a correct mirroring policy in RTL",
+    "check that every text-bearing surface declares dir and lang",
+    "verify this layout flips cleanly from LTR to RTL without re-authoring",
+    "does my copy overflow or silently truncate when translated",
+    "check encoding and locale-sensitive collation order for sorted lists",
+    "audit text-expansion budgets and per-script min body size"
+  ],
+  "negatives": [
+    "verify my palette clears WCAG AA contrast on every text pair (color-verifier)",
+    "check the contrast ratio of my button text against its background (color-verifier)",
+    "audit my color scheme for color-blind safety (color-verifier)",
+    "verify the focus order and keyboard tab sequence through this form (focus-verifier)",
+    "check that interactive targets meet the 24x24 hit-target minimum (focus-verifier)",
+    "audit the focus-ring appearance and keyboard operability (focus-verifier)",
+    "verify the loading skeleton vs spinner decision and the CLS budget (perf-verifier)",
+    "audit perceived latency and the feedback recipe for this async surface (perf-verifier)",
+    "check that destructive deletes use undo or type-to-confirm (safety-verifier)",
+    "verify the blast radius and audit-trail UX for bulk actions (safety-verifier)",
+    "explain the OKLCH color space math and how chroma maps to hue (color-science)",
+    "build a zero-dependency locale-aware date-picker web component (component-decomposer)",
+    "design the API and parts of a language-switcher component (component-decomposer)"
+  ]
+}

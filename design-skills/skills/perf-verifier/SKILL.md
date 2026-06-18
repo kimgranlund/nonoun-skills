@@ -1,6 +1,6 @@
 ---
 name: perf-verifier
-description: Reason about perceived latency — the gap between an action and the user's belief that it worked — and emit the invariants every async surface must satisfy — response latency windows, skeleton vs spinner vs optimistic decisions, streaming UX, layout-stability budgets, and feedback obligations. Use when loading UX feels slow despite acceptable wire latency, when CLS is eroding trust, or when streaming responses need coherent presentation.
+description: Reason about and verify perceived latency — the invariants every async surface must satisfy: latency feedback windows, skeleton vs spinner vs optimistic decisions, streaming UX, layout-stability (CLS) budgets, image-dimension reservation, and cancellation. Use when checking or auditing loading UX that feels slow despite acceptable wire latency, when CLS is eroding trust, or when streaming responses need coherent presentation. NOT for text/background contrast, palette, or color-blind safety (color-verifier); NOT for focus order, keyboard nav, hit-targets, or focus rings (focus-verifier); NOT for RTL/bidi, dir/lang on text surfaces, locale Intl formatting, or text-expansion (i18n-verifier); NOT for destructive high-blast actions, undo/type-to-confirm, or audit-trail/audit-event UX (safety-verifier); NOT for color-space theory or palette math (color-science); NOT for back-end wire latency or JS bundle-size profiling; NOT for building a spinner or skeleton-loader component (component-decomposer).
 ---
 
 # perf-verifier

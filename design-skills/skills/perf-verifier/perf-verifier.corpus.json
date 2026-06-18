@@ -1,0 +1,36 @@
+{
+  "skill": "perf-verifier",
+  "_note": "perf-verifier's checked-in routing corpus — the test of record. POSITIVES cover the verify/check/audit-my-UI-for-perceived-performance families across phrasing (loading skeleton vs spinner vs optimistic, perceived-latency feedback windows, streaming UX, layout-stability / CLS budgets, image-dimension reservation, cancellation, stale-while-revalidate, perf budgets). NEGATIVES are ADVERSARIAL: the OTHER FOUR sibling verifiers' concerns (each a NEGATIVE here, labelled with the owning sibling), plus color-science (color theory/math) and component-decomposer (BUILDING a control, not verifying its loading UX). NOTE: this skill owns PERCEIVED latency (presentation), not back-end wire latency or JS bundle-size profiling — those are out of corridor. routing-eval measures lexical overlap only; a paraphrase positive may score recall 0 (proxy limit, not a defect).",
+  "siblings_in_repo": ["color-verifier", "focus-verifier", "i18n-verifier", "safety-verifier", "color-science", "component-decomposer"],
+  "positives": [
+    "verify my loading UX uses the right skeleton vs spinner decision",
+    "check the CLS budget so content does not reflow as data arrives",
+    "audit perceived latency on this async surface against the threshold table",
+    "this feels slow even though the server is fast, check the presentation",
+    "verify my streaming response renders progressively with no flash at the end",
+    "should this mutation be optimistic and is rollback declared",
+    "check that images and media reserve layout space with dimensions or aspect-ratio",
+    "verify long operations over 10s expose a cancel affordance",
+    "audit the feedback recipe per async operation against the latency windows",
+    "is my layout stability within the 0.1 CLS budget per interaction",
+    "verify stale-while-revalidate marks cached data instead of blanking it",
+    "check that I am not showing a fake progress bar that fabricates percentages",
+    "verify aria-live during streaming is chunked, not announced per token",
+    "audit my UI for the skeleton-reserves-space and spinner-does-not rule"
+  ],
+  "negatives": [
+    "verify my palette clears WCAG AA contrast on every text pair (color-verifier)",
+    "check the contrast ratio of my button text against its background (color-verifier)",
+    "audit my color scheme for color-blind safety (color-verifier)",
+    "verify the focus order and keyboard tab sequence through this form (focus-verifier)",
+    "check that interactive targets meet the 24x24 hit-target minimum (focus-verifier)",
+    "audit the focus-ring appearance and keyboard operability (focus-verifier)",
+    "audit this UI for RTL support and logical-property usage (i18n-verifier)",
+    "verify my copy has text-expansion headroom for German and Russian (i18n-verifier)",
+    "check that destructive deletes use undo or type-to-confirm (safety-verifier)",
+    "verify the blast radius and audit-trail UX for bulk actions (safety-verifier)",
+    "explain the OKLCH color space math and how chroma maps to hue (color-science)",
+    "build a zero-dependency progress-spinner web component with the right geometry (component-decomposer)",
+    "design the API and parts of a skeleton-loader component (component-decomposer)"
+  ]
+}

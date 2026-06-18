@@ -2,7 +2,7 @@
   "$schema": "https://schemas.adia.ai/skill/v1.json",
   "name": "safety-verifier",
   "version": "0.2.0",
-  "description": "Reason about blast radius, reversibility, and friction for every action a UI exposes, and emit the invariants every destructive or high-consequence surface must satisfy — undo over confirm, type-to-confirm for irreversible, audit-trail UX, scoped permissions. Use when destructive actions are under-specified, when confirm dialogs have proliferated, or when undo/recovery is missing.",
+  "description": "Reason about and verify blast radius, reversibility, and friction for every destructive or high-consequence action a UI exposes — undo over confirm, type-to-confirm for irreversible, bulk preview/dry-run, audit-trail UX, recall windows, re-auth, scoped permissions, and destructive-default posture. Use when checking or auditing destructive actions that are under-specified, when confirm dialogs have proliferated (confirmation fatigue), or when undo/recovery is missing. NOT for text/background contrast, palette, or color-blind safety (color-verifier); NOT for focus order, keyboard nav, hit-targets, or focus rings (focus-verifier); NOT for RTL/bidi, locale Intl formatting, or text-expansion (i18n-verifier); NOT for loading skeleton/spinner, CLS, or perceived-latency budgets (perf-verifier); NOT for color-space theory or palette math (color-science); NOT for prompt-injection/agent security or back-end authz model design; NOT for building a confirm-dialog or undo-toast component (component-decomposer).",
   "status": "draft",
   "authors": [
     "kim"
@@ -21,6 +21,7 @@
     "friction/recipes.json",
     "permissions/error-ux.json",
     "recall/windows.json",
+    "safety-verifier.corpus.json",
     "skill.json"
   ],
   "domain": "ui-design",

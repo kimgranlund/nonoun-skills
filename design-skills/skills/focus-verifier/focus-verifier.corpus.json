@@ -1,0 +1,36 @@
+{
+  "skill": "focus-verifier",
+  "_note": "focus-verifier's checked-in routing corpus — the test of record. POSITIVES cover the verify/check/audit-my-UI-focus families across phrasing (focus order / tab sequence, keyboard-only operability, focus management on route change, focus-ring appearance, hit-target minimums, focus traps). NEGATIVES are ADVERSARIAL: the OTHER FOUR sibling verifiers' concerns (each a NEGATIVE here, labelled with the owning sibling), plus color-science (color theory/math) and component-decomposer (BUILDING a control, not verifying its focus). NOTE: a contrast request is a NEGATIVE here — it belongs to color-verifier — UNLESS it is specifically about FOCUS-RING contrast, which is this skill's. routing-eval measures lexical overlap only; a paraphrase positive may score recall 0 (proxy limit, not a defect).",
+  "siblings_in_repo": ["color-verifier", "i18n-verifier", "perf-verifier", "safety-verifier", "color-science", "component-decomposer"],
+  "positives": [
+    "verify the focus order matches the visual reading order on this form",
+    "check that every interactive element is reachable by keyboard with Tab",
+    "audit my UI for keyboard-only operability and missing focus indicators",
+    "is this dialog a keyboard trap and does Escape dismiss it",
+    "verify focus moves to the heading on route change",
+    "check that my icon buttons meet the 24x24 hit-target minimum",
+    "audit the focus-ring appearance against WCAG 2.2 SC 2.4.11 and 2.4.13",
+    "does my focus ring clear 3:1 contrast against every surface it lands on",
+    "verify the roving tabindex on this toolbar and the arrow-key navigation",
+    "check that there is a skip-to-content link as the first focusable element",
+    "are my small interactive targets given hit-area expansion to 24px",
+    "verify focus-visible is used so the ring does not flash on pointer click",
+    "audit keyboard affordances and activation keys per interactive role",
+    "check focus management when this modal opens and closes"
+  ],
+  "negatives": [
+    "verify my text palette clears WCAG AA contrast on every pair (color-verifier)",
+    "check the contrast ratio of my button text against its background (color-verifier)",
+    "audit my color scheme for color-blind safety (color-verifier)",
+    "audit this UI for RTL support and logical-property usage (i18n-verifier)",
+    "verify my copy has text-expansion headroom for German and Russian (i18n-verifier)",
+    "check that numbers and dates flow through Intl formatting per locale (i18n-verifier)",
+    "verify the loading skeleton vs spinner decision and the CLS budget (perf-verifier)",
+    "audit perceived latency and the feedback recipe for this async surface (perf-verifier)",
+    "check that destructive deletes use undo or type-to-confirm (safety-verifier)",
+    "verify the blast radius and audit-trail UX for bulk actions (safety-verifier)",
+    "explain the OKLCH color space math and how chroma maps to hue (color-science)",
+    "build a zero-dependency tab-list web component with the right geometry (component-decomposer)",
+    "design the API and parts of a menu component (component-decomposer)"
+  ]
+}

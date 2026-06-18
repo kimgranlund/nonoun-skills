@@ -1,6 +1,6 @@
 ---
 name: i18n-verifier
-description: Reason about the locale-shaped primitives a UI system must absorb — bidirectionality, script-specific metrics, locale-sensitive number/date/currency formatting, pluralization, and text-expansion budgets — and emit the invariants other composition skills must honor. Use when a UI system must hold up across scripts and locales without being re-authored per locale.
+description: Reason about and verify the locale-shaped primitives a UI system must absorb — RTL/bidirectionality, logical-vs-physical CSS axes, script-specific metrics, locale-sensitive number/date/currency Intl formatting, pluralization, encoding/collation, and text-expansion budgets. Use when checking or auditing a UI for internationalization: RTL support, dir/lang on text surfaces, Intl on formatted surfaces, icon mirroring, or translation-expansion headroom across scripts and locales. NOT for text/background contrast, palette, or color-blind safety (color-verifier); NOT for focus order, keyboard nav, hit-targets, or focus rings (focus-verifier); NOT for loading skeleton/spinner, CLS, or perceived-latency budgets (perf-verifier); NOT for destructive-action undo/type-to-confirm or audit-trail UX (safety-verifier); NOT for color-space theory or palette math (color-science); NOT for building a date-picker or language-switcher component (component-decomposer).
 ---
 
 # i18n-verifier

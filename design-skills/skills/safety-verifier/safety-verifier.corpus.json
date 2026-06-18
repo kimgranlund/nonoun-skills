@@ -1,0 +1,36 @@
+{
+  "skill": "safety-verifier",
+  "_note": "safety-verifier's checked-in routing corpus — the test of record. POSITIVES cover the verify/check/audit-my-UI-for-destructive-action-safety families across phrasing (blast radius + reversibility, undo over confirm, type-to-confirm for irreversible, confirmation-fatigue, bulk preview/dry-run, audit-trail UX, recall windows, re-auth, scoped permissions, destructive-default posture). NEGATIVES are ADVERSARIAL: the OTHER FOUR sibling verifiers' concerns (each a NEGATIVE here, labelled with the owning sibling), plus color-science (color theory/math) and component-decomposer (BUILDING a control, not verifying its destructive-action safety). NOTE: 'safety' here is destructive-/high-consequence-ACTION friction UX — NOT prompt-injection / agent security, and NOT back-end authz model design. routing-eval measures lexical overlap only; a paraphrase positive may score recall 0 (proxy limit, not a defect).",
+  "siblings_in_repo": ["color-verifier", "focus-verifier", "i18n-verifier", "perf-verifier", "color-science", "component-decomposer"],
+  "positives": [
+    "verify my destructive delete has an undo path instead of just a confirm",
+    "check that irreversible high-blast actions use type-to-confirm",
+    "audit my UI for confirmation fatigue from too many confirm dialogs",
+    "does this bulk delete show a count and a preview before executing",
+    "verify the destructive dialog defaults focus to Cancel, not Delete",
+    "check that every high-blast action emits a user-visible audit event",
+    "map the blast radius and reversibility of each destructive action",
+    "verify send and publish expose a recall window before committing",
+    "check that permission failures explain the missing role and a remedy",
+    "audit whether undo over confirm is applied to reversible low-stakes actions",
+    "verify sensitive actions re-prompt for auth within a scoped time window",
+    "is type-to-confirm using the resource name and not the user's email",
+    "check that we never silent-delete without undo or confirmation",
+    "audit destructive-action friction against the blast-reversibility matrix"
+  ],
+  "negatives": [
+    "verify my palette clears WCAG AA contrast on every text pair (color-verifier)",
+    "check the contrast ratio of my button text against its background (color-verifier)",
+    "audit my color scheme for color-blind safety (color-verifier)",
+    "verify the focus order and keyboard tab sequence through this form (focus-verifier)",
+    "check that interactive targets meet the 24x24 hit-target minimum (focus-verifier)",
+    "audit the focus-ring appearance and keyboard operability (focus-verifier)",
+    "audit this UI for RTL support and logical-property usage (i18n-verifier)",
+    "verify my copy has text-expansion headroom for German and Russian (i18n-verifier)",
+    "verify the loading skeleton vs spinner decision and the CLS budget (perf-verifier)",
+    "audit perceived latency and the feedback recipe for this async surface (perf-verifier)",
+    "explain the OKLCH color space math and how chroma maps to hue (color-science)",
+    "build a zero-dependency confirm-dialog web component with the right geometry (component-decomposer)",
+    "design the API and parts of an undo-toast component (component-decomposer)"
+  ]
+}

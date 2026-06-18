@@ -1,0 +1,36 @@
+{
+  "skill": "color-verifier",
+  "_note": "color-verifier's checked-in routing corpus — the test of record. POSITIVES cover the verify/check/audit-my-UI-color families across phrasing (contrast pairs, CVD/color-blind safety, OKLCH ramp construction + perceptual evenness, semantic role assignment, theme×scheme×contrast verification). NEGATIVES are ADVERSARIAL: the OTHER FOUR sibling verifiers' concerns (each a NEGATIVE here and labelled with the sibling that owns it), plus color-science (color THEORY / palette MATH — not a pass/fail UI check) and component-decomposer (BUILDING a control, not verifying color). Re-derive when the verifier neighbourhood changes. NOTE: routing-eval measures lexical overlap ONLY — a paraphrase positive that shares no surface words may score recall 0; that is a proxy limit, not a defect.",
+  "siblings_in_repo": ["focus-verifier", "i18n-verifier", "perf-verifier", "safety-verifier", "color-science", "component-decomposer"],
+  "positives": [
+    "verify my UI palette clears WCAG AA contrast on every text pair",
+    "check the contrast ratio between my button text and its background",
+    "audit my color scheme for color-blind safety",
+    "is this palette accessible for deuteranopia and protanopia users",
+    "build an OKLCH ramp from my brand anchor and prove the contrast holds",
+    "extend my accent palette to a full 11-step scale with even lightness steps",
+    "verify the contrast floor holds across light, dark, and prefers-contrast",
+    "does my danger color pass 3:1 against the surface it sits on",
+    "assign semantic color roles and check each contrast-bearing pair",
+    "derive a dark-scheme palette and verify every pair against the floor",
+    "check my ramp for perceptual evenness and hue stability",
+    "verify focus-ring color contrast against the page background",
+    "are my on-surface text tokens passing APCA and WCAG 2.2",
+    "audit this candidate palette for out-of-gamut steps and contrast failures"
+  ],
+  "negatives": [
+    "verify the focus order and keyboard tab sequence through this form (focus-verifier)",
+    "check that my interactive targets meet the 24x24 hit-target minimum (focus-verifier)",
+    "audit this UI for RTL support and logical-property usage (i18n-verifier)",
+    "verify my copy has enough text-expansion headroom for German and Russian (i18n-verifier)",
+    "check that dates and currencies flow through Intl formatting per locale (i18n-verifier)",
+    "verify the loading skeleton vs spinner decision and CLS budget (perf-verifier)",
+    "audit perceived latency and the feedback recipe for this async surface (perf-verifier)",
+    "check that destructive deletes use undo or type-to-confirm (safety-verifier)",
+    "verify the blast radius and audit-trail UX for bulk actions (safety-verifier)",
+    "explain the OKLCH color space math and how chroma maps to hue (color-science)",
+    "what is the color theory behind a split-complementary harmony (color-science)",
+    "build a zero-dependency color-picker web component with the right geometry (component-decomposer)",
+    "design the API and parts of a swatch component (component-decomposer)"
+  ]
+}

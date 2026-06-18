@@ -1,6 +1,6 @@
 ---
 name: focus-verifier
-description: Derive focus-ring recipes, hit-target minimums, and keyboard affordances — bridging color, spacing, radius, and motion — into tokens that satisfy WCAG 2.2 SC 2.5.8 (target size), SC 2.4.11/2.4.13 (focus appearance), and keyboard-only operability. Use when the user needs focus-ring tokens that clear contrast under every surface, hit-area expansions for small interactive elements, or keyboard-only navigation affordances.
+description: Derive and verify focus-ring recipes, hit-target minimums, focus order, and keyboard affordances that satisfy WCAG 2.2 SC 2.5.8 (target size), SC 2.4.11/2.4.13 (focus appearance), and keyboard-only operability. Use when the user needs to check focus order / tab sequence, keyboard navigation and traps, focus management on route change, focus-ring tokens that clear 3:1 under every surface, or hit-area expansions for small interactive elements. NOT for general text/background contrast, palette, or color-blind safety (color-verifier) — this owns only focus-ring contrast; NOT for RTL/bidi, dir/lang on text surfaces, locale Intl formatting, or text-expansion (i18n-verifier); NOT for loading skeleton/spinner, CLS, or perceived-latency budgets (perf-verifier); NOT for destructive-action undo/type-to-confirm or audit-trail UX (safety-verifier); NOT for color-space theory or palette math (color-science); NOT for building a tab-list or menu component (component-decomposer).
 ---
 
 # focus-verifier
