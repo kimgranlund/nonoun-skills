@@ -1,0 +1,38 @@
+{
+  "skill": "architecture-decomposer",
+  "_note": "Checked-in routing corpus for architecture-decomposer. CAVEAT: routing-eval measures LEXICAL TOKEN OVERLAP ONLY — a legibility aid, not a verdict. The indirect/paraphrase positives (the last 2-3) are deliberately low-overlap to test recall; a lexical miss on them is a PROXY artifact, NOT a description defect. The negatives are ADVERSARIAL: each is a real trigger for a NAMED confusable sibling. Every *-decomposer here shares the 'decompose / design / grade on two crossing axes' vocabulary, so the family collides on surface tokens by construction. This skill owns the ARCHITECTURE (system/service/module graph, boundaries, the dependency graph, cycles, layering); code-decomposer owns a UNIT OF CODE inside one module; component-decomposer owns a ZERO-DEP WEB COMPONENT; layout-decomposer owns a UI LAYOUT; proof-decomposer owns a deductive argument. The graduated source skill arch-system shared this whole territory; the negatives surface exactly the family collisions. Re-derive when the neighbourhood changes.",
+  "siblings_in_repo": ["code-decomposer", "component-decomposer", "layout-decomposer", "mermaid-decomposer", "query-decomposer", "type-decomposer", "regex-decomposer", "config-decomposer", "proof-decomposer", "extraction-decomposer"],
+  "global_peers": ["skills-studio"],
+  "positives": [
+    "design the system boundaries and modules for this service",
+    "are these the right architecture boundaries for the domain",
+    "is this architecture sound on structure and integrity",
+    "find the dependency cycle in this module graph",
+    "is this layered correctly or does something depend up",
+    "grade this service decomposition and name the quadrant",
+    "where does this state live and what module should own it",
+    "model this domain into bounded contexts with one owner each",
+    "this design doc looks elegant but does the real dependency graph hold",
+    "build a contract card and run the cycle and layering checks",
+    "which module is a god-module hub with too much fan-in",
+    "decompose this existing repo into its real component graph and check it",
+    "the boxes and arrows read beautifully but is it actually acyclic",
+    "this builds and deploys fine but I think the boundaries are wrong"
+  ],
+  "negatives": [
+    "decompose and grade this function on the spec and execution axes",
+    "is this parse_duration implementation done and are its tests real",
+    "design our button component with an icon, label, and caret across sizes",
+    "grade this custom select on the compose and realize axes",
+    "decompose this UI layout into regions and groups",
+    "what app shell and layout archetype fits this screen",
+    "grade a proof on its logic and rigor axes",
+    "grade this SQL query for grain and read its execution plan",
+    "design a type or schema so it can't admit illegal states",
+    "score this regex for correctness against its test cases",
+    "decompose this Terraform config for drift and safety",
+    "review this diff for bugs",
+    "run the app and verify this change actually works",
+    "clean up and simplify this code for readability"
+  ]
+}

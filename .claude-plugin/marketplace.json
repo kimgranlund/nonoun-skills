@@ -35,7 +35,7 @@
     {
       "name": "code-skills",
       "source": "./code-skills",
-      "description": "Engineering-domain skills: code-decomposer (grade a unit of code on SPEC x EXECUTION — right + provably runs — with an execution harness and a test-vacuity linter that attacks the 'green but wrong' quadrant), regex-decomposer (LANGUAGE x MATCH — a pattern that means the right language and won't ReDoS, with an example-set + ReDoS checker), query-decomposer (SEMANTICS x EXECUTION — a SQL query at the right grain that actually plans, with a SQL linter + EXPLAIN harness), type-decomposer (MODEL x VALIDITY — make illegal states unrepresentable, proven by a JSON-Schema validator that runs legal/illegal instance sets, plus a model-smell linter), and figma-plugins (build/review/test Figma plugins across the sandbox<->iframe message bridge).",
+      "description": "Engineering-domain skills: code-decomposer (grade a unit of code on SPEC x EXECUTION — right + provably runs — with an execution harness and a test-vacuity linter that attacks the 'green but wrong' quadrant), regex-decomposer (grade a regex on LANGUAGE x MATCH — means the right language and won't ReDoS — with an example-set + ReDoS checker), query-decomposer (grade a SQL query on SEMANTICS x EXECUTION — right grain, actually plans — with a SQL linter and an EXPLAIN/dry-run harness), type-decomposer (grade a type/schema on MODEL x VALIDITY — make illegal states unrepresentable — with a JSON-Schema validator that runs legal/illegal instance sets, plus a model-smell linter), architecture-decomposer (grade a system architecture on STRUCTURE x INTEGRITY — right decomposition AND a dependency graph that actually holds — with an acyclicity/layering/coupling checker), and figma-plugins (build, review, and test Figma plugins across the sandbox<->iframe message bridge). Skills only — self-contained.",
       "category": "engineering",
       "tags": [
         "skills",
@@ -147,6 +147,11 @@
       "name": "skills-skills",
       "source": "./skills-skills",
       "description": "Skills for authoring and optimizing Claude Code SKILLS — the meta-tooling for the skill ecosystem itself. skills-studio (the skill lifecycle: author / edit / optimize, score against the best-practices rubric, the 9-critic adversarial council, behavioral evals, routing corpora), skills-refactor (refactor or split an existing skill), and meta-app-scaffold (scaffold a skill / reference-app foundation). Skills only — no commands, agents, or MCP. Self-contained."
+    },
+    {
+      "name": "plugins-skills",
+      "source": "./plugins-skills",
+      "description": "Skills for authoring, reviewing, and optimizing Claude Code PLUGINS. plugin-decomposer (decompose, design, and grade a plugin on the BUNDLE x MANIFEST axes — is it the right focused set of components for one job, AND does it actually install and load — scored separately, with a deterministic plugin-manifest linter that catches malformed manifests, illegal/escaping paths, bad names/versions, unresolved marketplace entries, and the kitchen-sink bundle). The nonoun-native peer to the global plugins-factory. Skills only — no commands, agents, or MCP. Self-contained."
     }
   ]
 }

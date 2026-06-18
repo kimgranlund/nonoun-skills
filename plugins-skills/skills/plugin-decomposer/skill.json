@@ -1,0 +1,16 @@
+{
+  "name": "plugin-decomposer",
+  "version": "0.1.0",
+  "status": "draft",
+  "target": "both",
+  "description": "Decompose, design, and grade a Claude Code plugin on two crossing axes — BUNDLE (one job → components fit → cohesion → boundary → standing-context cost) and MANIFEST (well-formed → name/version → marketplace resolves → paths legal → self-contained) — scored separately so a coherent idea that won't load and a kitchen-sink that loads fine get opposite fixes. MANIFEST routes to a self-tested checker (bin/plugin-check.py: MANIFEST_INVALID, BAD_NAME, BAD_VERSION, MARKETPLACE_MISMATCH, ILLEGAL_PATH gates + KITCHEN_SINK advisory). The nonoun-native peer to the global plugins-factory. NOT for authoring a SKILL (skills-studio / skills-skills), a unit of code (code-decomposer), or an MCP tool perimeter (core-mcp-best-practices).",
+  "keywords": ["plugin", "claude-code-plugin", "plugin-manifest", "marketplace", "skill-bundle", "bundle", "kitchen-sink", "manifest-validation", "semver", "kebab-case", "standing-context", "decomposition", "plugin-rubric", "adversarial-verification"],
+  "files": [
+    "SKILL.md",
+    "references/decomposition-method.md",
+    "references/plugin-anatomy.md",
+    "bin/plugin-check.py",
+    "CHANGELOG.md",
+    "ROADMAP.md"
+  ]
+}

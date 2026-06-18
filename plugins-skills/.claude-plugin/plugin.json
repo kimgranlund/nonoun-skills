@@ -1,0 +1,12 @@
+{
+  "name": "plugins-skills",
+  "version": "0.1.0",
+  "description": "Skills for authoring, reviewing, and optimizing Claude Code PLUGINS. plugin-decomposer (decompose, design, and grade a plugin on the BUNDLE x MANIFEST axes — is it the right focused set of components for one job, AND does it actually install and load — scored separately, with a deterministic plugin-manifest linter that catches malformed manifests, illegal/escaping paths, bad names/versions, unresolved marketplace entries, and the kitchen-sink bundle). The nonoun-native peer to the global plugins-factory. Skills only — no commands, agents, or MCP. Self-contained.",
+  "author": {
+    "name": "Kim",
+    "email": "kim.granlund@gmail.com"
+  },
+  "homepage": "https://github.com/kimgranlund/nonoun-skills",
+  "license": "MIT",
+  "keywords": ["skills", "plugins", "claude-plugin", "plugin-authoring", "manifest", "marketplace", "bundle", "kitchen-sink", "decomposition", "plugin-rubric"]
+}
