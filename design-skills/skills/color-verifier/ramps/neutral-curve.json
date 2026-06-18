@@ -1,0 +1,29 @@
+{
+  "note": "Default L anchors for the 11-step neutral ramp. Chroma ceiling is 0.02 for tinted neutrals, 0 for true grey. Hue is inherited from the brand's neutral tint (if any) or set to 260° (slightly cool) by default.",
+  "scaleSteps": [0, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950, 1000],
+  "lightnessAnchors": {
+    "0":    0.995,
+    "50":   0.970,
+    "100":  0.940,
+    "200":  0.890,
+    "300":  0.820,
+    "400":  0.720,
+    "500":  0.600,
+    "600":  0.490,
+    "700":  0.380,
+    "800":  0.280,
+    "900":  0.200,
+    "950":  0.150,
+    "1000": 0.080
+  },
+  "chromaCeiling": 0.02,
+  "chromaDistribution": "peaks at mid lightness (L=0.5), decays toward both ends",
+  "hueDefault": 260,
+  "hueRange": [240, 280],
+  "invariants": [
+    "L is monotonic decreasing from step 0 → step 1000",
+    "Adjacent-step ΔL ratio stays within 1.0–1.5x (excluding 0↔50 and 950↔1000)",
+    "Chroma never exceeds 0.02",
+    "Hue is constant across the ramp"
+  ]
+}

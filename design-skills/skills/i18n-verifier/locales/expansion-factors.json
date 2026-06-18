@@ -1,0 +1,24 @@
+{
+  "$schema": "i18n-expansion/v1",
+  "default": { "expansionFactor": 1.4, "contractionFactor": 0.7, "notes": "Use when locale not enumerated." },
+  "locales": {
+    "en-US": { "expansionFactor": 1.0, "contractionFactor": 1.0 },
+    "en-GB": { "expansionFactor": 1.05, "contractionFactor": 0.95 },
+    "de-DE": { "expansionFactor": 1.4, "contractionFactor": 0.9, "notes": "Compound nouns drive expansion." },
+    "fi-FI": { "expansionFactor": 1.4, "contractionFactor": 0.9 },
+    "fr-FR": { "expansionFactor": 1.3, "contractionFactor": 0.9 },
+    "es-ES": { "expansionFactor": 1.3, "contractionFactor": 0.9 },
+    "pt-BR": { "expansionFactor": 1.3, "contractionFactor": 0.9 },
+    "it-IT": { "expansionFactor": 1.25, "contractionFactor": 0.9 },
+    "ru-RU": { "expansionFactor": 1.2, "contractionFactor": 0.9 },
+    "pl-PL": { "expansionFactor": 1.3, "contractionFactor": 0.9 },
+    "ja-JP": { "expansionFactor": 0.7, "contractionFactor": 0.5 },
+    "zh-CN": { "expansionFactor": 0.7, "contractionFactor": 0.5 },
+    "zh-TW": { "expansionFactor": 0.7, "contractionFactor": 0.5 },
+    "ko-KR": { "expansionFactor": 0.75, "contractionFactor": 0.55 },
+    "ar-EG": { "expansionFactor": 1.25, "contractionFactor": 0.85, "direction": "rtl" },
+    "he-IL": { "expansionFactor": 1.1,  "contractionFactor": 0.85, "direction": "rtl" },
+    "th-TH": { "expansionFactor": 1.2, "contractionFactor": 0.9 },
+    "hi-IN": { "expansionFactor": 1.2, "contractionFactor": 0.9 }
+  }
+}

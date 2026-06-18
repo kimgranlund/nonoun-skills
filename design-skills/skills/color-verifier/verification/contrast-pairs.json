@@ -1,0 +1,32 @@
+{
+  "note": "The authoritative list of semantic pairs the skill must verify against WCAG 2.2 when emitting any palette. Every pair that does not meet its target blocks emission.",
+  "version": "wcag-2.2",
+  "targets": {
+    "AA":  { "normalText": 4.5, "largeText": 3.0, "uiComponent": 3.0 },
+    "AAA": { "normalText": 7.0, "largeText": 4.5, "uiComponent": 4.5 }
+  },
+  "pairs": [
+    { "fg": "--on-surface",              "bg": "--surface",              "kind": "normalText" },
+    { "fg": "--on-surface-muted",        "bg": "--surface",              "kind": "normalText" },
+    { "fg": "--on-surface",              "bg": "--surface-raised",       "kind": "normalText" },
+    { "fg": "--on-surface",              "bg": "--surface-sunken",       "kind": "normalText" },
+    { "fg": "--on-accent",               "bg": "--accent",               "kind": "normalText" },
+    { "fg": "--on-intent-danger",        "bg": "--intent-danger",        "kind": "normalText" },
+    { "fg": "--on-intent-warning",       "bg": "--intent-warning",       "kind": "normalText" },
+    { "fg": "--on-intent-success",       "bg": "--intent-success",       "kind": "normalText" },
+    { "fg": "--on-intent-info",          "bg": "--intent-info",          "kind": "normalText" },
+
+    { "fg": "--border",                  "bg": "--surface",              "kind": "uiComponent", "note": "borders bounding interactive elements must clear 3:1" },
+    { "fg": "--border-strong",           "bg": "--surface",              "kind": "uiComponent" },
+    { "fg": "--focus-ring",              "bg": "--surface",              "kind": "uiComponent" },
+    { "fg": "--focus-ring",              "bg": "--surface-raised",       "kind": "uiComponent" },
+    { "fg": "--focus-ring",              "bg": "--accent",               "kind": "uiComponent", "note": "focus ring against an accent-filled button must still clear 3:1 — usually requires an inner offset ring" },
+
+    { "fg": "--accent",                  "bg": "--surface",              "kind": "uiComponent", "note": "accent chip/link text on default surface" },
+    { "fg": "--intent-danger",           "bg": "--surface",              "kind": "uiComponent" },
+    { "fg": "--intent-success",          "bg": "--surface",              "kind": "uiComponent" }
+  ],
+  "escalation": {
+    "rule": "if a pair fails its target, the skill tries in order: (1) step the FG one ramp step further from BG's luminance, (2) step the BG one ramp step further, (3) emit a DecompositionGap — never silently ship a failing pair"
+  }
+}

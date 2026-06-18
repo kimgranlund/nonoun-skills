@@ -1,0 +1,62 @@
+{
+  "$schema": "https://schemas.adia.ai/skill/v1.json",
+  "name": "color-verifier",
+  "version": "0.2.0",
+  "description": "Generate, extend, and verify OKLCH color ramps and semantic mappings that satisfy contrast, hue-stability, and perceptual-evenness constraints. Use when the user needs to build a ramp from a brand anchor, extend an existing palette to a full scale, assign semantic roles, or verify that a proposed palette holds up under every (theme × scheme × contrast) combination.",
+  "status": "stable",
+  "authors": [
+    "kim"
+  ],
+  "tags": [
+    "constraint",
+    "typed-pipeline"
+  ],
+  "files": [
+    "CHANGELOG.md",
+    "ROADMAP.md",
+    "SKILL.md",
+    "ramps/accent-curve.json",
+    "ramps/intent-hues.json",
+    "ramps/neutral-curve.json",
+    "skill.json",
+    "verification/contrast-pairs.json"
+  ],
+  "domain": "ui-design",
+  "interface": {
+    "input": {
+      "description": "Relevant schemas (UISchema, BrandSchema, InteractionSchema) and emitted artifacts."
+    },
+    "output": {
+      "description": "ColorProof — constraint-satisfaction proof or violation report."
+    },
+    "config": {
+      "description": "Thresholds for pass/warn/fail; remediation policy."
+    }
+  },
+  "invariants": [
+    {
+      "id": "INV-COL-001",
+      "description": "Every proof cites specific schema paths or CSS rules it evaluates",
+      "enforcement": "convention"
+    },
+    {
+      "id": "INV-COL-002",
+      "description": "Remediation suggestions are scoped to the schema/artifact that can fix them",
+      "enforcement": "convention"
+    }
+  ],
+  "composition": {
+    "upstream": [
+      "ui-orchestrator",
+      "ui-schema-brand",
+      "ui-schema-ui",
+      "ui-schema-interaction",
+      "ui-build-tokens"
+    ],
+    "downstream": [
+      "ui-audit-quality"
+    ],
+    "peer": []
+  },
+  "target": "agent"
+}

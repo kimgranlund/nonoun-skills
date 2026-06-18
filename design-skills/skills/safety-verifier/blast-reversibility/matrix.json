@@ -1,0 +1,30 @@
+{
+  "$schema": "safety-blast-reversibility/v1",
+  "axes": {
+    "blastRadius": {
+      "low":      "self, 1–few entities",
+      "medium":   "shared with team, 10–100 entities",
+      "high":     "org-wide, 100–10k entities",
+      "critical": "public / regulatory / irrecoverable business state"
+    },
+    "reversibility": {
+      "instant":      "Reversed with immediate undo.",
+      "session":      "Reversible during current session.",
+      "minutes":      "Reversible within minutes (recall window).",
+      "days":         "Reversible within days (trash, archive).",
+      "irreversible": "No automated reversal path."
+    }
+  },
+  "matrix": [
+    { "blast": "low",      "reversibility": "instant",      "treatment": "silent-plus-undo" },
+    { "blast": "low",      "reversibility": "session",      "treatment": "silent-plus-undo" },
+    { "blast": "low",      "reversibility": "irreversible", "treatment": "confirm-named-consequence" },
+    { "blast": "medium",   "reversibility": "instant",      "treatment": "undo-toast" },
+    { "blast": "medium",   "reversibility": "minutes",      "treatment": "recall-window" },
+    { "blast": "medium",   "reversibility": "days",         "treatment": "undo-toast" },
+    { "blast": "medium",   "reversibility": "irreversible", "treatment": "confirm-named-consequence" },
+    { "blast": "high",     "reversibility": "days",         "treatment": "confirm-plus-audit" },
+    { "blast": "high",     "reversibility": "irreversible", "treatment": "type-to-confirm-plus-reauth-plus-audit" },
+    { "blast": "critical", "reversibility": "any",          "treatment": "type-to-confirm-plus-reauth-plus-two-person-approval-plus-audit" }
+  ]
+}

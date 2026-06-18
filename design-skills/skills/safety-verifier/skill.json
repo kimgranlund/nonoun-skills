@@ -1,0 +1,64 @@
+{
+  "$schema": "https://schemas.adia.ai/skill/v1.json",
+  "name": "safety-verifier",
+  "version": "0.2.0",
+  "description": "Reason about blast radius, reversibility, and friction for every action a UI exposes, and emit the invariants every destructive or high-consequence surface must satisfy — undo over confirm, type-to-confirm for irreversible, audit-trail UX, scoped permissions. Use when destructive actions are under-specified, when confirm dialogs have proliferated, or when undo/recovery is missing.",
+  "status": "draft",
+  "authors": [
+    "kim"
+  ],
+  "tags": [
+    "constraint",
+    "typed-pipeline"
+  ],
+  "files": [
+    "CHANGELOG.md",
+    "ROADMAP.md",
+    "SKILL.md",
+    "audit/event-schema.json",
+    "blast-reversibility/matrix.json",
+    "defaults/confirm-posture.json",
+    "friction/recipes.json",
+    "permissions/error-ux.json",
+    "recall/windows.json",
+    "skill.json"
+  ],
+  "domain": "ui-design",
+  "interface": {
+    "input": {
+      "description": "Relevant schemas (UISchema, BrandSchema, InteractionSchema) and emitted artifacts."
+    },
+    "output": {
+      "description": "SafetyAndDestructiveAffordancesProof — constraint-satisfaction proof or violation report."
+    },
+    "config": {
+      "description": "Thresholds for pass/warn/fail; remediation policy."
+    }
+  },
+  "invariants": [
+    {
+      "id": "INV-SAF-001",
+      "description": "Every proof cites specific schema paths or CSS rules it evaluates",
+      "enforcement": "convention"
+    },
+    {
+      "id": "INV-SAF-002",
+      "description": "Remediation suggestions are scoped to the schema/artifact that can fix them",
+      "enforcement": "convention"
+    }
+  ],
+  "composition": {
+    "upstream": [
+      "ui-orchestrator",
+      "ui-schema-brand",
+      "ui-schema-ui",
+      "ui-schema-interaction",
+      "ui-build-tokens"
+    ],
+    "downstream": [
+      "ui-audit-quality"
+    ],
+    "peer": []
+  },
+  "target": "agent"
+}

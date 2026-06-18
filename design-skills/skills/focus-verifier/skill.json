@@ -1,0 +1,62 @@
+{
+  "$schema": "https://schemas.adia.ai/skill/v1.json",
+  "name": "focus-verifier",
+  "version": "0.2.0",
+  "description": "Derive focus-ring recipes, hit-target minimums, and keyboard affordances — bridging color, spacing, radius, and motion — into tokens that satisfy WCAG 2.2 SC 2.5.8 (target size), SC 2.4.11/2.4.13 (focus appearance), and keyboard-only operability. Use when the user needs focus-ring tokens that clear contrast under every surface, hit-area expansions for small interactive elements, or keyboard-only navigation affordances.",
+  "status": "stable",
+  "authors": [
+    "kim"
+  ],
+  "tags": [
+    "constraint",
+    "typed-pipeline"
+  ],
+  "files": [
+    "CHANGELOG.md",
+    "ROADMAP.md",
+    "SKILL.md",
+    "focus-ring/recipes.json",
+    "keyboard/affordances.json",
+    "offsets/per-surface.json",
+    "skill.json",
+    "targets/minimums.json"
+  ],
+  "domain": "ui-design",
+  "interface": {
+    "input": {
+      "description": "Relevant schemas (UISchema, BrandSchema, InteractionSchema) and emitted artifacts."
+    },
+    "output": {
+      "description": "FocusAndHitTargetsProof — constraint-satisfaction proof or violation report."
+    },
+    "config": {
+      "description": "Thresholds for pass/warn/fail; remediation policy."
+    }
+  },
+  "invariants": [
+    {
+      "id": "INV-FOC-001",
+      "description": "Every proof cites specific schema paths or CSS rules it evaluates",
+      "enforcement": "convention"
+    },
+    {
+      "id": "INV-FOC-002",
+      "description": "Remediation suggestions are scoped to the schema/artifact that can fix them",
+      "enforcement": "convention"
+    }
+  ],
+  "composition": {
+    "upstream": [
+      "ui-orchestrator",
+      "ui-schema-brand",
+      "ui-schema-ui",
+      "ui-schema-interaction",
+      "ui-build-tokens"
+    ],
+    "downstream": [
+      "ui-audit-quality"
+    ],
+    "peer": []
+  },
+  "target": "agent"
+}

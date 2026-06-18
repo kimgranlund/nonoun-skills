@@ -1,0 +1,63 @@
+{
+  "$schema": "https://schemas.adia.ai/skill/v1.json",
+  "name": "i18n-verifier",
+  "version": "0.2.0",
+  "description": "Reason about the locale-shaped primitives a UI system must absorb — bidirectionality, script-specific metrics, locale-sensitive number/date/currency formatting, pluralization, and text-expansion budgets — and emit the invariants other composition skills must honor. Use when a UI system must hold up across scripts and locales without being re-authored per locale.",
+  "status": "stable",
+  "authors": [
+    "kim"
+  ],
+  "tags": [
+    "constraint",
+    "typed-pipeline"
+  ],
+  "files": [
+    "CHANGELOG.md",
+    "ROADMAP.md",
+    "SKILL.md",
+    "bidi/isolation-points.json",
+    "formatting/intl-surfaces.json",
+    "locales/expansion-factors.json",
+    "locales/script-metrics.json",
+    "mirroring/icon-policies.json",
+    "skill.json"
+  ],
+  "domain": "ui-design",
+  "interface": {
+    "input": {
+      "description": "Relevant schemas (UISchema, BrandSchema, InteractionSchema) and emitted artifacts."
+    },
+    "output": {
+      "description": "InternationalizationProof — constraint-satisfaction proof or violation report."
+    },
+    "config": {
+      "description": "Thresholds for pass/warn/fail; remediation policy."
+    }
+  },
+  "invariants": [
+    {
+      "id": "INV-INT-001",
+      "description": "Every proof cites specific schema paths or CSS rules it evaluates",
+      "enforcement": "convention"
+    },
+    {
+      "id": "INV-INT-002",
+      "description": "Remediation suggestions are scoped to the schema/artifact that can fix them",
+      "enforcement": "convention"
+    }
+  ],
+  "composition": {
+    "upstream": [
+      "ui-orchestrator",
+      "ui-schema-brand",
+      "ui-schema-ui",
+      "ui-schema-interaction",
+      "ui-build-tokens"
+    ],
+    "downstream": [
+      "ui-audit-quality"
+    ],
+    "peer": []
+  },
+  "target": "agent"
+}
