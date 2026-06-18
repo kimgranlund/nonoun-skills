@@ -1,0 +1,37 @@
+{
+  "skill": "viz-2x2",
+  "_note": "Routing corpus for viz-2x2 — produces a self-contained HTML 2x2 matrix artifact (four archetypes on two INDEPENDENT axes, summary cards, inline SVG charts, takeaway). Positives span the invocation families (imperative make-a-matrix, object-first four-things, indirect 'visualize the relationships'). Negatives are drawn ADVERSARIALLY from NAMED peers it is confusable with: layout-decomposer (grades/designs UI layout structure — regions, app shells, wireframes; NOT a 2x2 chart), mermaid-decomposer (flowcharts / sequence / graph diagrams from text), other diagram shapes (Venn, tree, ranking — wrong topology, not two-axis), brand 2x2 STRATEGY work in brand-methodology/brand-evaluate (a brand's positioning thinking, not a rendered HTML quadrant artifact), and component-decomposer (web-component design). The negatives test wrong-shape (ranking/flowchart/Venn/tree), wrong-cardinality, and 'diagram'-vocabulary collisions that are NOT a two-axis matrix. routing-eval is LEXICAL OVERLAP only.",
+  "siblings_in_repo": ["research-survey", "tool-stress"],
+  "named_peers": ["layout-decomposer", "mermaid-decomposer", "component-decomposer", "brand-methodology", "brand-evaluate"],
+  "positives": [
+    "make a 2x2 matrix of these four approaches",
+    "build a quadrant diagram comparing four strategies",
+    "show me the trade-offs across two independent axes",
+    "draw a 2x2 with cost on one axis and quality on the other",
+    "I have four modes that differ along two dimensions — visualize them",
+    "create a strategic positioning map for these four archetypes",
+    "turn these four scenarios into a trade-off framework",
+    "comparison matrix for these four options as a shareable artifact",
+    "visualize the relationships between these four things on two axes",
+    "make a quadrant chart with summary cards and charts",
+    "place these four archetypes on a 2x2 and name the quadrants",
+    "build a matrix artifact I can share as HTML",
+    "compare these four approaches as a 2x2",
+    "I want a polished 2x2 with light and dark mode"
+  ],
+  "negatives": [
+    "decompose this UI layout into regions and groups",
+    "design an app shell and wireframe a dashboard",
+    "draw a flowchart of this decision process",
+    "make a sequence diagram of the request flow",
+    "render this state machine as a mermaid graph",
+    "draw a Venn diagram of these overlapping sets",
+    "show me a ranking of these options from best to worst",
+    "make a decision tree for this branching logic",
+    "grade this web component's API and geometry",
+    "work out our brand positioning and what we stand for",
+    "audit this brand identity against the strategy",
+    "make a simple comparison table of these features",
+    "compare these three things side by side"
+  ]
+}

@@ -2,18 +2,18 @@
 name: meta-app-scaffold
 description: >
   Scaffold a new reference app foundation under apps/{name}/ using the borrowed
-  Claude Code plugin folder layout (skills/, agents/, commands/, hooks/, monitors/,
-  assets/, bin/) augmented with project axes — spec/ (design: PRD, BRIEF,
-  ARCHITECTURE, SPEC), plan/ (execution: ROADMAP, MILESTONES, PLAN), and app/
-  (runnable source). Use whenever the user wants to start a new reference app,
+  Claude Code plugin folder layout augmented with project axes — spec/ (design:
+  PRD, BRIEF, ARCHITECTURE, SPEC), plan/ (execution: ROADMAP, MILESTONES, PLAN),
+  and app/ (runnable source) — then seed minimal stub files and propose an authoring
+  chain. Use whenever the user wants to start a new reference app,
   bootstrap an apps/ foundation, scaffold a project under apps/, or establish
   the canonical layout for a new playground / demo / clone-and-run app. Triggers
   on "scaffold a new app", "bootstrap apps/{name}", "create an apps/ foundation",
   "new reference app", "set up app-foundation", "start a new playground app",
-  "new app like apps/tasks". Composes with meta-expert-author, plan-spec,
-  plan-prd, and skills-studio. Apps are NOT distributable Claude Code plugins
-  by default — no manifest unless explicitly requested. NOT for skill authoring
-  (use skills-studio) or repo-level doc auditing (use ops-repo).
+  "new app like apps/tasks". Apps are NOT distributable Claude Code plugins
+  by default — no manifest unless explicitly requested. NOT for authoring / scoring /
+  critiquing a skill (skills-studio), nor renaming / merging / splitting an existing
+  skill across the library (skills-refactor), nor repo-level doc auditing (ops-repo).
 ---
 
 # meta-app-scaffold

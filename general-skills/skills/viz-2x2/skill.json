@@ -2,7 +2,7 @@
   "$schema": "https://schemas.adia.ai/skill/v1.json",
   "name": "viz-2x2",
   "version": "1.1.1",
-  "description": "Create shareable 2\u00d72 matrix diagrams that illustrate strategic trade-offs across two independent axes. Use this skill whenever the user asks to make a 2\u00d72, comparison matrix, quadrant diagram, trade-off framework, strategic positioning map, or any visual that places four archetypes on two axes. Also trigger when the user describes four scenarios or modes and wants to visualize the relationships between them \u2014 even if they don't say \"2\u00d72\" explicitly. Trigger on phrases like \"make a matrix\", \"show the trade-offs\", \"quadrant diagram\", \"four modes of X\", \"compare these four approaches\", or when the user provides four things that differ along two dimensions. Outputs a self-contained HTML artifact with matrix grid, summary cards, inline SVG charts, and takeaway section. Supports two deployment modes: Claude Chat artifact mode (wrapped in <artifact> tags) and file mode (saved as .html). Responsive, with light/dark mode and optional Claude Design theme override.",
+  "description": "Create shareable 2×2 matrix diagrams that illustrate strategic trade-offs across two independent axes. Use this skill whenever the user asks to make a 2×2, comparison matrix, quadrant diagram, trade-off framework, strategic positioning map, or any visual that places four archetypes on two axes. Also trigger when the user describes four scenarios or modes and wants to visualize the relationships between them — even if they don't say \"2×2\" explicitly. Trigger on phrases like \"make a matrix\", \"show the trade-offs\", \"quadrant diagram\", \"four modes of X\", \"compare these four approaches\", or when the user provides four things that differ along two dimensions. Outputs a self-contained HTML artifact with matrix grid, summary cards, inline SVG charts, and takeaway section. Supports two deployment modes: Claude Chat artifact mode (wrapped in <artifact> tags) and file mode (saved as .html). Responsive, with light/dark mode and optional Claude Design theme override.",
   "status": "stable",
   "authors": [
     "kim"
@@ -25,13 +25,14 @@
     "CHANGELOG.md",
     "ROADMAP.md",
     "SKILL.md",
+    "evals/adversarial-corpus.json",
+    "evals/routing-corpus.json",
+    "references/claude-artifacts.md",
     "references/template.md",
     "references/visual-system.md",
-    "references/claude-artifacts.md",
-    "evals/routing-corpus.json",
-    "evals/adversarial-corpus.json",
+    "reviews/2026-05-31-core-skills-evaluator-full-panel.md",
     "skill.json",
-    "reviews/2026-05-31-core-skills-evaluator-full-panel.md"
+    "viz-2x2.corpus.json"
   ],
   "target": "agent"
 }

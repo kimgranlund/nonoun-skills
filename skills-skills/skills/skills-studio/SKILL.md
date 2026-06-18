@@ -2,19 +2,20 @@
 name: skills-studio
 description: >
   The skill lifecycle tool — author, evaluate, and improve skills. AUTHOR / EDIT /
-  OPTIMIZE: create a new skill from scratch (interview → research → draft → routing
-  eval → package), fix or improve an existing one, or tune its description for routing
-  accuracy — producing SKILL.md + skill.json + CHANGELOG + ROADMAP + a scored routing
-  corpus. SCORE: rubric scorecard against the best-practices library ([gate]/[review]).
-  CRITIQUE: a 9-critic adversarial panel of named senior engineers. EVAL: behavioral
-  test cases with variance analysis.
+  OPTIMIZE: create a new skill from scratch, fix or improve an existing one, or tune its
+  description for routing accuracy. SCORE: rubric scorecard against the rubric library.
+  CRITIQUE: a 9-critic adversarial panel. EVAL: behavioral test cases.
 
-  Trigger when: creating or building a skill, editing / optimizing / refactoring a
-  skill, auditing or scoring a skill before promotion, running an adversarial review,
-  measuring routing or output quality, or asking what a critic would find wrong.
+  Trigger when: creating or building one skill, editing or improving its content,
+  optimizing its description, scoring or auditing a skill, running an adversarial review,
+  measuring its routing or output quality, or asking what a critic would find wrong.
 
-  Do NOT trigger for: authoring a comprehensive [domain]-expert knowledge skill
-  (meta-expert-author) or a peer-reviewed-source theory skill (meta-theory-author).
+  Do NOT trigger for: a library-level rename, merge, retire, or split of an existing
+  skill, or rewiring its cross-references (skills-refactor); grading a PLUGIN bundle or
+  its plugin.json / marketplace entry (plugin-decomposer); scaffolding an apps/{name}/
+  reference-app foundation (meta-app-scaffold); or authoring a comprehensive
+  [domain]-expert knowledge skill (meta-expert-author) or a peer-reviewed theory skill
+  (meta-theory-author).
 ---
 
 # skills-studio

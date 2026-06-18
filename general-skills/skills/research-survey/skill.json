@@ -24,6 +24,7 @@
     "references/bisect.md",
     "references/hill-climb.md",
     "references/sweep.md",
+    "research-survey.corpus.json",
     "skill.json"
   ],
   "target": "agent"

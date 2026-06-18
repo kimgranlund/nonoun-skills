@@ -1,0 +1,38 @@
+{
+  "skill": "skills-studio",
+  "_note": "Routing corpus of record for skills-studio — the skill LIFECYCLE tool (author / edit / optimize / score / critique / eval / promote a SKILL). Positives span the invocation families (imperative author, edit/optimize, score/critique/eval, diagnostic 'is this skill ready', indirect-paraphrase). Negatives are drawn ADVERSARIALLY from NAMED siblings that share skill-authoring vocabulary: skills-refactor (rename/merge/retire/split + rewire an EXISTING skill across a library — a structural move, not authoring or grading content), meta-app-scaffold (scaffold an apps/{name}/ reference-app FOUNDATION), plugin-decomposer (grade a PLUGIN bundle/manifest, not a skill), meta-expert-author + meta-theory-author (author a [domain]-expert KNOWLEDGE skill from waves of sources). Each negative belongs to one named sibling and uses ITS vocabulary. routing-eval measures LEXICAL overlap only — a paraphrase positive may miss; that is a proxy limit, not a defect.",
+  "siblings_in_repo": ["skills-refactor", "meta-app-scaffold"],
+  "global_peers": ["plugin-decomposer", "meta-expert-author", "meta-theory-author"],
+  "positives": [
+    "create a new skill from scratch that helps agents write DB migrations safely",
+    "author a skill for reviewing pull requests",
+    "build a skill that lints terraform plans",
+    "improve this skill and fix the gap in its instructions",
+    "optimize this skill's description for routing accuracy",
+    "tune the trigger phrases so my skill routes correctly",
+    "score this skill against the best-practices rubric library",
+    "run the 9-critic adversarial panel on my skill",
+    "critique this skill the way Simon Willison would",
+    "run behavioral evals on this skill and report the pass rate",
+    "is this skill ready to promote from draft to stable",
+    "what would Elon delete from this skill",
+    "red-team my skill draft before I ship it",
+    "audit this skill before promotion and give me a verdict"
+  ],
+  "negatives": [
+    "rename skill core-foo to foo and rewire all the references",
+    "merge skills query-decomposer and regex-decomposer into one",
+    "retire this obsolete skill and rewire its consumers first",
+    "split this skill into two and update the routing baselines",
+    "consolidate these two skills and preserve both changelogs",
+    "scaffold a new reference app under apps/billing-demo",
+    "bootstrap an apps/ foundation with spec and plan folders",
+    "is this plugin well-bundled or is it a kitchen-sink plugin",
+    "review my plugin.json and marketplace entry for legal paths",
+    "author a comprehensive domain-expert knowledge skill like ref-dashboard",
+    "build a peer-reviewed academic expert skill with one paper per reference file",
+    "make a knowledge-base skill for typography with research-survey waves",
+    "set up a Claude Project knowledge base for our docs",
+    "drop the core- prefix across this skill set and re-baseline routing"
+  ]
+}

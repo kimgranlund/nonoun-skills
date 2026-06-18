@@ -1,0 +1,38 @@
+{
+  "skill": "meta-app-scaffold",
+  "_note": "Routing corpus of record for meta-app-scaffold — scaffold an apps/{name}/ reference-app FOUNDATION (borrowed plugin folder layout + spec/ plan/ app/ axes + minimal seed files), then PROPOSE a sibling-skill chain (it seeds folders, it does not author content). Positives span the invocation families (imperative scaffold/bootstrap, object-first 'apps/{name}', 'new playground/demo', reverse-engineer an existing app, indirect-paraphrase). Negatives are drawn ADVERSARIALLY from NAMED siblings: skills-studio (AUTHOR / score / critique / eval a SKILL), skills-refactor (rename/merge/retire/split an existing skill across the library), plugin-decomposer (a PLUGIN bundle/manifest), meta-expert-author + meta-theory-author (author a [domain]-expert KNOWLEDGE skill — what THIS skill chains TO for content, not what it does), plan-spec/plan-prd (author the spec docs), ops-repo (audit existing repo docs in place). Each negative belongs to one named sibling, in its vocabulary. routing-eval measures LEXICAL overlap only — paraphrase positives may miss; a proxy limit, not a defect.",
+  "siblings_in_repo": ["skills-studio", "skills-refactor"],
+  "global_peers": ["plugin-decomposer", "meta-expert-author", "meta-theory-author", "plan-spec", "ops-repo"],
+  "positives": [
+    "scaffold a new reference app under apps/billing-demo",
+    "bootstrap apps/chat-canvas with the spec and plan folders",
+    "create an apps/ foundation for a new demo app",
+    "set up the app-foundation layout with spec, plan, and app axes",
+    "start a new playground app under apps/",
+    "new reference app like apps/tasks",
+    "lay out the canonical apps/{name}/ directory tree and seed the stub files",
+    "build a clone-and-run demo app foundation under apps/",
+    "reverse-engineer the spec for an existing app under apps/chat",
+    "I have app code but no spec or plan layout — scaffold the foundation around it",
+    "seed the README, BRIEF, ARCHITECTURE, SPEC, ROADMAP stubs for a new app",
+    "establish the folder skeleton for a new app and propose the follow-up chain",
+    "stand up an apps/ project foundation for a Stripe integration playground",
+    "scaffold a project under apps/ that borrows the plugin folder layout"
+  ],
+  "negatives": [
+    "author a brand-new skill from scratch for writing DB migrations",
+    "score this skill against the best-practices rubric library",
+    "run the 9-critic adversarial panel on my skill",
+    "optimize this skill's description for routing accuracy",
+    "rename skill core-foo to foo and rewire the references",
+    "merge two skills into one and preserve both changelogs",
+    "retire this obsolete skill and rewire its consumers",
+    "is this plugin well-bundled — review my plugin.json and marketplace entry",
+    "author a comprehensive domain-expert knowledge skill like ref-dashboard",
+    "build a peer-reviewed academic expert skill with one paper per reference",
+    "write the BRIEF and SPEC documents for this project",
+    "audit my repo docs in place and set up AGENTS.md",
+    "create a real Claude Code plugin with a distributable manifest",
+    "split this skill into two and re-baseline the routing scorer"
+  ]
+}

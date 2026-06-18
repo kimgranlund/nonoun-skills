@@ -21,7 +21,8 @@
     "CHANGELOG.md",
     "ROADMAP.md",
     "SKILL.md",
-    "skill.json"
+    "skill.json",
+    "tool-stress.corpus.json"
   ],
   "target": "agent"
 }

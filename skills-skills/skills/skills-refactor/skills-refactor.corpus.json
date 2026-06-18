@@ -1,0 +1,38 @@
+{
+  "skill": "skills-refactor",
+  "_note": "Routing corpus of record for skills-refactor — LIBRARY-LEVEL restructuring of an EXISTING skill: rename / merge / retire / split, rewiring every live cross-reference (peer_skills, routing pointers, rubric-load paths, gate-script keys, catalog rows, routing baselines) while preserving dated history and re-running the gate suite. Positives span the invocation families (imperative rename/merge/retire/split, object-first 'these two skills', symptom 'dangling references after rename', indirect-paraphrase). Negatives are drawn ADVERSARIALLY from NAMED siblings: skills-studio (AUTHOR a new skill / EDIT one skill's content / OPTIMIZE its description / SCORE / CRITIQUE / EVAL — quality work on ONE skill, not a structural move across the library), meta-app-scaffold (scaffold an apps/{name}/ FOUNDATION), plugin-decomposer (a PLUGIN bundle/manifest), meta-expert-author (author a [domain]-expert KNOWLEDGE skill), ops-repo (project-repo doc/AGENTS.md audits). Each negative belongs to one named sibling, in its vocabulary. routing-eval measures LEXICAL overlap only — paraphrase positives may miss; a proxy limit, not a defect.",
+  "siblings_in_repo": ["skills-studio", "meta-app-scaffold"],
+  "global_peers": ["plugin-decomposer", "meta-expert-author", "ops-repo"],
+  "positives": [
+    "rename skill core-foo to foo and fix all the references",
+    "merge skills A and B into one",
+    "fold extraction-decomposer into query-decomposer",
+    "retire this obsolete skill",
+    "deprecate this skill and rewire its consumers first",
+    "split this skill into two and give each a routing corpus",
+    "consolidate these two overlapping skills",
+    "drop the core- prefix across the whole skill library",
+    "rewire every peer_skills reference after renaming this skill",
+    "the rename left dangling references in the routing baselines — fix the wiring",
+    "re-key the routing baseline and bump the version after this rename",
+    "restructure this skill-set across the library without rewriting the changelogs",
+    "move this skill and update the catalog row counts in README and AGENTS",
+    "I renamed a skill and now the gate suite is red — find the live refs I missed"
+  ],
+  "negatives": [
+    "author a brand-new skill from scratch for writing DB migrations",
+    "improve this one skill's instructions and add a mode",
+    "optimize this skill's description for routing accuracy",
+    "score this skill against the best-practices rubric library",
+    "run the 9-critic adversarial panel on my skill",
+    "run behavioral evals on this skill and report variance",
+    "tune the trigger phrases so this skill routes correctly",
+    "scaffold a new reference app under apps/billing-demo",
+    "is this plugin a kitchen-sink — review my plugin.json bundle",
+    "author a comprehensive domain-expert knowledge skill like ref-dashboard",
+    "audit my repo docs and set up AGENTS.md",
+    "build a knowledge-base skill with research-survey waves",
+    "rename a symbol inside this source file",
+    "score the routing precision and recall of this skill description"
+  ]
+}

@@ -1,15 +1,18 @@
 ---
 name: tool-stress
 description: >
-  Orchestrates a full stress-test and evaluation session against any system — code, library,
-  API, pipeline, configuration, or artifact. Composes multiple research-survey techniques into a
-  structured campaign that systematically discovers bugs, measures component contributions,
-  optimizes parameters, and polishes quality to a target score. Use when the user says things
-  like: "stress test this", "find everything wrong", "harden this", "evaluate quality",
-  "break it and fix it", "run a full eval", "get this to 95%", "shake out the bugs",
-  "audit this codebase", or any request to comprehensively test and improve a system.
-  Requires: the user's research-survey skill (or equivalent techniques for adversarial probing,
-  ablation, sweep, hill climb, autoresearch, and bisect).
+  Orchestrates a full multi-technique stress-test/eval CAMPAIGN against any system — code, library,
+  API, pipeline, config, or artifact. Composes research-survey techniques (adversarial → ablation →
+  sweep → hill-climb → autoresearch, with bisect as a regression safety net) into one campaign that
+  builds a scoring harness, discovers bugs, removes dead weight, tunes parameters, and polishes to a
+  target score. Use when the user says: "stress test this", "find everything wrong", "harden this",
+  "evaluate quality", "break it and fix it", "run a full eval", "get this to 95%", "audit this
+  codebase". NOT for running a SINGLE technique on its own (research-survey); NOT for designing or
+  reviewing an MCP server's tool perimeter — schemas, permissions, tool-selection
+  (core-mcp-best-practices); NOT for GRADING one fixed artifact against a rubric — code-decomposer
+  (a function), regex-decomposer,
+  query-decomposer, type-decomposer, config-decomposer; NOT for behavioral eval cases for a skill
+  (skills-studio).
 ---
 
 # Stress-Eval — Systematic Quality Campaign

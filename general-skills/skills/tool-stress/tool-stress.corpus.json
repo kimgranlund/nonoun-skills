@@ -1,0 +1,37 @@
+{
+  "skill": "tool-stress",
+  "_note": "Routing corpus for tool-stress — orchestrates a full MULTI-technique stress-test/eval CAMPAIGN against a running system (build a scoring harness, then run adversarial → ablation → sweep → hill-climb → autoresearch with bisect as a safety net, iterating to a target score). Positives span the invocation families (imperative stress-test/harden, 'get this to 95%', object-first 'audit this codebase'). Negatives are drawn ADVERSARIALLY from NAMED peers it is confusable with: core-mcp-best-practices (DESIGNING/reviewing an MCP server's tool perimeter — schemas, descriptions, permissions, selection eval — NOT load/stress-testing a running system), research-survey (runs ONE technique at a time, no campaign/harness/target-score orchestration), the *-decomposer GRADE modes (grade ONE artifact against a fixed two-axis rubric — code/regex/query/type/config — not a multi-round improve-to-target campaign), and skills-studio EVAL (behavioral test cases for a SKILL, not a system stress campaign). routing-eval is LEXICAL OVERLAP only; 'stress test'/'evaluate' overlap with research-survey is expected — the discriminator is the CAMPAIGN/harness/target, which a lexical proxy can't fully see.",
+  "siblings_in_repo": ["research-survey", "viz-2x2"],
+  "named_peers": ["core-mcp-best-practices", "code-decomposer", "regex-decomposer", "query-decomposer", "type-decomposer", "config-decomposer", "skills-studio"],
+  "positives": [
+    "run a full stress-test campaign on this library",
+    "find everything wrong with this system and fix it",
+    "harden this codebase and get it to 95 percent",
+    "run a full eval campaign with a scoring harness to a target score",
+    "break it and fix it across every quality dimension",
+    "stress test this API under load and find the saturation point",
+    "evaluate the quality of this pipeline end to end and iterate",
+    "shake out the bugs then optimize then polish to target",
+    "audit this codebase comprehensively and improve the score",
+    "build a scoring rubric and harness then drive the score up",
+    "orchestrate adversarial probing, ablation, and sweep into one campaign",
+    "test and improve this prompt system to a quality target",
+    "stress test this config and harden it to a target score",
+    "run the multi-technique evaluation campaign on this module"
+  ],
+  "negatives": [
+    "design an MCP server's tool schemas and permissions",
+    "review my MCP and fix why the agent picks the wrong tool",
+    "wrap this API as an MCP with good tool descriptions",
+    "figure out why this got slower and find the root cause",
+    "run an ablation study on its own to see what each part contributes",
+    "bisect to find the commit that introduced the regression",
+    "grade this function on the spec and execution axes",
+    "score this regex for correctness against its test cases",
+    "grade this SQL query for performance and safety",
+    "grade this type so it can't admit illegal states",
+    "decompose a Terraform config for drift and safety",
+    "write behavioral eval test cases for my skill",
+    "author a whole new skill from scratch end to end"
+  ]
+}

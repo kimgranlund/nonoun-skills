@@ -2,16 +2,18 @@
 name: skills-refactor
 description: >
   Restructure a skill or skill-set across a skill library — rename, merge, retire, or
-  split — rewiring every live cross-reference while preserving dated history and
-  re-verifying the gate suite. Use whenever you rename a skill (e.g. drop a prefix),
-  fold/merge two skills into one, retire/deprecate an obsolete skill, or split one
-  skill into several — and need every peer_skills entry, routing pointer, rubric-load
-  path, gate-script key, README/AGENTS catalog row, and routing baseline updated
-  without breaking the metadata/gate checks or rewriting changelogs and review docs.
-  Triggers on: "rename skill X to Y", "merge skills A and B", "fold X into Y", "retire
-  this skill", "deprecate X", "split X into A and B", "consolidate these two skills",
-  "drop the core- prefix", "rewire the references after renaming". NOT for authoring a
-  new skill or fixing one skill's content (skills-studio), or repo-doc audits (ops-repo).
+  split — rewiring every live cross-reference (peer_skills, routing pointers, rubric
+  paths, gate-script keys, catalog rows, baselines) while preserving dated history and
+  re-verifying the gate suite. Use whenever you rename a skill, fold/merge two into one,
+  retire/deprecate an obsolete skill, or split one into several without rewriting
+  changelogs. Triggers on: "rename skill X to Y", "merge skills A and
+  B", "fold X into Y", "retire this skill", "deprecate X", "split X into A and B",
+  "consolidate these two skills", "drop the core- prefix", "rewire the references after
+  renaming". This is a structural move on an EXISTING skill across the library, not
+  quality work on one skill's content: NOT for authoring a new skill, editing its
+  content, optimizing its description, or scoring / critiquing / evaluating it
+  (skills-studio); scaffolding an apps/{name}/ reference-app foundation
+  (meta-app-scaffold); or repo-doc audits (ops-repo).
 ---
 
 # skills-refactor

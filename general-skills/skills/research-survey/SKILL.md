@@ -1,16 +1,17 @@
 ---
 name: research-survey
 description: >
-  Systematic research-survey and optimization skill. Use this skill whenever the user wants to
-  investigate, optimize, debug, stress-test, or understand a system — regardless of domain.
-  Triggers include phrases like: "research-survey this", "optimize", "figure out why", "what broke",
-  "find the root cause", "improve the score", "tune these parameters", "what happens if we remove",
-  "stress test", "find edge cases", "break this", "what's the best value for", "hill climb",
-  "ablation study", "sweep", "bisect", "adversarial probe", or any request to systematically
-  explore, measure, or improve something. Also triggers when the user describes a problem that
-  implies one of the six techniques (e.g., "it used to work but now it doesn't" → bisect;
-  "which of these settings matter?" → ablation). Works across all domains: code, configuration,
-  prompts, design, writing, data pipelines, infrastructure, ML models, or any measurable system.
+  Systematic investigation and optimization — runs ONE of six techniques at a time (autoresearch,
+  ablation, bisect, adversarial, hill-climb, sweep) over any measurable system (code, config,
+  prompts, design, ML models). Use whenever the user wants to investigate, optimize,
+  debug, or understand a system. Triggers: "figure out why", "what broke", "find the root cause",
+  "optimize", "improve the score", "tune these parameters", "what's the best value for", "sweep",
+  "ablation study", "what happens if we remove", "bisect". Also when a problem implies a technique
+  ("it used to work but now it doesn't" → bisect; "which settings matter" → ablation). NOT for the
+  multi-technique CAMPAIGN composing these to a target score (tool-stress); NOT for GRADING one
+  fixed artifact against a rubric — code-decomposer (a function), regex-decomposer, query-decomposer
+  (SQL), type-decomposer, config-decomposer; NOT for a cited web report (deep-research); NOT for
+  authoring/routing-grading a skill (skills-studio, routing-decomposer).
 ---
 
 # Research — Systematic Investigation Skill

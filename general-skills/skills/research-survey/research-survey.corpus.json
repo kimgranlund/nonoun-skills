@@ -1,0 +1,37 @@
+{
+  "skill": "research-survey",
+  "_note": "Routing corpus for research-survey — an open-ended systematic-investigation method (literature review, controlled experiment, causal tracing, benchmarking, adversarial analysis; the six techniques autoresearch/ablation/bisect/adversarial/hill-climb/sweep). Positives span the invocation families (imperative optimize/debug, symptom-implies-technique, object-first, indirect paraphrase). Negatives are drawn ADVERSARIALLY from NAMED peers it is most confusable with: the *-decomposer GRADE mode (each grades ONE specific artifact against a fixed rubric — code/regex/query/type/config/layout/component/proof — not open-ended investigation), deep-research (multi-source web report with citations, not a measured experiment over a live system), tool-stress (the orchestrated MULTI-technique campaign that COMPOSES these techniques — research-survey runs ONE at a time), routing-decomposer (grades a skill description's routing), and skills-studio (authors/evals a skill). routing-eval measures LEXICAL OVERLAP only — indirect paraphrase positives may score low; that is a proxy limit, not a defect.",
+  "siblings_in_repo": ["tool-stress", "viz-2x2"],
+  "named_peers": ["code-decomposer", "regex-decomposer", "query-decomposer", "type-decomposer", "config-decomposer", "layout-decomposer", "component-decomposer", "proof-decomposer", "extraction-decomposer", "routing-decomposer", "deep-research", "skills-studio"],
+  "positives": [
+    "research how this system actually behaves",
+    "optimize the score of this pipeline",
+    "figure out why this got slower",
+    "find the root cause of this regression",
+    "it used to work but now it doesn't — find when it broke",
+    "which of these settings actually matter",
+    "what's the best value for the timeout parameter",
+    "sweep the temperature parameter and map the landscape",
+    "run an ablation study to see what each component contributes",
+    "hill climb to the best combination of these options",
+    "tune these parameters to improve accuracy",
+    "what happens if we remove the cache layer",
+    "bisect to find the commit that introduced the bug",
+    "systematically investigate why throughput dropped"
+  ],
+  "negatives": [
+    "grade this function on the spec and execution axes",
+    "score this regex for correctness against its test cases",
+    "grade this SQL query for performance and safety",
+    "grade this type so it can't admit illegal states",
+    "decompose a Terraform config for drift and safety",
+    "decompose this UI layout into regions and groups",
+    "grade this web component's API and geometry",
+    "grade this proof's logical validity",
+    "write a deep multi-source research report with citations",
+    "run the full stress-test campaign that composes adversarial, ablation, and sweep",
+    "harden this and get it to 95% across the whole rubric",
+    "grade the routing precision and recall of my skill's description",
+    "author a whole new skill from scratch end to end"
+  ]
+}
