@@ -1,0 +1,37 @@
+{
+  "skill": "meta-theory-author",
+  "_note": "Routing corpus for meta-theory-author — the meta-expert-author SPECIALIZATION that authors a [domain]-expert KNOWLEDGE skill built EXCLUSIVELY on peer-reviewed academic sources (journal articles, arxiv/bioRxiv/SSRN preprints, NBER/IZA working papers, dissertations, ranked-venue proceedings), one paper per reference file, with DOI discipline, retraction checks, and Keshav three-pass reading. Positives are real requests for THAT authoring job. Negatives are drawn ADVERSARIALLY from the colliding siblings — above all meta-expert-author (the PARENT: the practitioner-facing / capability / mixed-mode authoring job that ADMITS blogs, product docs, library readmes, and YouTube; this is the highest-risk neighbour because both AUTHOR a [domain]-expert skill) — plus plan-knowledge (stand up a Claude Project knowledge base, not a skill), ops-knowledge (mutate an existing knowledge base), skills-studio (author a GENERIC / utility / typed skill), and meta-app-scaffold (scaffold a reference app under apps/). Each negative belongs to a NAMED sibling. NOTE: routing-eval measures LEXICAL overlap only — a paraphrase positive may score recall 0; a proxy limit, not a defect.",
+  "siblings_in_repo": ["meta-expert-author", "plan-knowledge", "ops-knowledge"],
+  "global_peers": ["skills-studio", "meta-app-scaffold"],
+  "positives": [
+    "author a theory-focused expert skill built only on peer-reviewed academic papers",
+    "build a peer-reviewed skill for causal inference with DOI discipline and retraction checks",
+    "make an academic expert skill for philosophy of mind, one paper per reference file",
+    "build a science-grounded knowledge base on statistical mechanics from journal articles only",
+    "I want a theoretic-expert skill for econometrics that excludes blogs and YouTube by design",
+    "author a paper-based expert skill on deep learning theory, summarizing one preprint per file",
+    "build a skill from a canon of journal articles, verifying peer-review status via Crossref",
+    "create a theory-focused skill for clinical epidemiology with replication-status labels",
+    "skill built on white papers and arxiv preprints, with version tracking and an unresolved-debates section",
+    "run verify_skill.py to resolve the DOIs and check retraction status for my academic skill",
+    "author an academic skill for theoretical linguistics, Keshav three-pass reading per paper",
+    "build a peer-reviewed-only knowledge base on cognitive science with figures/ axis for author canons",
+    "make a science-grounded expert skill on scaling laws excluding library readmes and tutorials",
+    "scope the theoretical axes and plan the waves for a new peer-reviewed expert skill"
+  ],
+  "negatives": [
+    "build a practitioner-facing domain-expert skill like ref-dashboard with product docs and blog posts",
+    "make a comprehensive reference skill for typography in capability mode with cited references",
+    "author a mixed-mode expert skill that includes arxiv papers AND HuggingFace docs AND tutorials",
+    "build a knowledge-base skill for iOS development covering library docs and community material",
+    "set up a Claude Project knowledge base so Claude knows my codebase",
+    "help me organize what Claude needs to know and write the foundational project docs",
+    "UPSERT this correction into the project knowledge base and dedupe the entries",
+    "audit my knowledge base for stale entries and reconcile the conflicting sources",
+    "author a generic single-purpose utility skill from scratch with skills-studio",
+    "create a typed skill with a JSON schema input and output contract",
+    "tune my skill's frontmatter description for routing precision and recall",
+    "scaffold a new reference app foundation under apps/ with spec and plan and app dirs",
+    "bootstrap an apps/ playground project with the canonical plugin folder layout"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "skill": "report-strategic",
+  "_note": "report-strategic's checked-in routing corpus — the test of record. Positives are real requests for a formal STRATEGIC report / strategy brief: a self-contained document that establishes shared vocabulary (glossary) and context BEFORE analysis, then delivers findings with evidence and prioritized strategic RECOMMENDATIONS with owners + success conditions + a bibliography, for a mixed (exec + technical) audience. Negatives are drawn ADVERSARIALLY from the three near-synonymous report-* siblings — a CIA-style intel BRIEF for rapid knowledge transfer (BLUF/confidence/intel-gaps, no recommendations) is report-brief; a bounded project's PROGRESS / STATUS over a period is report-progress; a comprehensive current-STATE / situation snapshot is report-state — plus resume-author. The hard boundary is report-brief: both can be called a 'brief', but strategic = context-setting + recommendations document; brief = dense confidence-annotated knowledge transfer with no recommendations. Each negative belongs to a NAMED sibling. routing-eval is lexical-overlap only; the shared 'brief'/'strategy' tokens make some report-brief overlap a proxy limit, not a defect.",
+  "siblings_in_repo": ["report-brief", "report-progress", "report-state", "resume-author"],
+  "positives": [
+    "write a strategic report on our go-to-market options",
+    "leadership strategy brief for a mixed audience with recommendations",
+    "executive report with findings, implications, and a bibliography",
+    "strategy analysis with a glossary and context-setting up front",
+    "strategic assessment of the build-vs-buy decision",
+    "findings report that recommends a prioritized course of action",
+    "strategic overview with defined terminology for non-experts",
+    "produce a self-contained leadership briefing with recommendations",
+    "thought-leadership document grounding readers before the analysis",
+    "strategic report with an executive summary and numbered recommendations",
+    "analyze the options and recommend a strategy with owners and timelines",
+    "formal strategy document: context, findings, strategic implications, recs",
+    "write up the findings and what we should do about them strategically",
+    "strategic analysis for the board with a risk and opportunity surface"
+  ],
+  "negatives": [
+    "write an intel brief to get me up to speed fast with BLUF",
+    "CIA-style briefing with confidence levels and intelligence gaps",
+    "primer on this topic — what do I need to know quickly",
+    "subject-matter expert brief that conveys domain knowledge densely",
+    "rank the key judgments by confidence and name the gaps",
+    "weekly project status report with blockers and milestones",
+    "how are we doing on the rollout — sprint progress update",
+    "punch list of completed and in-progress items with owners",
+    "state of the union across the whole platform with a health matrix",
+    "where do we stand right now — comprehensive current-state snapshot",
+    "situation report baselining the system with trend trajectory",
+    "portfolio review with a gap map across all our initiatives",
+    "rewrite my resume to survive the ATS pipeline",
+    "tailor my CV to this job posting"
+  ]
+}

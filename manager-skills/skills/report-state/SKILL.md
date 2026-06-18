@@ -1,18 +1,18 @@
 ---
 name: report-state
 description: >
-  Author State of the Union reports that deliver a comprehensive, honest snapshot of
-  current conditions — what exists, what works, what doesn't, what's trending, and what
-  gaps remain. Covers technical systems, product lines, team capabilities, business
-  domains, or any complex subject. Applies structured analysis: current-state inventory,
-  health signal matrix (RAG), trend trajectory, gap map, and path-forward section. Use
-  when leadership needs situational awareness, when a system needs a neutral baseline
-  before change, or when accumulated observations must be crystallized into a shareable
-  document. Triggers on: "state of the union", "state of X", "current state report",
-  "situation report", "where do we stand", "baseline the X", "what's the state of things",
-  "assess our X", "system health check", "portfolio review", "landscape report", or any
-  request for a comprehensive current-state snapshot with health signals and trajectory.
-  Peers with report-progress, report-brief, and report-strategic.
+  Author State of the Union reports — a comprehensive, honest snapshot of current
+  conditions across a whole system: what exists, what works, what doesn't, what's
+  trending, what gaps remain. Applies structured analysis: current-state inventory,
+  health-signal matrix (RAG), trend trajectory, gap map, path-forward section. Triggers
+  on: "state of the union", "state of X", "current state report", "situation report",
+  "where do we stand", "baseline the X", "what's the state of things", "assess our X",
+  "system health check", "portfolio review", "landscape report". A whole-system
+  condition snapshot — NOT for a bounded project/sprint progress or status update with
+  blockers, milestones, and next steps over a period (report-progress); NOT for a
+  CIA-style intel brief or primer for rapid knowledge transfer (report-brief); NOT for a
+  formal strategy brief with glossary, context-setting, and recommendations
+  (report-strategic); NOT for a resume or CV (resume-author).
 status: stable
 ---
 

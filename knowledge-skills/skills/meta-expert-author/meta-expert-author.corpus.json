@@ -1,0 +1,37 @@
+{
+  "skill": "meta-expert-author",
+  "_note": "Routing corpus for meta-expert-author — authoring a broad, practitioner-facing [domain]-expert KNOWLEDGE skill (flat-prose entry + tiered references/) via wave-based parallel-agent research-survey, in the style of ref-typography / ref-dashboard / ref-color. Positives are real requests for THAT authoring job (capability / canon-curation / mixed-mode, the wave arc, axis-organized references, practitioner sourcing incl. docs/blogs/talks). Negatives are drawn ADVERSARIALLY from the colliding siblings: meta-theory-author (the PURE peer-reviewed-academic specialization — the highest-risk neighbour, since both AUTHOR a [domain]-expert skill), plan-knowledge (stand up a Claude Project knowledge base — not a skill), ops-knowledge (maintain/mutate an existing knowledge base), skills-studio (author a GENERIC / utility / typed skill, not a knowledge skill), and meta-app-scaffold (scaffold a reference app under apps/, not a skill). Each negative belongs to a NAMED sibling. NOTE: routing-eval measures LEXICAL overlap only — a paraphrase positive sharing no surface words scores recall 0 here; that is a proxy limit, not a description defect (see meta-skills/skills/routing-decomposer).",
+  "siblings_in_repo": ["meta-theory-author", "plan-knowledge", "ops-knowledge"],
+  "global_peers": ["skills-studio", "meta-app-scaffold"],
+  "positives": [
+    "build me a domain-expert skill for retail analytics",
+    "make a skill like ref-dashboard for typography",
+    "author a comprehensive reference skill with research waves",
+    "build a knowledge-base skill covering this whole domain with cited references",
+    "I want an expert skill that answers questions about iOS layout, with tiered references",
+    "scope the axes and plan five research-survey waves for a new expert skill",
+    "dispatch parallel agents to write the reference files for my domain-expert skill",
+    "should this expert skill be capability mode or canon-curation mode",
+    "set up the references/ directory organized by axis for a comprehensive skill",
+    "author a flat-prose SKILL.md that routes tasks to dated reference files",
+    "build a mixed-mode expert skill that includes product docs and blog posts and a paper canon",
+    "refresh my stale domain-expert skill — check the INDEX for gaps and bump coverage tiers",
+    "create a comprehensive cited knowledge base skill for color science from practitioner sources",
+    "write the wave plan and per-agent briefs to research a new [domain]-expert skill"
+  ],
+  "negatives": [
+    "author a theory-focused skill built only on peer-reviewed academic papers with DOI discipline",
+    "build a peer-reviewed expert skill for causal inference excluding blogs and YouTube",
+    "make an academic expert skill for philosophy of mind, one paper per reference file",
+    "build a science-grounded skill on scaling laws from journal articles and arxiv preprints only",
+    "set up a Claude Project knowledge base for my codebase so Claude knows my project",
+    "help me organize what Claude needs to know and write the foundational project docs",
+    "UPSERT this new fact into the project knowledge base and dedupe the duplicate entries",
+    "audit my knowledge base for stale entries and reconcile the conflicting sources",
+    "author a generic single-purpose utility skill from scratch with skills-studio",
+    "create a typed skill with a JSON schema input and output contract",
+    "tune my skill's frontmatter description for routing accuracy",
+    "scaffold a new reference app foundation under apps/ with spec and plan and app dirs",
+    "bootstrap an apps/ playground project with the canonical folder layout"
+  ]
+}

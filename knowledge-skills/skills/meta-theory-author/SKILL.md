@@ -1,18 +1,19 @@
 ---
 name: meta-theory-author
 description: >
-  Specialization of meta-expert-author for expert skills built exclusively on
-  peer-reviewed academic sources — journal articles, preprints (arxiv, bioRxiv, SSRN),
-  working papers (NBER, IZA), dissertations, conference proceedings from ranked venues.
-  Produces theory-focused skills (causal-inference-expert, deep-learning-theory-expert,
-  philosophy-of-mind-expert, statistical-mechanics-expert) where practitioner folklore,
-  blog posts, industry white papers, and YouTube talks are excluded by design. Inherits
-  meta-expert-author's wave arc, bookkeeping, parallel-agent dispatch, and invocation
-  flow — overrides only sourcing discipline, verification, axis model, and file shape
-  to match academic-grade material. Triggers on "theoretic expert skill", "peer-reviewed
-  skill", "academic expert skill for X", "science-grounded skill", "theory-focused
-  knowledge base", "paper-based expert skill", "skill built on white papers", "canon
-  of journal articles". Peers with meta-expert-author.
+  Specialization of meta-expert-author that authors a "[domain]-expert" knowledge skill
+  built EXCLUSIVELY on peer-reviewed academic sources (journal articles, arxiv/SSRN
+  preprints, working papers, dissertations, ranked proceedings) — one paper per
+  reference file, with DOI + retraction discipline. Blogs, product docs, and YouTube are
+  excluded by design. Triggers on
+  "theoretic expert skill", "peer-reviewed skill", "academic expert skill for X",
+  "science-grounded skill", "theory-focused knowledge base", "paper-based expert skill",
+  "skill built on white papers", "canon of journal articles". NOT for the PRACTITIONER
+  job that admits product docs, blogs, or talks — capability / canon-curation /
+  mixed-mode (arxiv-papers-AND-HuggingFace-docs) → the parent meta-expert-author; NOT
+  for standing up a Claude Project knowledge base (plan-knowledge) or mutating one —
+  UPSERT/DEDUPE/AUDIT/RECONCILE (ops-knowledge); NOT for a generic / typed / utility
+  skill (skills-studio) or apps/ scaffold (meta-app-scaffold).
 ---
 
 # meta-theory-author

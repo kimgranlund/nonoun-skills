@@ -2,7 +2,7 @@
   "$schema": "https://schemas.adia.ai/skill/v1.json",
   "name": "meta-expert-author",
   "version": "1.7.0",
-  "description": "Meta-skill for authoring comprehensive flat-prose-entry + tiered-references expert skills via wave-based parallel-agent research-survey. Supports capability mode + canon-curation mode + mixed-mode + micro-skill variants. Covers full lifecycle: invocation flow, scoping survey, wave plan, parallel dispatch, per-wave bookkeeping, publishing trappings, post-v1.0 maintenance, stale-skill recovery, cross-skill dependency management. v1.4 added a prompt-ingestion layer \u2014 prompt steelmanning + concept matching \u2014 that fires before the four-question gate. v1.5 closes the triad by adding task decomposition as a first-class phase: after ingestion, every ask is decomposed into covering, non-overlapping, individually-tractable sub-asks with explicit ordering. Ingestion + decomposition + execution is now declared as the invocation contract every produced skill inherits. Enforces verification discipline including rot-resistant sourcing.",
+  "description": "Meta-skill for authoring comprehensive flat-prose-entry + tiered-references expert skills via wave-based parallel-agent research-survey. Supports capability mode + canon-curation mode + mixed-mode + micro-skill variants. Covers full lifecycle: invocation flow, scoping survey, wave plan, parallel dispatch, per-wave bookkeeping, publishing trappings, post-v1.0 maintenance, stale-skill recovery, cross-skill dependency management. v1.4 added a prompt-ingestion layer \u2014 prompt steelmanning + concept matching \u2014 that fires before the four-question gate. v1.5 closes the triad by adding task decomposition as a first-class phase: after ingestion, every ask is decomposed into covering, non-overlapping, individually-tractable sub-asks with explicit ordering. Ingestion + decomposition + execution is now declared as the invocation contract every produced skill inherits. Enforces verification discipline including rot-resistant sourcing. This is the PRACTITIONER-facing authoring job (admits product docs, library readmes, blogs, talks). NOT for a PURELY peer-reviewed-academic theory skill — one paper per reference file, DOI + retraction discipline (meta-theory-author); NOT for standing up a Claude Project knowledge base (plan-knowledge) or mutating one — UPSERT/DEDUPE/RECONCILE (ops-knowledge); NOT for a generic / typed / utility skill (skills-studio) or an apps/ scaffold (meta-app-scaffold).",
   "status": "stable",
   "authors": [
     "kim"
@@ -69,6 +69,7 @@
     "CHANGELOG.md",
     "ROADMAP.md",
     "SKILL.md",
+    "meta-expert-author.corpus.json",
     "references/INDEX.md",
     "references/agent-dispatch/agent-brief-template.md",
     "references/agent-dispatch/bookkeeping-protocol.md",

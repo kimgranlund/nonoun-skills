@@ -1,0 +1,37 @@
+{
+  "skill": "resume-author",
+  "_note": "resume-author's checked-in routing corpus — the test of record. Positives are real requests to author / revise / tailor / critique a RESUME or CV for AI-driven hiring pipelines (parser → ranker → human): ATS-friendly formatting, JD vocabulary anchoring, parse verification, JSON Resume source. Negatives are drawn ADVERSARIALLY: the four report-* reporting siblings (intel brief / progress / state / strategic — none of which is a resume) plus near-miss career artifacts this skill explicitly does NOT handle (cover letter, LinkedIn profile copy, federal USAJOBS resume, academic CV). The reporting family shares 'report'/'brief' vocabulary; this corpus pins resume-author away from it. routing-eval is lexical-overlap only.",
+  "siblings_in_repo": ["report-brief", "report-progress", "report-state", "report-strategic"],
+  "positives": [
+    "rewrite my resume to get past the ATS bots",
+    "tailor my CV to this job description",
+    "make my resume ATS-friendly",
+    "what's wrong with my resume",
+    "fix my resume bullets and rewrite my summary",
+    "optimize my resume to survive the AI screener",
+    "draft a resume from my work history for this role",
+    "review my resume and tell me if it will parse cleanly",
+    "convert my resume into a structured portable format",
+    "compare my experience against this posting and update my resume",
+    "will this resume get past the parser and the ranker",
+    "turn my LinkedIn export into a parser-friendly resume",
+    "help me apply to this job — optimize my CV for it",
+    "build a JSON Resume source and render an ATS-safe DOCX"
+  ],
+  "negatives": [
+    "write an intel brief to get me up to speed on this topic fast",
+    "CIA-style briefing with BLUF, confidence levels, and intelligence gaps",
+    "primer on this domain — what do I need to know",
+    "weekly project status report with blockers and milestones",
+    "how are we doing on the migration — sprint progress update",
+    "punch list of completed and in-progress items with owners",
+    "state of the union across the platform with a health matrix",
+    "where do we stand right now — comprehensive current-state snapshot",
+    "write a full strategic report with glossary and recommendations",
+    "leadership strategy brief for a mixed audience",
+    "write a cover letter for this job application",
+    "polish my LinkedIn profile copy and headline",
+    "format my federal USAJOBS resume with the GS series and hours",
+    "write my academic CV with publications and grants"
+  ]
+}

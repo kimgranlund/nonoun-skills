@@ -2,7 +2,7 @@
   "$schema": "https://schemas.adia.ai/skill/v1.json",
   "name": "ops-knowledge",
   "version": "1.2.1",
-  "description": "Apply database-style operations (UPSERT, DEDUPE, MERGE, SUPERSEDE, RETRACT, RENAME, RECONCILE, NORMALIZE, EXTRACT, AUDIT) to Claude Projects knowledge files or any structured project context when new information or corrections emerge during chat sessions.",
+  "description": "Apply database-style operations (UPSERT, DEDUPE, MERGE, SUPERSEDE, RETRACT, RENAME, RECONCILE, NORMALIZE, EXTRACT, AUDIT) to Claude Projects knowledge files or any structured project context when new information or corrections emerge during chat sessions. This is ONGOING MAINTENANCE of an EXISTING base, not setup. NOT for standing up / bootstrapping a NEW knowledge base from scratch (plan-knowledge); user-memory entries under ~/.claude (ops-memory); a repo brain — AGENTS.md, .brain, trip-wires, CI (ops-repo); CSS / design token files (maintain-tokens); a postmortem (ops-postmortem); or a one-off chat answer never written to a file.",
   "status": "stable",
   "authors": [
     "kim"
@@ -32,6 +32,7 @@
     "CHANGELOG.md",
     "ROADMAP.md",
     "SKILL.md",
+    "ops-knowledge.corpus.json",
     "references/operations.md",
     "references/matching-strategies.md",
     "references/conflict-resolution.md",

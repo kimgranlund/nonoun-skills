@@ -2,7 +2,7 @@
   "$schema": "https://schemas.adia.ai/skill/v1.json",
   "name": "meta-theory-author",
   "version": "1.6.0",
-  "description": "Specialization of meta-expert-author for skills built exclusively on peer-reviewed academic sources. Produces theory-focused skills with DOI discipline, retraction checks, and Keshav three-pass reading. Inherits wave arc and dispatch; overrides sourcing, verification, axis model, and file shape. Ships executable verification harness (verify_skill.py) that validates frontmatter, resolves DOIs, checks retraction status, and tests URL liveness. Peers with meta-expert-author.",
+  "description": "Specialization of meta-expert-author for skills built exclusively on peer-reviewed academic sources. Produces theory-focused skills with DOI discipline, retraction checks, and Keshav three-pass reading. Inherits wave arc and dispatch; overrides sourcing, verification, axis model, and file shape. Ships executable verification harness (verify_skill.py) that validates frontmatter, resolves DOIs, checks retraction status, and tests URL liveness. Sources are peer-reviewed academic ONLY (blogs, product docs, YouTube excluded). NOT for the PRACTITIONER job that admits product docs, library readmes, blogs, or talks — capability / canon-curation / mixed-mode (the parent meta-expert-author); NOT for standing up a Claude Project knowledge base (plan-knowledge) or mutating one — UPSERT/DEDUPE/AUDIT/RECONCILE (ops-knowledge); NOT for a generic / typed / utility skill (skills-studio) or an apps/ scaffold (meta-app-scaffold). Peers with meta-expert-author.",
   "status": "stable",
   "authors": [
     "kim"
@@ -79,6 +79,7 @@
     "CHANGELOG.md",
     "ROADMAP.md",
     "SKILL.md",
+    "meta-theory-author.corpus.json",
     "references/INDEX.md",
     "references/agent-dispatch/theoretic-agent-brief-template.md",
     "references/examples/sample-theoretic-skill.md",

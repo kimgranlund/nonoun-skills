@@ -1,0 +1,37 @@
+{
+  "skill": "report-progress",
+  "_note": "report-progress's checked-in routing corpus — the test of record. Positives are real requests for a PM-style PROGRESS / STATUS report on a bounded body of work: what moved this period, RAG signals, blockers, risks, milestone tracking, owners, dates, next steps. Negatives are drawn ADVERSARIALLY from the three near-synonymous report-* siblings — a comprehensive current-STATE / situation snapshot across a whole system is report-state; a CIA-style intel BRIEF for rapid knowledge transfer is report-brief; a formal STRATEGY brief with glossary + recommendations is report-strategic — plus resume-author. The hard boundary is report-state: progress = a bounded project's STATUS over a period (what moved); state = a whole system's comprehensive condition snapshot (what exists / where we stand). Each negative belongs to a NAMED sibling. routing-eval is lexical-overlap only; 'status'/'health' overlap with report-state is a proxy limit, not a defect.",
+  "siblings_in_repo": ["report-state", "report-brief", "report-strategic", "resume-author"],
+  "positives": [
+    "write the weekly project status report",
+    "how are we doing on the Q3 migration",
+    "sprint 14 progress report with completed and in-progress items",
+    "status update for stakeholders with RAG and next steps",
+    "what's the status of the onboarding initiative",
+    "blockers report — what's stuck and who owns unblocking it",
+    "milestone tracker showing which dates are at risk",
+    "PM report with a risk register and decisions log",
+    "give me a punch list of what's done and what's left",
+    "project update: what moved this period, what's blocked, what's next",
+    "project health check for the launch with owners and due dates",
+    "report progress on the integration since last week",
+    "weekly update with velocity and burn rate trend vs last period",
+    "track our milestones and flag anything slipping"
+  ],
+  "negatives": [
+    "state of the union across the entire platform",
+    "where do we stand on everything right now — comprehensive snapshot",
+    "current-state inventory of all our systems with trend trajectory",
+    "situation report baselining the whole domain before change",
+    "assess the overall health of our product portfolio",
+    "write an intel brief on the competitive landscape",
+    "get me up to speed on this topic fast with BLUF and confidence levels",
+    "primer on the regulatory picture — what do I need to know",
+    "subject-matter expert brief with key judgments and intelligence gaps",
+    "write a full strategic report with glossary and context-setting",
+    "leadership strategy brief for a mixed audience with recommendations",
+    "executive findings report with strategic implications and a bibliography",
+    "rewrite my resume to survive the ATS parser",
+    "tailor my CV bullets to this job posting"
+  ]
+}

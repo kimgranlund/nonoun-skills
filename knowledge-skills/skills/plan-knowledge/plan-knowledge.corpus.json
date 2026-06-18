@@ -1,0 +1,37 @@
+{
+  "skill": "plan-knowledge",
+  "_note": "Routing corpus for plan-knowledge — STAND UP a retrieval-optimized Claude Project knowledge base: greenfield setup of foundational + reference docs, typed knowledge, README index, Project Instructions, and the knowledge-first workflow (and retrofitting an existing base into that structure). Positives are real requests for THAT bootstrap/setup job. Negatives are drawn ADVERSARIALLY from the colliding siblings: ops-knowledge (apply structured MUTATIONS — UPSERT/DEDUPE/MERGE/SUPERSEDE/RECONCILE — to an EXISTING knowledge base, the ongoing-maintenance half of the pair, the highest-risk neighbour), meta-expert-author / meta-theory-author (author a distributable [domain]-expert SKILL via research waves — a skill, not a Project knowledge base), ops-repo (repo brain: AGENTS.md / .brain / trip-wires / CI), and ops-memory (user-memory entries). Each negative belongs to a NAMED sibling. NOTE: routing-eval measures LEXICAL overlap only — a paraphrase positive may score recall 0; a proxy limit, not a defect.",
+  "siblings_in_repo": ["ops-knowledge", "meta-expert-author", "meta-theory-author"],
+  "global_peers": ["ops-repo", "ops-memory"],
+  "positives": [
+    "set up a Claude Project knowledge base for my backend redesign",
+    "help me organize what Claude needs to know about this project",
+    "build a knowledge base for Claude so it can reason about my codebase",
+    "create the foundational project context docs — overview, architecture, decisions",
+    "structure my project docs into typed, retrieval-optimized knowledge documents",
+    "onboard Claude to my domain by building a project knowledge base",
+    "fix my knowledge base — it's a monolith and retrieval is imprecise",
+    "migrate my existing docs into a proper Claude Project knowledge base",
+    "write the Project Instructions and a README index for my knowledge base",
+    "establish a knowledge-first workflow so what we discuss gets authored back into files",
+    "audit my project docs and reshape them into focused, well-headed knowledge files",
+    "make Claude actually useful for my patient-intake project — set up the knowledge",
+    "split my giant context file into focused documents with keyword-rich headings",
+    "start a knowledge base from scratch and decide which knowledge types to prioritize"
+  ],
+  "negatives": [
+    "UPSERT this new fact into the project knowledge and dedupe the duplicate entries",
+    "we learned X today — apply that update to the knowledge files and supersede the old entry",
+    "reconcile these two knowledge entries that contradict each other",
+    "MERGE these two sections and RETRACT the obsolete one, with a provenance note",
+    "author a distributable domain-expert skill for this field with research waves",
+    "build a peer-reviewed theory-expert skill from journal articles with DOI discipline",
+    "audit my repo's AGENTS.md and .brain docs for drift and set up trip-wires and CI",
+    "turn this repo into a self-healing brain for coding agents",
+    "reconcile my user-memory entries after the architectural refactor",
+    "audit my ~/.claude memory entries for staleness and supersession",
+    "convert these design tokens between formats",
+    "scaffold a new reference app foundation under apps/ with spec and plan dirs",
+    "just write me one standalone document — it's not part of any knowledge base"
+  ]
+}

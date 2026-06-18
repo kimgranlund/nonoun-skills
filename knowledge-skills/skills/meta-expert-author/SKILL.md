@@ -1,17 +1,19 @@
 ---
 name: meta-expert-author
 description: >
-  Author comprehensive flat-prose-entry + tiered-references expert skills using
-  wave-based parallel-agent research-survey. Use when the user wants a new "[domain]-expert"
-  skill in the style of ref-typography or ref-dashboard: broad domain coverage,
-  axis-organized references/, dated + coverage-tiered reference files with primary-source
-  citations, 3-5 research-survey waves each dispatching 5-8 parallel agents, and rigorous
-  verification discipline. Triggers on "make a skill like ref-dashboard",
-  "expert skill for X", "build a domain-expert skill", "build a knowledge-base skill",
-  "comprehensive reference skill with waves". Produces skeleton, methodology briefs,
-  and agent templates; coordinates multi-wave authoring with INDEX / skill.json /
-  CHANGELOG bookkeeping. Does not generate tokens or components (peers with
-  composing-* and decomposing-* skills).
+  Author a comprehensive PRACTITIONER-facing "[domain]-expert" knowledge skill
+  (flat-prose entry + axis-organized tiered references/, dated, cited) via wave-based
+  parallel-agent research-survey, like ref-typography / ref-dashboard. Admits product
+  docs, library readmes, blog posts, and talks (capability / canon-curation /
+  mixed-mode). Triggers on "make a skill like
+  ref-dashboard", "expert skill for X", "build a domain-expert skill", "build a
+  knowledge-base skill", "comprehensive reference skill with waves". Coordinates the
+  5-wave arc with INDEX / skill.json / CHANGELOG bookkeeping. NOT for a PURELY
+  peer-reviewed-academic theory skill — one paper per reference file, DOI + retraction
+  discipline (meta-theory-author); NOT for standing up a Claude Project knowledge base
+  (plan-knowledge) or mutating an existing one — UPSERT/DEDUPE/RECONCILE (ops-knowledge);
+  NOT for a generic / typed / utility skill (skills-studio) or scaffolding an apps/
+  reference app (meta-app-scaffold). Does not generate tokens or components.
 ---
 
 # meta-expert-author

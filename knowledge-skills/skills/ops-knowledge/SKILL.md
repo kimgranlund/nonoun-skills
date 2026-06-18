@@ -2,16 +2,18 @@
 name: ops-knowledge
 description: >
   Apply database-style operations — UPSERT, APPEND, DEDUPE, MERGE, SUPERSEDE, RETRACT,
-  RENAME, RECONCILE, NORMALIZE, EXTRACT, AUDIT — to Claude Projects knowledge files,
-  Cowork project files, or any structured project context when new information or
-  corrections emerge during chat sessions. Use when an update needs applying to a file,
-  duplicates need consolidation, sources conflict, stale entries need superseding,
-  content needs merging or splitting, or a knowledge base needs an audit pass. Triggers
-  on: "UPSERT", "DEDUPE", "MERGE", "RECONCILE", "SUPERSEDE", "RETRACT", "update the
-  project files", "add this to the knowledge base", "these files are outdated", "we
-  learned X today", "consolidate entries", "find duplicates", "clean up the knowledge
-  base", or any request to modify project knowledge based on new or corrected
-  information. Peers with plan-knowledge, ops-memory, ops-repo, and maintain-tokens.
+  RENAME, RECONCILE, NORMALIZE, EXTRACT, AUDIT — to an EXISTING Claude Projects / Cowork
+  base when new information or corrections emerge during chat sessions
+  (identity resolution, provenance, conflict-surfacing, append-only ledger). This is
+  ONGOING MAINTENANCE, not setup. Triggers on: "UPSERT", "DEDUPE", "MERGE", "RECONCILE",
+  "SUPERSEDE", "RETRACT", "update the project files", "add this to the knowledge base",
+  "these files are outdated", "we learned X today", "consolidate entries", "find
+  duplicates", "clean up the knowledge base". NOT for: standing up / bootstrapping a NEW
+  knowledge base from scratch (plan-knowledge); user-memory entries under
+  ~/.claude/.../memory/ (ops-memory); a repo brain whose harvest WRITES new entries —
+  AGENTS.md, .brain, trip-wires, CI (ops-repo); CSS / design token files
+  (maintain-tokens); a postmortem (ops-postmortem); or a one-off chat answer never
+  written to a file.
 status: stable
 ---
 

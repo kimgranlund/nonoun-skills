@@ -1,18 +1,18 @@
 ---
 name: report-progress
 description: >
-  Author project manager–style progress reports covering scope, status, completed work,
-  in-progress items, blockers, risks, milestones, and next steps. Applies PM tradecraft:
-  RAG (Red/Amber/Green) status signals, action owners, risk register format, and punch
-  lists. Use when reporting on a project, sprint, initiative, or any bounded body of
-  work — to stakeholders, leadership, or for your own records. Triggers on: "progress
-  report", "status report", "project update", "sprint report", "what's the status of",
-  "punch list", "blockers report", "milestone report", "PM report", "weekly update",
-  "project health check", "how are we doing on X", or any request to document the
-  current status of a project or task set with owners, dates, and next steps. Output
-  includes structured status tables, dates, owners, and a clear next-steps section.
-  Peers with report-state (broader current-state), report-strategic (strategic framing),
-  and plan-prd (requirements authoring).
+  Author project manager–style progress reports on a project, sprint, or bounded body
+  of work: scope, completed and in-progress items, blockers, risks, milestones, and
+  next steps. Applies PM tradecraft: RAG status signals, action owners, risk register,
+  punch lists. Triggers on: "progress report", "status report", "project update",
+  "sprint report", "what's the status of", "punch list", "blockers report", "milestone
+  report", "PM report", "weekly update", "project health check", "how are we doing on X".
+  Tracks a bounded project's movement over a period — NOT for a comprehensive
+  current-state / state-of-the-union situation snapshot or portfolio inventory of a
+  whole system (report-state); NOT for a CIA-style intel brief or primer for rapid
+  knowledge transfer (report-brief); NOT for a formal strategy brief with glossary,
+  context-setting, and recommendations (report-strategic); NOT for a resume or CV
+  (resume-author).
 status: stable
 ---
 

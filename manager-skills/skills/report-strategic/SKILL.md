@@ -2,17 +2,16 @@
 name: report-strategic
 description: >
   Author comprehensive strategic reports that ground readers in shared vocabulary before
-  presenting analysis. Produces structured documents with an executive summary, defined
-  terminology, contextual framing, findings with supporting evidence, strategic
-  recommendations, and a reference bibliography. Use when presenting strategic analysis
-  to a mixed audience, writing leadership briefings, or producing thought-leadership
-  documents that must be self-contained. Triggers on: "strategic report", "write a strategy
-  brief", "leadership briefing", "executive report", "strategy analysis", "findings report",
-  "strategic overview", "strategic assessment", or any request to produce a formal strategic
-  document with context-setting and recommendations. Output includes tables, diagrams (via
-  viz-2x2), and clear takeaways for every audience tier. Peers with report-brief (intel-
-  style brevity), report-state (current-state snapshots), and report-progress (project
-  status).
+  presenting analysis: an executive summary, glossary, contextual framing, findings with
+  supporting evidence, prioritized strategic recommendations, and a bibliography — a
+  self-contained document for a mixed audience. Triggers on: "strategic report", "write
+  a strategy brief", "leadership briefing", "executive report", "strategy analysis",
+  "findings report", "strategic overview", "strategic assessment". Defined by glossary +
+  framing + recommendations. NOT for a CIA-style intel brief or primer — BLUF, key
+  judgments, confidence levels, intelligence gaps, no recommendations (report-brief);
+  NOT for a project/sprint progress or status update with blockers, milestones, and next
+  steps (report-progress); NOT for a comprehensive current-state / situation snapshot of
+  a whole system (report-state); NOT for a resume or CV (resume-author).
 status: stable
 ---
 

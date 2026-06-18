@@ -2,16 +2,17 @@
 name: report-brief
 description: >
   Author CIA-style intelligence briefings that rapidly convey expert knowledge on any
-  topic — technical, competitive, or domain-specific. Applies intelligence community
-  analytical tradecraft: Bottom Line Up Front (BLUF), key judgments with explicit
-  confidence levels, source assessment, competing-hypotheses analysis, and explicit
-  coverage of intelligence gaps. Use when a reader needs to become operationally fluent
-  on a topic quickly, when domain expertise must be transferable, or when a subject-matter
-  brief must survive executive scrutiny. Triggers on: "briefing", "intel brief", "domain
-  brief", "subject-matter expert brief", "get me up to speed on", "write a brief on",
-  "primer on X", "what do I need to know about X", "CIA-style brief", "BLUF", or any
-  request to rapidly convey domain knowledge. Output is dense, structured, and
-  confidence-annotated. Peers with report-strategic, report-state, and ref-* skills.
+  topic. Applies intelligence-community tradecraft: Bottom Line Up Front (BLUF), key
+  judgments with explicit confidence levels, competing-hypotheses analysis, and explicit
+  intelligence gaps — to make a reader operationally fluent fast. Triggers on:
+  "briefing", "intel brief", "domain brief", "subject-matter expert brief", "get me up
+  to speed on", "write a brief on", "primer on X", "what do I need to know about X",
+  "CIA-style brief", "BLUF". Output is dense, confidence-annotated, with NO
+  recommendations. NOT for a formal strategy brief with glossary, context-setting, and
+  recommendations (report-strategic); NOT for a project/sprint status or progress report
+  with blockers, milestones, and next steps (report-progress); NOT for a comprehensive
+  current-state / state-of-the-union situation snapshot of a whole system (report-state);
+  NOT for a resume or CV (resume-author).
 status: stable
 ---
 

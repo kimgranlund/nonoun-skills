@@ -1,0 +1,37 @@
+{
+  "skill": "ops-knowledge",
+  "_note": "Routing corpus for ops-knowledge — apply structured, database-style MUTATIONS (UPSERT / APPEND / DEDUPE / MERGE / SUPERSEDE / RETRACT / RENAME / RECONCILE / NORMALIZE / EXTRACT / AUDIT) to an EXISTING Claude Projects / Cowork knowledge base, with identity resolution, provenance, conflict-surfacing, and an append-only ledger. Positives are real requests for THAT ongoing-maintenance job. Negatives are drawn ADVERSARIALLY from the colliding siblings: plan-knowledge (STAND UP a new knowledge base / initial setup — the bootstrap half of the pair, the highest-risk neighbour), ops-memory (user-memory entries under ~/.claude/.../memory/), ops-repo (repo brain: AGENTS.md / .brain / trip-wires / CI, whose harvest path WRITES new entries), maintain-tokens (CSS/design-token cleanup), and a one-off chat answer never written to a file. Each negative belongs to a NAMED sibling. NOTE: routing-eval measures LEXICAL overlap only — a paraphrase positive may score recall 0; a proxy limit, not a defect.",
+  "siblings_in_repo": ["plan-knowledge", "meta-expert-author", "meta-theory-author"],
+  "global_peers": ["ops-memory", "ops-repo", "maintain-tokens"],
+  "positives": [
+    "UPSERT this fact into the project knowledge base",
+    "DEDUPE the knowledge base — this is documented in three places",
+    "MERGE these two knowledge base sections into one entry",
+    "SUPERSEDE the old database decision entry in the knowledge base with the new one",
+    "RETRACT this knowledge base entry — it's wrong",
+    "RECONCILE these two conflicting knowledge base entries that disagree",
+    "update the project knowledge files with what we learned today",
+    "add this correction to the knowledge base without creating a duplicate",
+    "these project knowledge files are outdated — clean them up",
+    "find duplicate entries in the knowledge base and consolidate them",
+    "AUDIT the knowledge base for stale, conflicting, or orphaned entries",
+    "RENAME this knowledge base section's key and fix all the cross-references",
+    "NORMALIZE these drifted knowledge base entries to the same format",
+    "EXTRACT the webhooks section of the knowledge base into its own file"
+  ],
+  "negatives": [
+    "set up a new Claude Project knowledge base from scratch for this project",
+    "help me organize what Claude needs to know and write the foundational project docs",
+    "structure my project context into typed retrieval-optimized documents for the first time",
+    "reconcile my user-memory entries after the architectural refactor",
+    "audit my ~/.claude memory entries for staleness, dedup, and supersession",
+    "audit my repo's AGENTS.md and .brain docs for drift and wire up trip-wires and CI",
+    "harvest new learnings from this repo into the repo brain entries",
+    "clean up our messy design tokens and consolidate the token files",
+    "update this CSS variables file and find the duplicate tokens",
+    "author a distributable domain-expert skill for this field with research waves",
+    "build a peer-reviewed theory-expert skill from journal articles with DOI discipline",
+    "write a blameless postmortem for the outage",
+    "just answer this question — I'm not saving it anywhere"
+  ]
+}
