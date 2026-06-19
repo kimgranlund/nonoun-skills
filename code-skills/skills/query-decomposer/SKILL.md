@@ -11,7 +11,7 @@ description: >
   card + plan-report protocol, and dialect playbooks. Use when deciding whether a query is right,
   recovering what it answers, or proving its grain. NOT for a unit of application code — a function
   or implementation graded on its spec (code-decomposer); a regular expression / regex pattern
-  (regex-decomposer); or schema design (arch-system).
+  (regex-decomposer); or schema design (architecture-decomposer).
 ---
 
 # query-decomposer — grade a SQL query on two crossing axes
@@ -128,7 +128,7 @@ walk, doesn't change it. Full table in `references/dialects.md`.
   never average.
 - **Query, not surrounding code.** This skill locks the question + grain + plan verdict and emits the
   card — it does not write the application code around the query (`code-decomposer`), design the
-  schema (`arch-system`), or grade text/regex patterns (`regex-decomposer`). Hand off; don't overlap.
+  schema (`architecture-decomposer`), or grade text/regex patterns (`regex-decomposer`). Hand off; don't overlap.
 
 ## Verify Target
 
@@ -152,6 +152,6 @@ or one blended score is reported.
 | `references/execution-axis.md` | **the Execution axis** — the parse → bind → plan/run ladder, the **live-gate protocol** (the harness manifest), and how to read an `EXPLAIN` plan for the cartesian/fan-out signature; mechanized by `bin/query-harness.py` |
 | `references/grain-and-joins.md` | **any "is the grain right / why is this doubled?" question** — the centerpiece: result grain, join fan-out, the silent-wrong-answer failure modes, and how a **uniqueness/row-count check proves the grain** where reading the SQL cannot |
 | `references/dialects.md` | **picking the engine** — Postgres · MySQL · SQLite · BigQuery · Snowflake, each with the `GROUP BY`/NULL/typing/window/cost differences that flip a query to won't-bind or wrong-answer |
-| `references/policy.md` | **definition-of-done / handoff** — the 10-point DoD, the query-spec card `{question, grain, tables[], plan_verdict}` + plan-report shapes, the harness adapter manifest, and the seams to `code-decomposer`, `regex-decomposer`, `arch-system`, and a reviewer |
+| `references/policy.md` | **definition-of-done / handoff** — the 10-point DoD, the query-spec card `{question, grain, tables[], plan_verdict}` + plan-report shapes, the harness adapter manifest, and the seams to `code-decomposer`, `regex-decomposer`, `architecture-decomposer`, and a reviewer |
 | `bin/query-harness.py` | **mechanizes B1–B3** — reads a per-project command manifest, runs each present gate (parse/bind/explain/run), normalizes verdicts to a report card (a missing tool is a SKIP, not a pass). `template` · `<manifest.json>` · `selftest` |
 | `bin/sql-lint.py` | **mechanizes the SQL smell pre-filter** — flags `SELECT *`, `UPDATE`/`DELETE` with no `WHERE`, multi-table `FROM` with no join predicate (implicit cross join), `LIMIT` with no `ORDER BY`, likely-incomplete `GROUP BY`, `JOIN_FANOUT`, `OUTER_JOIN_DEMOTED`, `NON_SARGABLE`; `<file\|dir>` · `selftest`. The `plan <explain.json>` subcommand reads a Postgres `EXPLAIN (FORMAT JSON)` file (no live DB) and flags plan smells — `NESTED_LOOP_NO_INDEX`, `ROW_ESTIMATE_BLOWUP` (blocking), `SEQ_SCAN`, `HIGH_COST_SORT` (advisory) — see `references/execution-axis.md` |

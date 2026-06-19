@@ -15,6 +15,18 @@ is additive.
       fieldset, form-level validity orchestration across FACE controls. Boundary with the
       `ui-compose-forms` peer.
 
+## Composition (`bin/composition-check.py`) — carried forward from the retired ui-decomposer draft
+
+- [ ] **A `*.composition.json` draft-2020-12 schema** (the draft's headline item) — make a malformed
+      composition card *unrepresentable* (tier enum, required seam, the `contains[]` shape) up front,
+      instead of only caught by the lint — the way `type-decomposer`'s `instance-check` would validate it.
+- [ ] **Artifact nesting via `$ref`** — a composition card `$ref`s the `*.contract.json` of each atom,
+      so a full review's artifacts compose (composition → component contracts → geometry) exactly as the
+      decomposer ladder does. The highest-leverage way to make "compose, don't duplicate" real at the
+      data level (and the clearest thing distinguishing this from "the contract linter with bigger boxes").
+- [ ] More **module patterns** in `composition-patterns.md` (settings nav+content, master-detail, wizard
+      depth) + checked-in green/red fixture composition cards.
+
 ## Geometry engine (`bin/geometry-check.py`)
 
 - [ ] Emit the ramp as **CSS custom properties** (`--c-height`, derived `calc()` paddings) and as a

@@ -10,8 +10,7 @@ description: >
   an adversarial spec probe. Backed by a gated rubric, a spec-card + execution-
   report protocol, and unit-family playbooks. Use when deciding whether an implementation is right,
   grading a unit's contract, or hardening a test suite. NOT for diff-time bug hunting (/code-review),
-  running the app (/verify), architecture
-  blueprints (arch-system), quality cleanups (/simplify), or grading a proof / deductive argument on
+  running the app (/verify), system architecture (architecture-decomposer), quality cleanups (/simplify), or grading a proof / deductive argument on
   its logic and rigor (→ proof-decomposer).
 ---
 
@@ -137,6 +136,6 @@ absent) and reported as a pass; or one blended score is reported.
 | `references/execution-axis.md` | **the Execution axis** — the toolchain ladder, the **live-gate protocol** (the harness manifest), and how to read each tool's signal; mechanized by `bin/execution-harness.py` |
 | `references/test-integrity.md` | **any "are these tests real?" question** — the centerpiece: the vacuity taxonomy, the deeper smells (test-mirrors-impl, over-mocking, snapshot rot), mutation as proof, and *tests pin the contract, not the implementation*; mechanized by `bin/test-vacuity-check.py` |
 | `references/unit-families.md` | **classifying a unit** — pure · stateful · async · I/O · parser · endpoint · glue, each with its spec-risk profile and execution emphasis |
-| `references/policy.md` | **definition-of-done / handoff** — the 10-point DoD, the spec-card + execution-report shapes, the harness adapter manifest, and the seams to `/code-review`, `/verify`, `arch-system`, `/simplify` |
+| `references/policy.md` | **definition-of-done / handoff** — the 10-point DoD, the spec-card + execution-report shapes, the harness adapter manifest, and the seams to `/code-review`, `/verify`, `architecture-decomposer`, `/simplify` |
 | `bin/execution-harness.py` | **mechanizes B1–B3** — reads a per-project command manifest, runs each present gate, normalizes verdicts to a report card (a missing tool is a SKIP, not a pass). `template` · `<manifest.json>` · `selftest` |
 | `bin/test-vacuity-check.py` | **mechanizes B3 real-ness** — flags vacuous tests (no-assert · tautology · mock-only · focused · skipped) in Python (ast) + JS/TS; `<file\|dir> [--unit NAME]` · `selftest` |

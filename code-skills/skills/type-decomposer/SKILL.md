@@ -11,7 +11,7 @@ description: >
   primitive-obsession, open-record). Use when designing a domain model, reviewing a type/schema,
   tightening a type so impossible states can't exist, or grading a data model. NOT for code that uses
   the type (code-decomposer), an extraction's fidelity (extraction-decomposer), SQL query logic
-  (query-decomposer), or system boundaries (arch-system).
+  (query-decomposer), or system boundaries (architecture-decomposer).
 ---
 
 # type-decomposer — grade a type on two crossing axes
@@ -137,6 +137,6 @@ one blended score is reported.
 | `references/validity-axis.md` | **the Validity axis** — the well-formed/sound/instances ladder and the legal/illegal instance-set discipline (the mechanized proof of A2); mechanized by `bin/instance-check.py` |
 | `references/illegal-states.md` | **the centerpiece** — the make-illegal-states-unrepresentable toolkit: boolean-blindness→sum, optional-soup→variants, primitive-obsession→newtype, open→closed records, with before/after and the red→green proof |
 | `references/type-systems.md` | **choosing the target** — what TS / Rust / ML-family / JSON Schema / protobuf / SQL DDL / GraphQL can each make unrepresentable, nullability hazards, and modelling the contract in JSON Schema for the mechanized B3 |
-| `references/policy.md` | **definition-of-done / handoff** — the 10-point DoD, the type-spec card (schema + legal/illegal sets), and the seams to `code-decomposer`, `extraction-decomposer`, `query-decomposer`, `arch-system` |
+| `references/policy.md` | **definition-of-done / handoff** — the 10-point DoD, the type-spec card (schema + legal/illegal sets), and the seams to `code-decomposer`, `extraction-decomposer`, `query-decomposer`, `architecture-decomposer` |
 | `bin/instance-check.py` | **mechanizes B3** — a JSON-Schema-subset validator (`oneOf`, `additionalProperties:false`, `const`/`enum`, `not`, `pattern`, asserting `format`, local `$ref`, …) that runs a spec's legal/illegal instance sets; a legal reject, an illegal accept, or an unsupported keyword (default-deny → `UNSUPPORTED_SCHEMA`) is a finding. `<spec.json>` · `selftest` |
 | `bin/model-smells.py` | **mechanizes the A3/A4 pre-filter** — flags boolean-blindness, optional-soup, primitive-obsession, open-record, stringly-typed-enum over a **JSON Schema (`.json`), TypeScript (`.ts`/`.tsx`), or Python (`.py`/`.pyi`)** type definition, dispatched by extension (a dir scan reads all three). `<schema.json\|types.ts\|types.py\|dir>` · `selftest` |

@@ -83,6 +83,10 @@ common variants, and the per-archetype outside-in / inside-out notes. Match the 
   unreadable" hides which defect you have.
 - **An archetype is a starting grammar, not a cage.** Real UIs hybridize (a dashboard with a canvas; a marketing
   site with an app shell). Name the dominant archetype, then note the graft.
+- **The shell is the scope; internals hand down.** This skill owns the frame, regions, and how surfaces host
+  verbs — a single component's anatomy/API/geometry and a module's internal composition hand DOWN to
+  [component-decomposer](../component-decomposer/SKILL.md) (which hands the app shell back UP here). Grade the
+  slot; don't re-grade what fills it.
 
 ## Verify Target
 
