@@ -18,8 +18,14 @@ This script holds the canonical XS..2XL ramp, computes the derived geometry, lay
 slot permutation, validates a component's declared geometry against the ramp, and proves the law
 against the hand-authored source table in `selftest`.
 
+The COMPACT / DENSE realm — kbd, slider, radio, switch, tag, badge, chip, checkbox — is a SEPARATE
+size system: it does NOT take the comfortable h/2 slotless pad, and it sizes its box on a dedicated
+TWO-BAND ramp (`ui-*` tight 12..20, `content-*` generous 18..32), not the comfortable height ramp.
+See COMPACT_RAMP / `compact-ramp` (geometry-sizing-spec §5.1/§5.2).
+
   python3 bin/geometry-check.py selftest                  # prove the law + permutations round-trip
-  python3 bin/geometry-check.py ramp                       # print the full computed ramp
+  python3 bin/geometry-check.py ramp                       # print the full computed comfortable ramp
+  python3 bin/geometry-check.py compact-ramp               # the compact/dense realm's two-band box ramp
   python3 bin/geometry-check.py layout XL icon,label,caret # box-model segments for one permutation
   python3 bin/geometry-check.py validate spec.json         # check a declared geometry against the ramp
 
@@ -148,11 +154,66 @@ def layout(size, slots):
             "height": geo["height"], "justify": label_justify(slots), "segments": segs, "fixed_width": fixed}
 
 
+# --- the compact / dense realm (a SEPARATE size system from the button ramp above) ------------
+# kbd · slider · slider-multi · radio · switch · tag · badge · chip · checkbox are ALWAYS compact
+# and dense (geometry-sizing-spec §5.1/§5.2). They are NOT on the comfortable height ramp and they do
+# NOT take the comfortable controls' h/2 slotless pad (h/2 over-pads a keycap / count-pill / thumb):
+#   * they KEEP the compact pad (2px + box*ratio*density);
+#   * they size their BOX on a dedicated TWO-BAND ramp — the `ui-*` band is TIGHT (12·14·16·18·20,
+#     2px steps, compact-UI density), the `content-*` band is GENEROUS (18..32, 4px within a scale —
+#     reading density, the widgets get real presence);
+#   * the box is DENSITY-INVARIANT (density rides the pad/gap, never the box).
+# Global across both realms (button + compact): caret = font, gap = font/2 (the rhythm family, §1.4).
+COMPACT_CONTROLS = ["kbd", "slider", "slider-multi", "radio", "switch", "tag", "badge", "chip", "checkbox"]
+COMPACT_SCALES = ["ui-sm", "ui-md", "ui-lg", "content-sm", "content-md", "content-lg"]
+COMPACT_RAMP = {                          # scale -> {size: box-dimension px}
+    "ui-sm":      {"sm": 12, "md": 14, "lg": 16},   # tight band — 2px steps
+    "ui-md":      {"sm": 14, "md": 16, "lg": 18},   #   default :root
+    "ui-lg":      {"sm": 16, "md": 18, "lg": 20},
+    "content-sm": {"sm": 18, "md": 22, "lg": 26},   # generous band — 4px within a scale
+    "content-md": {"sm": 20, "md": 24, "lg": 28},
+    "content-lg": {"sm": 24, "md": 28, "lg": 32},
+}
+
+
+def compact_box(scale, size):
+    """The box dimension (px) for a compact/dense control at (scale, size) — looked up on the
+    two-band compact ramp, NOT the comfortable height ramp."""
+    if scale not in COMPACT_RAMP:
+        raise ValueError("unknown compact scale %r (use one of %s)" % (scale, ", ".join(COMPACT_SCALES)))
+    if size not in COMPACT_RAMP[scale]:
+        raise ValueError("unknown compact size %r (use sm, md, lg)" % size)
+    return COMPACT_RAMP[scale][size]
+
+
+def _validate_compact(spec, name):
+    """Validate a compact/dense control card: box on the two-band ramp + no h/2 slotless pad."""
+    fails, warns = [], []
+    ctl = spec.get("control")
+    if ctl is not None and ctl not in COMPACT_CONTROLS:
+        warns.append("%s: %r is not a known compact control (%s) — confirm it belongs to the compact realm"
+                     % (name, ctl, ", ".join(COMPACT_CONTROLS)))
+    scale, csize = spec.get("compact_scale"), spec.get("compact_size")
+    try:
+        box = compact_box(scale, csize)
+    except ValueError as e:
+        fails.append("%s: %s" % (name, e))
+        return fails, warns
+    if "box" in spec and spec["box"] != box:
+        fails.append("%s: compact box=%s, the %s/%s ramp says %s" % (name, spec["box"], scale, csize, box))
+    if spec.get("pad_model") == "h/2" or spec.get("slotless_pad") == "h/2":
+        fails.append("%s: a compact control keeps the compact pad (2px + box*ratio*density), NOT the "
+                     "comfortable h/2 slotless pad — h/2 over-pads a keycap / count-pill / thumb" % name)
+    return fails, warns
+
+
 # --- validation of a declared component geometry against the ramp ------------------------------
 def validate_spec(spec):
     """Check a declared geometry dict against the canonical ramp. Returns (fails, warns)."""
     fails, warns = [], []
     name = spec.get("component", "<spec>")
+    if spec.get("realm") == "compact":
+        return _validate_compact(spec, name)
     size = spec.get("size")
     if size not in FREE:
         fails.append("%s: size %r is not one of %s" % (name, size, ", ".join(SIZES)))
@@ -232,6 +293,26 @@ def selftest():
     f, _ = validate_spec(bad)
     if not f:
         errs.append("validate_spec accepted a wrong pad_trail")
+    # 6. the compact/dense realm — the two-band box ramp (geometry-sizing-spec §5.2)
+    ui_lane = sorted({compact_box(s, z) for s in ("ui-sm", "ui-md", "ui-lg") for z in ("sm", "md", "lg")})
+    if ui_lane != [12, 14, 16, 18, 20]:
+        errs.append("compact ui-* band lane %s != [12,14,16,18,20] (tight, 2px steps)" % ui_lane)
+    content_lane = sorted({compact_box(s, z) for s in ("content-sm", "content-md", "content-lg")
+                           for z in ("sm", "md", "lg")})
+    if content_lane != [18, 20, 22, 24, 26, 28, 32]:
+        errs.append("compact content-* band lane %s != [18,20,22,24,26,28,32] (generous)" % content_lane)
+    for z in ("sm", "md", "lg"):  # the generous band sits ABOVE the tight band at every cell
+        if not compact_box("content-md", z) > compact_box("ui-md", z):
+            errs.append("compact content band not above ui band at md/%s" % z)
+    cok = {"component": "x-switch", "control": "switch", "realm": "compact",
+           "compact_scale": "ui-md", "compact_size": "md", "box": 16}
+    f, _ = validate_spec(cok)
+    if f:
+        errs.append("validate_spec rejected a correct compact card: %s" % f)
+    if validate_spec(dict(cok, box=28))[0] == []:        # ui-md/md is 16, not 28
+        errs.append("validate_spec accepted a wrong compact box")
+    if validate_spec(dict(cok, slotless_pad="h/2"))[0] == []:   # compact must NOT use h/2
+        errs.append("validate_spec accepted the h/2 slotless pad on a compact control")
     return errs
 
 
@@ -242,6 +323,15 @@ def _print_ramp():
     for size in SIZES:
         g = geometry(size)
         print("  ".join("%-10s" % g[c] for c in cols))
+
+
+def _print_compact_ramp():
+    print("compact/dense realm — %s" % ", ".join(COMPACT_CONTROLS))
+    print("%-12s %-5s %-5s %-5s   band" % ("scale", "sm", "md", "lg"))
+    for scale in COMPACT_SCALES:
+        r = COMPACT_RAMP[scale]
+        band = "tight (ui-*, 2px steps)" if scale.startswith("ui-") else "generous (content-*)"
+        print("%-12s %-5s %-5s %-5s   %s" % (scale, r["sm"], r["md"], r["lg"], band))
 
 
 def _print_layout(size, slots):
@@ -265,6 +355,9 @@ def main(argv):
     cmd = argv[0]
     if cmd == "ramp":
         _print_ramp()
+        return 0
+    if cmd == "compact-ramp":
+        _print_compact_ramp()
         return 0
     if cmd == "layout" and len(argv) >= 3:
         _print_layout(argv[1], [s.strip() for s in argv[2].split(",") if s.strip()])
@@ -290,7 +383,7 @@ def main(argv):
             return 1
         print("geometry-check: OK — %d spec(s) match the ramp" % len(specs))
         return 0
-    sys.stderr.write("usage: geometry-check.py [selftest|ramp|layout <SIZE> <slots>|validate <file>]\n")
+    sys.stderr.write("usage: geometry-check.py [selftest|ramp|compact-ramp|layout <SIZE> <slots>|validate <file>]\n")
     return 2
 
 

@@ -3,6 +3,23 @@
 All notable changes to this skill are recorded here. Versioned independently of the `design-skills`
 plugin; the gate (`bin/check-skills.py`) must pass for any release.
 
+## 0.3.1 — beta
+
+**The compact / dense realm** — folded in from the upstream geometry spec
+(`fable-tests/reactive-components/docs/geometry-sizing-spec.md` §5.1/§5.2). The compact controls (kbd,
+slider, slider-multi, radio, switch, tag, badge, chip, checkbox) are now modeled as a **separate size
+system**, not "a small button":
+
+- `bin/geometry-check.py` gains the **two-band compact box ramp** (`COMPACT_RAMP` — the `ui-*` tight lane
+  12·14·16·18·20, the `content-*` generous lane 18·20·22·24·26·28·32), a `compact-ramp` subcommand, and
+  compact-card validation (box-on-ramp + rejects the comfortable `h/2` pad misused on a compact control).
+  Selftest locks both bands + the validation. **The comfortable button ramp is untouched.**
+- `references/geometry-system.md` replaces the old "badges & tags map onto the button ramp" claim with
+  the compact realm (the two-band ramp, keep-the-compact-pad-not-`h/2`, density-on-rhythm), and records
+  the ramp's **sublinear power-law** generating rule (`icon ≈ 2.49·h^0.58`, `font ≈ 2.65·√h`,
+  `caret = font`) plus the frame/rhythm families (`caret = font`, `gap = font/2`).
+- `references/family-controls.md`: checkbox/switch geometry now points at the compact ramp.
+
 ## 0.3.0 — beta
 
 **Absorbed the composition scale** — merged the composition layer of the untracked v0.1 `ui-decomposer`

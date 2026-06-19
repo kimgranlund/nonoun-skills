@@ -64,8 +64,11 @@ with extra parts.
 - **Keyboard** **Space toggles** (Enter does **not**).
 - **FACE** `setFormValue(checked ? value : null)` — `null` when unchecked so it leaves FormData,
   matching native.
-- **Geometry** the indicator is a glyph in a square cell — the `(height − glyph)/2` law applies; a
-  toggle's control box is square.
+- **Geometry** checkbox/switch (and radio, kbd, slider, tag, badge, chip) are **compact/dense**
+  controls — sized on the *separate* two-band compact box ramp (`geometry-system.md` → "The compact /
+  dense realm"; `geometry-check.py compact-ramp`), **not** the button height ramp, and they keep the
+  compact pad (never the comfortable `h/2`). The indicator still centers in its square cell by the same
+  `(box − glyph)/2` law; the toggle's control box is square.
 
 ## Radio group
 

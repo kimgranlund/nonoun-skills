@@ -1,8 +1,10 @@
 # The geometry system — one law, a six-step ramp, everything derived
 
-This is the deterministic foundation of the **Realize** axis (level B1). The button is the base
-unit; input, select, menu-item, tab, badge, tag, and container insets all derive from it. The whole
-system is governed by **one law** and a small ramp of **free values** — everything else is computed,
+This is the deterministic foundation of the **Realize** axis (level B1). The button is the base unit
+of the *comfortable* controls (input, select, menu-item, tab, and container insets all derive from
+it); the *compact / dense* controls (kbd, slider, switch, checkbox, tag, badge, …) are a **separate
+size system** on their own two-band ramp — see "The compact / dense realm" below. The whole system is
+governed by **one law** and a small ramp of **free values** — everything else is computed,
 and `bin/geometry-check.py` is the source of truth (this file documents what the code computes; the
 code's `selftest` proves it against the hand-authored table).
 
@@ -102,12 +104,42 @@ Worked example — `MD · icon` (icon-only → square):
   ramp (tunable): 2XL 20 · XL 16 · LG 12 · MD 10 · SM 8 · XS 6. Keep one radius scale per library and
   re-point it with a token; don't set radius per component instance.
 
-## Badges & tags — a smaller scale of the same system
+## The compact / dense realm — a SEPARATE size system
 
-A badge or tag is **a button at a reduced scale**: the same box model and the same `(h − glyph)/2`
-law, shifted down the ramp (a "MD" badge uses the geometry of an SM/XS button) and usually pill, with
-no caret. Don't invent a parallel geometry — map the badge's size onto the button ramp and inherit
-every derived value. An icon-only badge is still square.
+A tag or badge is **not** just a small button. The **compact / dense realm** — `kbd`, `slider`,
+`slider-multi`, `radio`, `switch`, `tag`, `badge`, `chip`, `checkbox` — is its own size system
+(geometry-sizing-spec §5.1/§5.2). These controls are *always* compact and dense, and they differ from
+the comfortable button ramp on two rules:
+
+1. **They keep the compact pad — NOT `h/2`.** The comfortable controls take `h/2` on a slotless edge;
+   `h/2` would *over-pad* a keycap, a count-pill, or a slider thumb. The compact realm keeps
+   `2px + box·ratio·density` instead.
+2. **They size their box on a dedicated TWO-BAND ramp** — not the comfortable height ramp, not the icon
+   ramp. The box is **density-invariant** (density rides the pad/gap, never the box):
+
+| scale | sm | md | lg | band |
+|---|---|---|---|---|
+| `ui-sm` | 12 | 14 | 16 | **tight** — the `ui-*` band, 2px steps (compact-UI density) |
+| `ui-md` (default) | 14 | 16 | 18 | |
+| `ui-lg` | 16 | 18 | 20 | |
+| `content-sm` | 18 | 22 | 26 | **generous** — the `content-*` band (reading density) |
+| `content-md` | 20 | 24 | 28 | |
+| `content-lg` | 24 | 28 | 32 | |
+
+The `ui-*` band realizes the tight lane `12·14·16·18·20`; the `content-*` band the generous lane
+`18·20·22·24·26·28·32` — mirroring the comfortable ramp's compact-vs-expressive two bands, one tier
+down. `bin/geometry-check.py compact-ramp` prints it; `validate` checks a compact card's `box` against
+it and rejects an `h/2` pad on a compact control. (A glyph the compact control *does* carry still
+centers in its cell by the same `(box − glyph)/2` law; an icon-only compact control is still square.)
+
+**Global across BOTH realms** — the *rhythm* family: **`caret = font`** (the dropdown mark = text
+height) and **`gap = font / 2`**. Density multiplies the *rhythm* only, never the *frame* (box · pad ·
+icon) — scaling the frame un-centers the glyph and breaks the square.
+
+> The ramp is not six hand-picked rows: the glyph columns are a **sublinear power law of height**
+> (`icon ≈ 2.49·h^0.58`, `font ≈ 2.65·√h`, `caret = font`), so each glyph occupies a *shrinking*
+> fraction of a growing box (the optical correction) — *one rule sampled six times*, which is what lets
+> any mapped height read off its icon/caret/font. Geometry is arithmetic, not taste.
 
 ## Composed padding — containers & lists
 
