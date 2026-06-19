@@ -26,6 +26,13 @@ plan-verdict cards, the plan-and-drift centerpiece). Everything below is additiv
       - [x] **Heredoc / block-scalar** multi-line literal values — done in 0.2.2 as **HEREDOC_SECRET**
         (a secret-ish key assigned a YAML block scalar `|` / `>` or a shell heredoc `<<EOF`; a
         block-scalar body that is a single `${VAR}`/placeholder and a NON-secret key are guarded).
+      - [ ] **k8s `env:[{name, value}]`-format secrets** (surfaced by a behavioral-eval pilot — see the
+        root `behavioral-eval-method.md`): a literal secret in the k8s env-list shape (`- name: API_KEY`
+        then `value: "sk_live_…"`) is MISSED — the secret name is the *value* of a `name:` field and the
+        literal sits under `value:` on the next line, so the single-line `<secret-key>: <literal>` regex
+        can't pair them. (A `DATABASE_URL` in the same shape IS still caught, by URL_EMBEDDED_SECRET,
+        which matches the value's `://user:pass@` shape independent of the key.) A `kind:`-aware env-pair
+        pass would close it.
       Until the structured-aware pass lands, `config-lint` is documented as a cheap **first pass**, not a complete floor
       (see `secrets-and-safety.md`); the deeper pass is a policy engine wired as the harness `policy`
       phase.

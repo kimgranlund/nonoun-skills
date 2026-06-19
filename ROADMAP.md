@@ -22,13 +22,18 @@ wiring a live tool, which the **clean-checkout-true** contract deliberately keep
   scores**. The *parsing* side that needs no live tool is already done — e.g. query-decomposer's
   `EXPLAIN (FORMAT JSON)` plan-smell parser (0.2.3). (Each skill's ROADMAP tracks its own harness side.)
 
-## A project, not an item
+## A project, partly piloted
 
-- [ ] **Behavioral-eval layer.** Every skill is graded today on **routing** (the checked-in
-  `routing-eval` corpora, dogfooded by the gate) and on **gate correctness** (the `bin/` selftests with
-  good *and* bad fixtures). What's unmeasured is **output quality** — does invoking the skill produce a
-  better artifact than not? Closing this needs a held-out task set per skill, a *with-skill vs baseline*
-  run, and a judge: a real eval harness, scoped as its own effort, not a drive-by deepening.
+- [x] **Behavioral-eval layer — method piloted + templated** (see
+  [behavioral-eval-method.md](behavioral-eval-method.md)). Skills are graded today on **routing** (the
+  checked-in corpora) and **gate correctness** (the `bin/` selftests); what was unmeasured is **output
+  quality** — does invoking the skill produce a better artifact than not? The method (with-skill vs a
+  *suppressed* baseline, scored on a competence-matched, `bin/`-grounded metric) is now proven on two
+  skills: component-decomposer (an *outside*-competence task → the skill lifts correctness) and
+  config-decomposer (an *inside*-competence task → the skill adds verification/provenance/structure,
+  not raw recall). **Still open (the project part):** automating it — a runnable harness that fans out
+  with-skill / baseline / judge and aggregates N-run variance per skill (`skills-studio`'s `eval` mode
+  is the closest engine).
 
 ## Content — writable, not a gate
 

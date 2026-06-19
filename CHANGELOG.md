@@ -4,6 +4,24 @@ Notable changes to the **nonoun-skills marketplace** — plugins, the gate, and 
 Each skill also keeps its own `CHANGELOG.md`; this file tracks the repo as a whole. Entries are
 grouped by date; the first tagged release is **v0.2.0** (2026-06-17).
 
+## 2026-06-19 — post-v0.3.0 cross-cutting work
+
+- **Behavioral-eval method piloted + templated** — a new root [`behavioral-eval-method.md`](behavioral-eval-method.md):
+  the method for measuring whether invoking a skill *improves the output* (with-skill vs a **suppressed**
+  baseline, scored on a competence-matched, `bin/`-grounded metric), proven on two skills with contrasting
+  results — component-decomposer (out-of-competence → the skill lifts correctness) and config-decomposer
+  (in-competence → the skill adds verification/provenance/structure, not raw recall). Moves the ROADMAP's
+  behavioral-eval item from "a project" to "piloted; automation still open". *(Byproduct: the config pilot
+  surfaced a real `config-lint` false-negative — k8s `env`-list secrets — now on its ROADMAP.)*
+- **A consistent `--json` report across 13 of ~19 lint bins** — extended the shared
+  `{tool, ok, summary, findings:[…]}` schema (matching sql-lint) to the 3 new decomposers' bins + 4 more,
+  so GRADE/CI can consume every consuming gate uniformly.
+- **Decomposer coherence pass** — fixed stale `arch-system` references (→ `architecture-decomposer`,
+  which graduated from it) in code-/query-/type-decomposer; reconciled skill statuses; closed the
+  module↔shell and architecture↔code handoff seams.
+- **component-decomposer 0.3.x** — absorbed the composition scale (the retired ui-decomposer draft) and a
+  separate compact/dense geometry realm; see its CHANGELOG.
+
 ## 2026-06-18 — v0.3.0: the graduation (root library → marketplace)
 
 The marketplace nearly tripled — **6 plugins / 14 skills → 11 plugins / 37 skills** — by graduating
