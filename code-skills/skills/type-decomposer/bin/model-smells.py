@@ -31,6 +31,17 @@ Smells:
 
   python3 bin/model-smells.py selftest
   python3 bin/model-smells.py <schema.json | types.ts | types.py | dir>
+  python3 bin/model-smells.py [--json] <schema.json | types.ts | types.py | dir>
+
+`--json` (additive reporting flag; parse-anywhere in argv) prints ONE machine-readable report object to
+stdout and NOTHING else there — the shared schema every lint bin emits:
+  {"tool": "model-smells", "ok": <bool>, "summary": "<one line>",
+   "findings": [{"kind", "severity": warn, "location": "<$.path>", "message"}, ...]}
+`ok` is true iff no smell (the exact condition that gives exit 0 in human mode). Every model smell is an
+advisory-by-doctrine signal (this is a smell linter, not a gate), so each maps to severity `warn`;
+`location` is the smell's path ($-rooted for JSON Schema, Name.field for TS/Python). The exit code is
+UNCHANGED by --json (any smell ⇒ exit 1, mirrored by ok=false). Without --json, output + exit are
+byte-identical.
 
 Python 3.8+.
 """
@@ -574,7 +585,101 @@ def selftest():
     for fp in ("grid", "valid", "android"):
         if "PRIMITIVE_OBSESSION" in {k for k, _, _ in ts_smells("type G = { %s: string }" % fp)}:
             errs.append("false positive: lowercase '%s' (ends in 'id', not camelCase) flagged" % fp)
+
+    # --- --json report selftest (the shared schema) -------------------------------------------
+    import io
+    import contextlib
+
+    def _capture_report(report_obj):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            _report_json(report_obj["tool"], report_obj["ok"], report_obj["summary"],
+                         report_obj["findings"])
+        return json.loads(buf.getvalue())
+
+    def _assert_report(rep, want_ok, want_nonempty, label):
+        if not isinstance(rep, dict):
+            errs.append("--json %s: report is not a dict" % label); return
+        if rep.get("tool") != "model-smells":
+            errs.append("--json %s: tool=%r, want 'model-smells'" % (label, rep.get("tool")))
+        if rep.get("ok") is not want_ok:
+            errs.append("--json %s: ok=%r, want %r" % (label, rep.get("ok"), want_ok))
+        if not isinstance(rep.get("summary"), str) or not rep["summary"]:
+            errs.append("--json %s: summary missing/empty" % label)
+        f = rep.get("findings")
+        if not isinstance(f, list):
+            errs.append("--json %s: findings not a list" % label); return
+        if want_nonempty and not f:
+            errs.append("--json %s: findings should be non-empty" % label)
+        if not want_nonempty and f:
+            errs.append("--json %s: findings should be [] on clean input, got %s" % (label, f))
+        for fd in f:
+            if not isinstance(fd, dict) or any(k not in fd for k in ("kind", "severity", "location", "message")):
+                errs.append("--json %s: a finding is missing a required key: %r" % (label, fd))
+            elif fd["severity"] not in ("fail", "warn", "advisory"):
+                errs.append("--json %s: bad severity %r" % (label, fd["severity"]))
+
+    # dirty fixture (DIRTY schema ⇒ several smells): tool right, ok false, findings non-empty
+    dirty_rep = _capture_report(build_report(smells(DIRTY)))
+    _assert_report(dirty_rep, False, True, "dirty")
+    if not all(fd["severity"] == "warn" for fd in dirty_rep["findings"]):
+        errs.append("--json dirty: every model smell should map to severity 'warn'")
+    if not any(fd["kind"] == "BOOLEAN_BLINDNESS" for fd in dirty_rep["findings"]):
+        errs.append("--json dirty: BOOLEAN_BLINDNESS finding missing from report")
+    # clean fixture ⇒ ok true, findings []
+    _assert_report(_capture_report(build_report(smells(CLEAN))), True, False, "clean")
+
     return errs
+
+
+# --- machine-readable report (--json) ----------------------------------------------------------
+# ONE shared schema across every lint bin: {tool, ok, summary, findings:[{kind, severity, location,
+# message}]}. `ok` is true iff no blocking finding (the same condition that gives exit 0 in human mode).
+# Printed via json.dumps(indent=2); nothing else goes to stdout under --json.
+def _report_json(tool, ok, summary, findings):
+    """Emit the shared report object to stdout (and nothing else). `findings` is a list of dicts already
+    in {kind, severity, location, message} shape. Returns the dict so callers/selftests can reuse it."""
+    report = {"tool": tool, "ok": ok, "summary": summary, "findings": findings}
+    print(json.dumps(report, indent=2))
+    return report
+
+
+def build_report(findings):
+    """Build the JSON report from a (kind, path, detail) smell list. Every model smell is advisory-by-
+    doctrine (a smell linter, not a gate), so each maps to severity `warn`; `ok` is true iff there are
+    none — mirroring the human mode's exit (any smell ⇒ exit 1). `location` is the smell's path."""
+    out = []
+    for kind, path, detail in findings:
+        out.append({"kind": kind, "severity": "warn", "location": path, "message": detail})
+    ok = not out
+    if ok:
+        summary = "no model smells"
+    else:
+        summary = ("%d model smell(s) — widen-able state space; confirm with an illegal-instance set"
+                   % len(out))
+    return {"tool": "model-smells", "ok": ok, "summary": summary, "findings": out}
+
+
+def _smells_for_file(fp):
+    """Findings (kind, path, detail) for one file, dispatched by extension — or None if it can't be read
+    /parsed (mirrors the human loop's per-file skip). The path is prefixed with the file's relpath so a
+    dir scan's findings stay locatable, matching the human report's `relpath  KIND path` column."""
+    ext = os.path.splitext(fp)[1].lower()
+    try:
+        text = open(fp, encoding="utf-8").read()
+    except OSError:
+        return None
+    if ext in (".ts", ".tsx"):
+        found = ts_smells(text)
+    elif ext in (".py", ".pyi"):
+        found = py_smells(text)
+    else:
+        try:
+            found = smells(json.loads(text))
+        except json.JSONDecodeError:
+            return None
+    rel = os.path.relpath(fp)
+    return [(kind, "%s:%s" % (rel, path), detail) for kind, path, detail in found]
 
 
 _SCAN_EXTS = (".json", ".ts", ".tsx", ".py", ".pyi")
@@ -601,6 +706,21 @@ def main(argv):
         print("model-smells: OK — 5 smell detectors verified over JSON-Schema, TypeScript, and "
               "Python dirty/clean fixtures")
         return 0
+    # --json is a parse-anywhere reporting flag — strip it out, remember it, leave everything else.
+    as_json = "--json" in argv
+    if as_json:
+        argv = [a for a in argv if a != "--json"]
+        if not argv:
+            sys.stderr.write("usage: model-smells.py [--json] <schema.json | types.ts | types.py | dir>\n")
+            return 2
+        findings = []
+        for fp in _iter(argv[0]):
+            got = _smells_for_file(fp)
+            if got:
+                findings += got
+        rep = build_report(findings)
+        _report_json(rep["tool"], rep["ok"], rep["summary"], rep["findings"])
+        return 0 if rep["ok"] else 1
     total = 0
     for fp in _iter(argv[0]):
         ext = os.path.splitext(fp)[1].lower()

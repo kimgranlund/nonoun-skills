@@ -28,6 +28,7 @@ in is layout-decomposer's).
 
 Usage:
   composition-check.py lint <card.composition.json>     # the A4 / A5 composition-card linter
+  composition-check.py lint [--json] <card.composition.json>   # machine-readable report
   composition-check.py slot-grid <comma,slots>          # slot-presence -> grid-template-columns
   composition-check.py selftest                          # good / bad fixtures (the law, proven)
 
@@ -35,6 +36,15 @@ A *.composition.json card:
   {"name":"toolbar","tier":"component",
    "contains":[{"name":"x-button","tier":"primitive","role":"action"}, ...],
    "slots":["actions"],"axis":"horizontal","overflow":"priority-menu","selfMargin":false}
+
+`--json` (additive reporting flag; parse-anywhere after `lint`) prints ONE machine-readable report
+object to stdout and NOTHING else there — the shared schema every lint bin emits:
+  {"tool": "composition-check", "ok": <bool>, "summary": "<one line>",
+   "findings": [{"kind", "severity": fail|advisory, "location": "<component label>", "message"}, ...]}
+`ok` is true iff no error (the exact condition that gives exit 0 in `lint` mode). A gate error
+(tier/seam/overflow/self-margin) maps to severity `fail`; a warning (god-component / tier-skip) to
+`advisory`. The exit code is UNCHANGED by --json. `--json` applies to `lint` only — `slot-grid` is a
+generator, not a lint. Without --json, output + exit are byte-identical.
 """
 import json
 import sys
@@ -103,6 +113,62 @@ def slot_grid(present):
     return " ".join(cols) if cols else "(none — no slots present)"
 
 
+# --- machine-readable report (--json) ----------------------------------------------------------
+# ONE shared schema across every lint bin: {tool, ok, summary, findings:[{kind, severity, location,
+# message}]}. `ok` is true iff no blocking finding (the same condition that gives exit 0 in `lint`).
+# Printed via json.dumps(indent=2); nothing else goes to stdout under --json.
+def _report_json(tool, ok, summary, findings):
+    """Emit the shared report object to stdout (and nothing else). `findings` is a list of dicts already
+    in {kind, severity, location, message} shape. Returns the dict so callers/selftests can reuse it."""
+    report = {"tool": tool, "ok": ok, "summary": summary, "findings": findings}
+    print(json.dumps(report, indent=2))
+    return report
+
+
+def _finding_kind(message):
+    """Derive a stable KIND for a lint() message string (lint() yields plain prose, so the kind is
+    classified from the message's anchor words). Matches the A4/A5 finding families in lint()."""
+    m = message.lower()
+    if "selfmargin" in m or "outer margin" in m:
+        return "SELF_MARGIN"
+    if "tier" in m and "not one of" in m:
+        return "BAD_TIER"
+    if "seam gate" in m:
+        return "NO_SEAM"
+    if "overflow mechanism" in m:
+        return "NO_OVERFLOW"
+    if "god-component" in m:
+        return "GOD_COMPONENT"
+    if "tier-skip" in m:
+        return "TIER_SKIP"
+    if "a primitive composes" in m:
+        return "PRIMITIVE_COMPOSES"
+    if "a component composes no pieces" in m:
+        return "EMPTY_COMPONENT"
+    if "a module arranges" in m:
+        return "THIN_MODULE"
+    return "COMPOSITION"
+
+
+def build_report(card, errs, warns):
+    """Build the JSON report from lint()'s (errs, warns). Each error → severity `fail`; each warning →
+    `advisory`. `ok` is true iff no error — the exact exit-0 condition of the `lint` subcommand.
+    `location` is the named component the card describes (composition findings are component-scoped)."""
+    label = card.get("name") or "?"
+    out = []
+    for e in errs:
+        out.append({"kind": _finding_kind(e), "severity": "fail", "location": label, "message": e})
+    for w in warns:
+        out.append({"kind": _finding_kind(w), "severity": "advisory", "location": label, "message": w})
+    ok = not errs
+    if not out:
+        summary = "composition sound — tier ladder + seam + spacing law hold"
+    else:
+        summary = ("%d finding(s) (%d error, %d advisory) — confirm composition by review"
+                   % (len(out), len(errs), len(warns)))
+    return {"tool": "composition-check", "ok": ok, "summary": summary, "findings": out}
+
+
 # ── fixtures: the law, proven by construction ───────────────────────────────────────────────
 def _actions(n):
     return [{"name": "ui-button", "tier": "primitive", "role": "action"} for _ in range(n)]
@@ -142,6 +208,71 @@ def selftest():
     assert slot_grid(["content", "caret"]) == "1fr auto"
     assert slot_grid(["content"]) == "1fr"
     print("  PASS · slot-grid: icon,content,caret -> auto 1fr auto ; content,caret -> 1fr auto ; content -> 1fr")
+
+    # --- --json report selftest (the shared schema) -------------------------------------------
+    import io
+    import contextlib
+
+    jerrs = []
+
+    def _capture_report(report_obj):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            _report_json(report_obj["tool"], report_obj["ok"], report_obj["summary"],
+                         report_obj["findings"])
+        return json.loads(buf.getvalue())
+
+    def _assert_report(rep, want_ok, want_nonempty, label):
+        if not isinstance(rep, dict):
+            jerrs.append("--json %s: report is not a dict" % label); return
+        if rep.get("tool") != "composition-check":
+            jerrs.append("--json %s: tool=%r, want 'composition-check'" % (label, rep.get("tool")))
+        if rep.get("ok") is not want_ok:
+            jerrs.append("--json %s: ok=%r, want %r" % (label, rep.get("ok"), want_ok))
+        if not isinstance(rep.get("summary"), str) or not rep["summary"]:
+            jerrs.append("--json %s: summary missing/empty" % label)
+        f = rep.get("findings")
+        if not isinstance(f, list):
+            jerrs.append("--json %s: findings not a list" % label); return
+        if want_nonempty and not f:
+            jerrs.append("--json %s: findings should be non-empty" % label)
+        if not want_nonempty and f:
+            jerrs.append("--json %s: findings should be [] on clean input, got %s" % (label, f))
+        for fd in f:
+            if not isinstance(fd, dict) or any(k not in fd for k in ("kind", "severity", "location", "message")):
+                jerrs.append("--json %s: a finding is missing a required key: %r" % (label, fd))
+            elif fd["severity"] not in ("fail", "warn", "advisory"):
+                jerrs.append("--json %s: bad severity %r" % (label, fd["severity"]))
+
+    # dirty card (a seamless component ⇒ NO_SEAM error): tool right, ok false, findings non-empty
+    dirty_card = {"name": "card", "tier": "component",
+                  "contains": [{"name": "div", "tier": "primitive"}],
+                  "slots": [], "overflow": None, "selfMargin": False}
+    de, dw = lint(dirty_card)
+    dirty_rep = _capture_report(build_report(dirty_card, de, dw))
+    _assert_report(dirty_rep, False, True, "dirty")
+    if not all(fd["severity"] in ("fail", "advisory") for fd in dirty_rep["findings"]):
+        jerrs.append("--json dirty: an error finding should map to severity 'fail'")
+    # advisory-only card (a god-component with a seam: 8 actions but overflow declared) keeps ok TRUE
+    adv_card = {"name": "toolbar", "tier": "component", "contains": _actions(8),
+                "slots": ["actions"], "axis": "horizontal", "overflow": "priority-menu",
+                "selfMargin": False}
+    ae, aw = lint(adv_card)
+    adv_rep = _capture_report(build_report(adv_card, ae, aw))
+    _assert_report(adv_rep, True, True, "advisory-only")
+    if not any(fd["kind"] == "GOD_COMPONENT" and fd["severity"] == "advisory" for fd in adv_rep["findings"]):
+        jerrs.append("--json advisory-only: GOD_COMPONENT should map to severity 'advisory'")
+    # clean card ⇒ ok true, findings []
+    clean_card = {"name": "toolbar", "tier": "component",
+                  "contains": [{"name": "b", "tier": "primitive", "role": "action"}],
+                  "slots": ["actions"], "axis": "horizontal", "overflow": "priority-menu",
+                  "selfMargin": False}
+    ce, cw = lint(clean_card)
+    _assert_report(_capture_report(build_report(clean_card, ce, cw)), True, False, "clean")
+    for e in jerrs:
+        print("  FAIL ·", e)
+    ok = ok and not jerrs
+
     print("selftest:", "PASS" if ok else "FAIL")
     return 0 if ok else 1
 
@@ -158,9 +289,19 @@ def main(argv):
         print(slot_grid(present))
         return 0
     if cmd == "lint":
-        with open(argv[2]) as fh:
+        # --json is a parse-anywhere reporting flag (after `lint`) — strip it, remember it.
+        rest = [a for a in argv[2:] if a != "--json"]
+        as_json = "--json" in argv[2:]
+        if not rest:
+            sys.stderr.write("usage: composition-check.py lint [--json] <card.composition.json>\n")
+            return 2
+        with open(rest[0]) as fh:
             card = json.load(fh)
         errs, warns = lint(card)
+        if as_json:
+            rep = build_report(card, errs, warns)
+            _report_json(rep["tool"], rep["ok"], rep["summary"], rep["findings"])
+            return 1 if errs else 0
         for w in warns:
             print(f"  WARN  {w}")
         for e in errs:

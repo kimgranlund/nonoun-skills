@@ -24,6 +24,16 @@ axis (A1–A5) by review, adversarially.
   python3 bin/plugin-check.py selftest
   python3 bin/plugin-check.py template
   python3 bin/plugin-check.py <plugin.json> [--marketplace <marketplace.json>] [--entry NAME]
+  python3 bin/plugin-check.py [--json] <plugin.json> [--marketplace ...] [--entry ...]
+
+`--json` (additive reporting flag; parse-anywhere in argv) prints ONE machine-readable report object to
+stdout and NOTHING else there — the shared schema every lint bin emits:
+  {"tool": "plugin-check", "ok": <bool>, "summary": "<one line>",
+   "findings": [{"kind", "severity": fail|advisory, "location": "<plugin label | null>", "message"}, ...]}
+`ok` is true iff no GATE finding (the exact condition that gives exit 0 in human mode). A gate finding
+(MANIFEST_INVALID / BAD_NAME / BAD_VERSION / ILLEGAL_PATH / MARKETPLACE_MISMATCH) maps to severity
+`fail`; the KITCHEN_SINK advisory to `advisory`. The exit code is UNCHANGED by --json. Without --json,
+output + exit are byte-identical.
 
 Python 3.8+.
 """
@@ -143,6 +153,38 @@ def check(manifest, market_entry=None):
     return finds
 
 
+# --- machine-readable report (--json) ----------------------------------------------------------
+# ONE shared schema across every lint bin: {tool, ok, summary, findings:[{kind, severity, location,
+# message}]}. `ok` is true iff no GATE finding (the same condition that gives exit 0 in human mode).
+# Printed via json.dumps(indent=2); nothing else goes to stdout under --json.
+def _report_json(tool, ok, summary, findings):
+    """Emit the shared report object to stdout (and nothing else). `findings` is a list of dicts already
+    in {kind, severity, location, message} shape. Returns the dict so callers/selftests can reuse it."""
+    report = {"tool": tool, "ok": ok, "summary": summary, "findings": findings}
+    print(json.dumps(report, indent=2))
+    return report
+
+
+def build_report(finds, label=None):
+    """Build the JSON report from check()'s (severity, code, detail) findings. A gate finding → severity
+    `fail`; the KITCHEN_SINK advisory → `advisory`. `ok` is true iff no gate finding — the exact exit-0
+    condition of `_run`. `location` is the plugin name when known (manifest findings are plugin-scoped),
+    else null."""
+    out, gates = [], 0
+    for sev, code, detail in finds:
+        if sev == "gate":
+            gates += 1
+        out.append({"kind": code, "severity": "fail" if sev == "gate" else "advisory",
+                    "location": label, "message": detail})
+    ok = gates == 0
+    if not out:
+        summary = "manifest well-formed, paths legal — no load-blocking defects"
+    else:
+        summary = ("%d finding(s) (%d gate, %d advisory) — confirm the BUNDLE axis by review"
+                   % (len(out), gates, len(out) - gates))
+    return {"tool": "plugin-check", "ok": ok, "summary": summary, "findings": out}
+
+
 TEMPLATE = {
     "name": "my-plugin",
     "version": "0.1.0",
@@ -240,15 +282,62 @@ def selftest():
     if "BAD_VERSION" in codes(check({"name": "ok", "version": "1.0.0-rc.1+build.5"})):
         errs.append("false BAD_VERSION on a valid prerelease semver")
 
+    # --- --json report selftest (the shared schema) -------------------------------------------
+    import io
+    import contextlib
+
+    def _capture_report(report_obj):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            _report_json(report_obj["tool"], report_obj["ok"], report_obj["summary"],
+                         report_obj["findings"])
+        return json.loads(buf.getvalue())
+
+    def _assert_report(rep, want_ok, want_nonempty, label):
+        if not isinstance(rep, dict):
+            errs.append("--json %s: report is not a dict" % label); return
+        if rep.get("tool") != "plugin-check":
+            errs.append("--json %s: tool=%r, want 'plugin-check'" % (label, rep.get("tool")))
+        if rep.get("ok") is not want_ok:
+            errs.append("--json %s: ok=%r, want %r" % (label, rep.get("ok"), want_ok))
+        if not isinstance(rep.get("summary"), str) or not rep["summary"]:
+            errs.append("--json %s: summary missing/empty" % label)
+        f = rep.get("findings")
+        if not isinstance(f, list):
+            errs.append("--json %s: findings not a list" % label); return
+        if want_nonempty and not f:
+            errs.append("--json %s: findings should be non-empty" % label)
+        if not want_nonempty and f:
+            errs.append("--json %s: findings should be [] on clean input, got %s" % (label, f))
+        for fd in f:
+            if not isinstance(fd, dict) or any(k not in fd for k in ("kind", "severity", "location", "message")):
+                errs.append("--json %s: a finding is missing a required key: %r" % (label, fd))
+            elif fd["severity"] not in ("fail", "warn", "advisory"):
+                errs.append("--json %s: bad severity %r" % (label, fd["severity"]))
+
+    # dirty manifest (BAD_NAME_SPACE ⇒ gate BAD_NAME): tool right, ok false, findings non-empty
+    dirty_rep = _capture_report(build_report(check(BAD_NAME_SPACE), BAD_NAME_SPACE.get("name")))
+    _assert_report(dirty_rep, False, True, "dirty")
+    if not any(fd["kind"] == "BAD_NAME" and fd["severity"] == "fail" for fd in dirty_rep["findings"]):
+        errs.append("--json dirty: BAD_NAME should map to severity 'fail'")
+    # advisory-only manifest (KITCHEN_SINK, no gate) keeps ok TRUE
+    adv_rep = _capture_report(build_report(check(KITCHEN), KITCHEN.get("name")))
+    _assert_report(adv_rep, True, True, "advisory-only")
+    if not any(fd["kind"] == "KITCHEN_SINK" and fd["severity"] == "advisory" for fd in adv_rep["findings"]):
+        errs.append("--json advisory-only: KITCHEN_SINK should map to severity 'advisory'")
+    # clean manifest ⇒ ok true, findings []
+    _assert_report(_capture_report(build_report(check(CLEAN), CLEAN.get("name"))), True, False, "clean")
+
     return errs
 
 
-def _run(plugin_path, market_path=None, entry_name=None):
+def _run(plugin_path, market_path=None, entry_name=None, as_json=False):
     try:
         manifest = json.load(open(plugin_path, encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as e:
         sys.stderr.write("plugin-check: cannot read %s — %s\n" % (plugin_path, e))
         return 2
+    label = manifest.get("name") if isinstance(manifest, dict) else None
     entry = None
     if market_path:
         try:
@@ -261,10 +350,19 @@ def _run(plugin_path, market_path=None, entry_name=None):
         entry = next((p for p in plugins if isinstance(p, dict) and p.get("name") == want), None)
         if entry is None:
             # No matching entry at all — the marketplace doesn't list this plugin (a B3 gate failure).
+            msg = "no plugins[] entry named %r in %s" % (want, market_path)
+            if as_json:
+                rep = build_report([("gate", "MARKETPLACE_MISMATCH", msg)], label)
+                _report_json(rep["tool"], rep["ok"], rep["summary"], rep["findings"])
+                return 1
             print("plugin-check: MANIFEST report — %s" % plugin_path)
-            print("  [gate] MARKETPLACE_MISMATCH  no plugins[] entry named %r in %s" % (want, market_path))
+            print("  [gate] MARKETPLACE_MISMATCH  %s" % msg)
             return 1
     finds = check(manifest, entry)
+    if as_json:
+        rep = build_report(finds, label)
+        _report_json(rep["tool"], rep["ok"], rep["summary"], rep["findings"])
+        return 1 if [f for f in finds if f[0] == "gate"] else 0
     print("plugin-check: MANIFEST report — %s%s" % (plugin_path, " + marketplace" if entry else ""))
     gate_fails = [f for f in finds if f[0] == "gate"]
     for sev, code, detail in finds:
@@ -296,13 +394,20 @@ def main(argv):
         print("plugin-check: OK — manifest/name/version/path/marketplace checks verified over "
               "must-flag and must-not-flag fixtures")
         return 0
+    # --json is a parse-anywhere reporting flag — strip it out, remember it, leave everything else.
+    as_json = "--json" in argv
+    if as_json:
+        argv = [a for a in argv if a != "--json"]
+        if not argv:
+            sys.stderr.write("usage: plugin-check.py [--json] <plugin.json> [--marketplace ...] [--entry ...]\n")
+            return 2
     if argv[0] == "template":
         print(json.dumps(TEMPLATE, indent=2))
         return 0
     plugin_path = argv[0]
     market_path = argv[argv.index("--marketplace") + 1] if "--marketplace" in argv else None
     entry_name = argv[argv.index("--entry") + 1] if "--entry" in argv else None
-    return _run(plugin_path, market_path, entry_name)
+    return _run(plugin_path, market_path, entry_name, as_json)
 
 
 if __name__ == "__main__":

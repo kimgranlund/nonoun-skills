@@ -32,7 +32,16 @@ which this tool cannot see). Gate where you can; review the rest.
 
   python3 bin/dependency-check.py selftest
   python3 bin/dependency-check.py <card.json> [--max-fanin N] [--max-fanout N]
+  python3 bin/dependency-check.py [--json] <card.json>   # machine-readable report
   python3 bin/dependency-check.py template
+
+`--json` (additive reporting flag; parse-anywhere in argv) prints ONE machine-readable report object to
+stdout and NOTHING else there — the shared schema every lint bin emits:
+  {"tool": "dependency-check", "ok": <bool>, "summary": "<one line>",
+   "findings": [{"kind", "severity": fail|advisory, "location": "<node/edge label>", "message"}, ...]}
+`ok` is true iff no GATE finding (the exact condition that gives exit 0 in human mode). A gate flag
+(CYCLE / LAYER_VIOLATION) maps to severity `fail`; an advisory one (HIGH_COUPLING / ORPHAN) to
+`advisory`. The exit code is UNCHANGED by --json. Without --json, output + exit are byte-identical.
 
 Python 3.8+.
 """
@@ -209,22 +218,57 @@ def analyze(card, max_fanin=DEFAULT_MAX_FANIN, max_fanout=DEFAULT_MAX_FANOUT):
     findings = []
     for scc in find_cycles(card):
         findings.append({"kind": "CYCLE", "gate": True,
+                         "loc": " -> ".join(scc + [scc[0]]),
                          "detail": "cycle among: %s" % " -> ".join(scc + [scc[0]])})
     for v in find_layer_violations(card):
         findings.append({"kind": "LAYER_VIOLATION", "gate": True,
+                         "loc": "%s -> %s" % (v["from"], v["to"]),
                          "detail": "%s (%s) depends UP on %s (%s)"
                          % (v["from"], v["from_layer"], v["to"], v["to_layer"])})
     coup = coupling(card, max_fanin, max_fanout)
     for h in coup["high_coupling"]:
         findings.append({"kind": "HIGH_COUPLING", "gate": False,
+                         "loc": h["component"],
                          "detail": "%s has fan-in=%d fan-out=%d (max in=%d out=%d)"
                          % (h["component"], h["fanin"], h["fanout"], max_fanin, max_fanout)})
     for o in find_orphans(card):
         findings.append({"kind": "ORPHAN", "gate": False,
+                         "loc": o,
                          "detail": "%s has no dependencies in or out" % o})
     gate_fails = [f for f in findings if f["gate"]]
     return {"status": "FAIL" if gate_fails else "PASS",
             "findings": findings, "gate_fails": gate_fails, "coupling": coup}
+
+
+# --- machine-readable report (--json) ----------------------------------------------------------
+# ONE shared schema across every lint bin: {tool, ok, summary, findings:[{kind, severity, location,
+# message}]}. `ok` is true iff no blocking finding (the same condition that gives exit 0 in human mode).
+# Printed via json.dumps(indent=2); nothing else goes to stdout under --json.
+def _report_json(tool, ok, summary, findings):
+    """Emit the shared report object to stdout (and nothing else). `findings` is a list of dicts already
+    in {kind, severity, location, message} shape. Returns the dict so callers/selftests can reuse it."""
+    report = {"tool": tool, "ok": ok, "summary": summary, "findings": findings}
+    print(json.dumps(report, indent=2))
+    return report
+
+
+def build_report(res):
+    """Build the JSON report from analyze()'s result. A gate flag (CYCLE / LAYER_VIOLATION) → severity
+    `fail`; an advisory one (HIGH_COUPLING / ORPHAN) → `advisory`. `ok` is true iff no gate flag — the
+    exact PASS/exit-0 condition of analyze()."""
+    out, gates = [], 0
+    for f in res["findings"]:
+        if f["gate"]:
+            gates += 1
+        out.append({"kind": f["kind"], "severity": "fail" if f["gate"] else "advisory",
+                    "location": f["loc"], "message": f["detail"]})
+    ok = gates == 0
+    if not out:
+        summary = "acyclic + layered + bounded — no mechanical defects"
+    else:
+        summary = ("%d finding(s) (%d gate, %d advisory) — confirm boundaries by review"
+                   % (len(out), gates, len(out) - gates))
+    return {"tool": "dependency-check", "ok": ok, "summary": summary, "findings": out}
 
 
 TEMPLATE = {
@@ -352,6 +396,54 @@ def selftest():
             if f["kind"] == "ORPHAN"]:
         errs.append("a connected node must NOT flag ORPHAN")
 
+    # --- --json report selftest (the shared schema) -------------------------------------------
+    import io
+    import contextlib
+
+    def _capture_report(report_obj):
+        """Round-trip a report dict through _report_json's stdout path and json.loads it back, asserting
+        nothing but the JSON object lands on stdout."""
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            _report_json(report_obj["tool"], report_obj["ok"], report_obj["summary"],
+                         report_obj["findings"])
+        return json.loads(buf.getvalue())
+
+    def _assert_report(rep, want_ok, want_nonempty, label):
+        if not isinstance(rep, dict):
+            errs.append("--json %s: report is not a dict" % label); return
+        if rep.get("tool") != "dependency-check":
+            errs.append("--json %s: tool=%r, want 'dependency-check'" % (label, rep.get("tool")))
+        if rep.get("ok") is not want_ok:
+            errs.append("--json %s: ok=%r, want %r" % (label, rep.get("ok"), want_ok))
+        if not isinstance(rep.get("summary"), str) or not rep["summary"]:
+            errs.append("--json %s: summary missing/empty" % label)
+        f = rep.get("findings")
+        if not isinstance(f, list):
+            errs.append("--json %s: findings not a list" % label); return
+        if want_nonempty and not f:
+            errs.append("--json %s: findings should be non-empty" % label)
+        if not want_nonempty and f:
+            errs.append("--json %s: findings should be [] on clean input, got %s" % (label, f))
+        for fd in f:
+            if not isinstance(fd, dict) or any(k not in fd for k in ("kind", "severity", "location", "message")):
+                errs.append("--json %s: a finding is missing a required key: %r" % (label, fd))
+            elif fd["severity"] not in ("fail", "warn", "advisory"):
+                errs.append("--json %s: bad severity %r" % (label, fd["severity"]))
+
+    # dirty fixture (a 2-cycle ⇒ CYCLE gate): parses, tool right, ok false, findings non-empty
+    dirty_rep = _capture_report(build_report(analyze(two_cycle)))
+    _assert_report(dirty_rep, False, True, "dirty")
+    if not any(fd["kind"] == "CYCLE" and fd["severity"] == "fail" for fd in dirty_rep["findings"]):
+        errs.append("--json dirty: CYCLE should map to severity 'fail'")
+    # advisory-only (a hub) keeps ok TRUE — HIGH_COUPLING does not block
+    adv_rep = _capture_report(build_report(analyze(hub, max_fanout=5)))
+    _assert_report(adv_rep, True, True, "advisory-only")
+    if not any(fd["kind"] == "HIGH_COUPLING" and fd["severity"] == "advisory" for fd in adv_rep["findings"]):
+        errs.append("--json advisory-only: HIGH_COUPLING should map to severity 'advisory'")
+    # clean fixture ⇒ ok true, findings []
+    _assert_report(_capture_report(build_report(analyze(clean))), True, False, "clean")
+
     return errs
 
 
@@ -376,6 +468,13 @@ def main(argv):
         print("dependency-check: OK — cycle + layering + coupling + orphan checks verified "
               "(must-flag and must-not-flag fixtures)")
         return 0
+    # --json is a parse-anywhere reporting flag — strip it out, remember it, leave everything else.
+    as_json = "--json" in argv
+    if as_json:
+        argv = [a for a in argv if a != "--json"]
+        if not argv:
+            sys.stderr.write("usage: dependency-check.py [--json] <card.json>\n")
+            return 2
     if argv[0] == "template":
         print(json.dumps(TEMPLATE, indent=2))
         return 0
@@ -393,6 +492,10 @@ def main(argv):
         sys.stderr.write("dependency-check: bad card — %s\n" % e)
         return 2
     res = analyze(card, max_fanin, max_fanout)
+    if as_json:
+        rep = build_report(res)
+        _report_json(rep["tool"], rep["ok"], rep["summary"], rep["findings"])
+        return 0 if rep["ok"] else 1
     _print_report(card, res)
     if res["status"] == "FAIL":
         sys.stderr.write("dependency-check: FAIL — %d gate flag(s): %s\n"

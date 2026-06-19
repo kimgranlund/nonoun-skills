@@ -32,6 +32,16 @@ A pattern-spec card (JSON):
   python3 bin/regex-check.py selftest          # good/bad fixtures: a passing spec, a missed positive,
                                                # a matched negative, and a ReDoS-smell pattern
   python3 bin/regex-check.py <spec.json>       # validate a card; report card; NONZERO on any failure
+  python3 bin/regex-check.py [--json] <spec.json>   # machine-readable report
+
+`--json` (additive reporting flag; parse-anywhere in argv) prints ONE machine-readable report object to
+stdout and NOTHING else there — the shared schema every lint bin emits:
+  {"tool": "regex-check", "ok": <bool>, "summary": "<one line>",
+   "findings": [{"kind", "severity": fail|advisory, "location": "<spec name | null>", "message"}, ...]}
+`ok` is true iff no FAIL (the exact condition that gives exit 0 in human mode). A blocking finding
+(B1 won't-compile, a B2 example miss, a B3 ReDoS smell) maps to severity `fail`; an advisory warn
+(no example set) to `advisory`. `location` is the spec's name (a regex card has no line). The exit code
+is UNCHANGED by --json. Without --json, output + exit are byte-identical.
 
 Python 3.8+.
 """
@@ -319,6 +329,49 @@ def validate_spec(spec):
     return report, fails, warns
 
 
+# --- machine-readable report (--json) ----------------------------------------------------------
+# ONE shared schema across every lint bin: {tool, ok, summary, findings:[{kind, severity, location,
+# message}]}. `ok` is true iff no blocking finding (the same condition that gives exit 0 in human mode).
+# Printed via json.dumps(indent=2); nothing else goes to stdout under --json.
+def _report_json(tool, ok, summary, findings):
+    """Emit the shared report object to stdout (and nothing else). `findings` is a list of dicts already
+    in {kind, severity, location, message} shape. Returns the dict so callers/selftests can reuse it."""
+    report = {"tool": tool, "ok": ok, "summary": summary, "findings": findings}
+    print(json.dumps(report, indent=2))
+    return report
+
+
+def build_report(specs):
+    """Build the JSON report over one or more pattern-spec cards. A blocking finding (B1 won't-compile,
+    a B2 example miss, a B3 ReDoS smell) maps to severity `fail`; an advisory warn (no example set) to
+    `advisory`. `ok` is true iff no fail — the exact exit-0 condition of `main`. `location` is the
+    spec's name (a regex card has no line number)."""
+    out, blocking = [], 0
+    for spec in specs:
+        report, fails, warns = validate_spec(spec)
+        name = report.get("name", "<spec>")
+        if not report.get("compiled"):
+            blocking += 1
+            # surface the compile error from the fail string (the only place it lives)
+            msg = next((f for f in fails if "WONT COMPILE" in f), "%s: B1 won't compile" % name)
+            out.append({"kind": "WONT_COMPILE", "severity": "fail", "location": name, "message": msg})
+        for miss in report.get("example_misses", []):
+            blocking += 1
+            out.append({"kind": "EXAMPLE_MISS", "severity": "fail", "location": name, "message": miss})
+        for kind, detail in report.get("smells", []):
+            blocking += 1
+            out.append({"kind": kind, "severity": "fail", "location": name, "message": detail})
+        for w in warns:
+            out.append({"kind": "NO_EXAMPLES", "severity": "advisory", "location": name, "message": w})
+    ok = blocking == 0
+    if not out:
+        summary = "%d spec(s): compile + examples + safety clean" % len(specs)
+    else:
+        summary = ("%d finding(s) (%d blocking, %d advisory) across %d spec(s) — confirm a flagged "
+                   "ReDoS with a manual timing test" % (len(out), blocking, len(out) - blocking, len(specs)))
+    return {"tool": "regex-check", "ok": ok, "summary": summary, "findings": out}
+
+
 # --- selftest fixtures -------------------------------------------------------------------------
 SPEC_GOOD = {
     "name": "iso-date",
@@ -446,6 +499,53 @@ def selftest():
         errs.append("full mode should not match 'a12b' against \\d+")
     if not matches(rx, "a12b", "partial"):
         errs.append("partial mode should find \\d+ in 'a12b'")
+
+    # --- --json report selftest (the shared schema) -------------------------------------------
+    import io
+    import contextlib
+
+    def _capture_report(report_obj):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            _report_json(report_obj["tool"], report_obj["ok"], report_obj["summary"],
+                         report_obj["findings"])
+        return json.loads(buf.getvalue())
+
+    def _assert_report(rep, want_ok, want_nonempty, label):
+        if not isinstance(rep, dict):
+            errs.append("--json %s: report is not a dict" % label); return
+        if rep.get("tool") != "regex-check":
+            errs.append("--json %s: tool=%r, want 'regex-check'" % (label, rep.get("tool")))
+        if rep.get("ok") is not want_ok:
+            errs.append("--json %s: ok=%r, want %r" % (label, rep.get("ok"), want_ok))
+        if not isinstance(rep.get("summary"), str) or not rep["summary"]:
+            errs.append("--json %s: summary missing/empty" % label)
+        f = rep.get("findings")
+        if not isinstance(f, list):
+            errs.append("--json %s: findings not a list" % label); return
+        if want_nonempty and not f:
+            errs.append("--json %s: findings should be non-empty" % label)
+        if not want_nonempty and f:
+            errs.append("--json %s: findings should be [] on clean input, got %s" % (label, f))
+        for fd in f:
+            if not isinstance(fd, dict) or any(k not in fd for k in ("kind", "severity", "location", "message")):
+                errs.append("--json %s: a finding is missing a required key: %r" % (label, fd))
+            elif fd["severity"] not in ("fail", "warn", "advisory"):
+                errs.append("--json %s: bad severity %r" % (label, fd["severity"]))
+
+    # dirty fixture (SPEC_REDOS ⇒ a B3 NESTED_QUANTIFIER fail): tool right, ok false, findings non-empty
+    dirty_rep = _capture_report(build_report([SPEC_REDOS]))
+    _assert_report(dirty_rep, False, True, "dirty")
+    if not any(fd["kind"] == "NESTED_QUANTIFIER" and fd["severity"] == "fail" for fd in dirty_rep["findings"]):
+        errs.append("--json dirty: NESTED_QUANTIFIER should map to severity 'fail'")
+    # advisory-only spec (a compiling, example-free, safe pattern) keeps ok TRUE — only a NO_EXAMPLES warn
+    adv_rep = _capture_report(build_report([{"name": "no-ex", "pattern": r"\d+", "mode": "full"}]))
+    _assert_report(adv_rep, True, True, "advisory-only")
+    if not any(fd["kind"] == "NO_EXAMPLES" and fd["severity"] == "advisory" for fd in adv_rep["findings"]):
+        errs.append("--json advisory-only: NO_EXAMPLES should map to severity 'advisory'")
+    # clean fixture ⇒ ok true, findings []
+    _assert_report(_capture_report(build_report([SPEC_GOOD])), True, False, "clean")
+
     return errs
 
 
@@ -472,12 +572,23 @@ def main(argv):
         print("regex-check: OK — compile + example-set (full/partial) + AST-based ReDoS scan verified "
               "over good/bad fixtures (must-flag all flag; must-not-flag none flag)")
         return 0
+    # --json is a parse-anywhere reporting flag — strip it out, remember it, leave everything else.
+    as_json = "--json" in argv
+    if as_json:
+        argv = [a for a in argv if a != "--json"]
+        if not argv:
+            sys.stderr.write("usage: regex-check.py [--json] <spec.json>\n")
+            return 2
     try:
         doc = json.load(open(argv[0], encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as e:
         sys.stderr.write("regex-check: bad spec — %s\n" % e)
         return 2
     specs = doc if isinstance(doc, list) else [doc]
+    if as_json:
+        rep = build_report(specs)
+        _report_json(rep["tool"], rep["ok"], rep["summary"], rep["findings"])
+        return 0 if rep["ok"] else 1
     all_fails, all_warns = [], []
     for spec in specs:
         report, fails, warns = validate_spec(spec)

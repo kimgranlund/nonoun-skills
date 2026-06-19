@@ -23,9 +23,20 @@ Checks:
 
   python3 bin/description-lint.py selftest
   python3 bin/description-lint.py <SKILL.md> [--min-triggers 3]
+  python3 bin/description-lint.py [--json] <SKILL.md> [--min-triggers 3]
+
+`--json` (additive reporting flag; parse-anywhere in argv) prints ONE machine-readable report object to
+stdout and NOTHING else there — the shared schema every lint bin emits:
+  {"tool": "description-lint", "ok": <bool>, "summary": "<one line>",
+   "findings": [{"kind", "severity": fail|advisory, "location": null, "message"}, ...]}
+`ok` is true iff no FAIL (the exact condition that gives exit 0 in human mode). A hard-contract/missing-
+ingredient FAIL (over budget, no WHAT, no WHEN, too few triggers) maps to severity `fail`; a wording
+WARN (no NOT-for fence, first-person voice, vagueness) to `advisory`. A description has no line, so
+`location` is null. The exit code is UNCHANGED by --json. Without --json, output + exit are byte-identical.
 
 Python 3.8+.
 """
+import json
 import os
 import re
 import sys
@@ -191,6 +202,57 @@ def lint(desc, min_triggers=3):
     return fails, warns
 
 
+# --- machine-readable report (--json) ----------------------------------------------------------
+# ONE shared schema across every lint bin: {tool, ok, summary, findings:[{kind, severity, location,
+# message}]}. `ok` is true iff no blocking finding (the same condition that gives exit 0 in human mode).
+# Printed via json.dumps(indent=2); nothing else goes to stdout under --json.
+def _report_json(tool, ok, summary, findings):
+    """Emit the shared report object to stdout (and nothing else). `findings` is a list of dicts already
+    in {kind, severity, location, message} shape. Returns the dict so callers/selftests can reuse it."""
+    report = {"tool": tool, "ok": ok, "summary": summary, "findings": findings}
+    print(json.dumps(report, indent=2))
+    return report
+
+
+def _finding_kind(message):
+    """Derive a stable KIND for a lint() message string (lint() yields plain prose, so the kind is
+    classified from the message's anchor words). Covers the FAIL + WARN families in lint()."""
+    m = message.lower()
+    if "1024" in m:
+        return "OVER_BUDGET"
+    if "no what signal" in m:
+        return "NO_WHAT"
+    if "no when/trigger signal" in m:
+        return "NO_WHEN"
+    if "concrete trigger phrase" in m:
+        return "TOO_FEW_TRIGGERS"
+    if "not-for fence" in m:
+        return "NO_FENCE"
+    if "first-person" in m:
+        return "FIRST_PERSON"
+    if "vagueness" in m:
+        return "VAGUE"
+    return "DESCRIPTION"
+
+
+def build_report(fails, warns):
+    """Build the JSON report from lint()'s (fails, warns). Each FAIL (hard contract / missing routing
+    ingredient) → severity `fail`; each WARN (wording smell) → `advisory`. `ok` is true iff no fail —
+    the exact exit-0 condition of the human path. A description has no line, so `location` is null."""
+    out = []
+    for f in fails:
+        out.append({"kind": _finding_kind(f), "severity": "fail", "location": None, "message": f})
+    for w in warns:
+        out.append({"kind": _finding_kind(w), "severity": "advisory", "location": None, "message": w})
+    ok = not fails
+    if not out:
+        summary = "WHAT + WHEN + concrete triggers present, within budget"
+    else:
+        summary = ("%d finding(s) (%d fail, %d advisory) — sharpen the routing surface"
+                   % (len(out), len(fails), len(warns)))
+    return {"tool": "description-lint", "ok": ok, "summary": summary, "findings": out}
+
+
 # --- selftest fixtures -------------------------------------------------------------------------
 GOOD_MD = '''---
 name: routing-decomposer
@@ -331,6 +393,52 @@ def selftest():
     vf, _ = lint(vq)
     if not any("concrete trigger" in f for f in vf):
         errs.append("m3: vague-quotes description did not raise the too-few-concrete-triggers fail: %s" % vf)
+
+    # --- --json report selftest (the shared schema) -------------------------------------------
+    import io
+    import contextlib
+
+    def _capture_report(report_obj):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            _report_json(report_obj["tool"], report_obj["ok"], report_obj["summary"],
+                         report_obj["findings"])
+        return json.loads(buf.getvalue())
+
+    def _assert_report(rep, want_ok, want_nonempty, label):
+        if not isinstance(rep, dict):
+            errs.append("--json %s: report is not a dict" % label); return
+        if rep.get("tool") != "description-lint":
+            errs.append("--json %s: tool=%r, want 'description-lint'" % (label, rep.get("tool")))
+        if rep.get("ok") is not want_ok:
+            errs.append("--json %s: ok=%r, want %r" % (label, rep.get("ok"), want_ok))
+        if not isinstance(rep.get("summary"), str) or not rep["summary"]:
+            errs.append("--json %s: summary missing/empty" % label)
+        f = rep.get("findings")
+        if not isinstance(f, list):
+            errs.append("--json %s: findings not a list" % label); return
+        if want_nonempty and not f:
+            errs.append("--json %s: findings should be non-empty" % label)
+        if not want_nonempty and f:
+            errs.append("--json %s: findings should be [] on clean input, got %s" % (label, f))
+        for fd in f:
+            if not isinstance(fd, dict) or any(k not in fd for k in ("kind", "severity", "location", "message")):
+                errs.append("--json %s: a finding is missing a required key: %r" % (label, fd))
+            elif fd["severity"] not in ("fail", "warn", "advisory"):
+                errs.append("--json %s: bad severity %r" % (label, fd["severity"]))
+
+    # dirty fixture (BAD_MD ⇒ fails + warns): tool right, ok false, findings non-empty
+    bf2, bw2 = lint(extract_description(BAD_MD))
+    dirty_rep = _capture_report(build_report(bf2, bw2))
+    _assert_report(dirty_rep, False, True, "dirty")
+    if not any(fd["severity"] == "fail" for fd in dirty_rep["findings"]):
+        errs.append("--json dirty: at least one finding should map to severity 'fail'")
+    if not any(fd["severity"] == "advisory" for fd in dirty_rep["findings"]):
+        errs.append("--json dirty: a wording WARN should map to severity 'advisory'")
+    # clean fixture ⇒ ok true, findings []
+    gf2, gw2 = lint(extract_description(GOOD_MD))
+    _assert_report(_capture_report(build_report(gf2, gw2)), True, False, "clean")
+
     return errs
 
 
@@ -344,6 +452,13 @@ def main(argv):
             return 1
         print("description-lint: OK — extraction + WHAT/WHEN/NOT + trigger-count + smell checks verified")
         return 0
+    # --json is a parse-anywhere reporting flag — strip it out, remember it, leave everything else.
+    as_json = "--json" in argv
+    if as_json:
+        argv = [a for a in argv if a != "--json"]
+        if not argv:
+            sys.stderr.write("usage: description-lint.py [--json] <SKILL.md> [--min-triggers 3]\n")
+            return 2
     min_triggers = int(argv[argv.index("--min-triggers") + 1]) if "--min-triggers" in argv else 3
     path = argv[0]
     try:
@@ -356,6 +471,10 @@ def main(argv):
         sys.stderr.write("description-lint: no frontmatter `description` found in %s\n" % path)
         return 2
     fails, warns = lint(desc, min_triggers)
+    if as_json:
+        rep = build_report(fails, warns)
+        _report_json(rep["tool"], rep["ok"], rep["summary"], rep["findings"])
+        return 1 if fails else 0
     print("description-lint — %d chars, %d concrete trigger phrase(s)"
           % (len(desc), len(quoted_triggers(desc))))
     for w in warns:

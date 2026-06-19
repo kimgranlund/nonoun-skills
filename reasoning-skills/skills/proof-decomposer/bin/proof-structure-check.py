@@ -31,6 +31,16 @@ It asserts five structural properties:
 
   python3 bin/proof-structure-check.py selftest
   python3 bin/proof-structure-check.py <skeleton.json>
+  python3 bin/proof-structure-check.py [--json] <skeleton.json>   # machine-readable report
+
+`--json` (additive reporting flag; parse-anywhere in argv) prints ONE machine-readable report object to
+stdout and NOTHING else there — the shared schema every lint bin emits:
+  {"tool": "proof-structure-check", "ok": <bool>, "summary": "<one line>",
+   "findings": [{"kind", "severity": fail|advisory, "location": "<step/node label>", "message"}, ...]}
+`ok` is true iff no FAIL (the exact condition that gives exit 0 in human mode). A structural defect
+(DANGLING / UNJUSTIFIED / CYCLE / UNREACHABLE) maps to severity `fail`; an off-path step (IRRELEVANT)
+to `advisory`. `location` is the step/node id the finding is about. The exit code is UNCHANGED by --json.
+Without --json, output + exit are byte-identical.
 
 Python 3.8+.
 """
@@ -191,6 +201,53 @@ def check(doc):
     return (not fails), report
 
 
+# --- machine-readable report (--json) ----------------------------------------------------------
+# ONE shared schema across every lint bin: {tool, ok, summary, findings:[{kind, severity, location,
+# message}]}. `ok` is true iff no blocking finding (the same condition that gives exit 0 in human mode).
+# Printed via json.dumps(indent=2); nothing else goes to stdout under --json.
+def _report_json(tool, ok, summary, findings):
+    """Emit the shared report object to stdout (and nothing else). `findings` is a list of dicts already
+    in {kind, severity, location, message} shape. Returns the dict so callers/selftests can reuse it."""
+    report = {"tool": tool, "ok": ok, "summary": summary, "findings": findings}
+    print(json.dumps(report, indent=2))
+    return report
+
+
+def build_report(report):
+    """Build the JSON report from check()'s report dict. A structural defect (DANGLING / UNJUSTIFIED /
+    CYCLE / UNREACHABLE) maps to severity `fail`; an off-path step (IRRELEVANT) to `advisory`. `ok` is
+    true iff no fail — the exact (not fails) condition check() returns. `location` is the step/node id."""
+    out, blocking = [], 0
+    for step, cited in report["dangling"]:
+        blocking += 1
+        out.append({"kind": "DANGLING", "severity": "fail", "location": step,
+                    "message": "step %s cites missing id %s — undefined symbol / nonexistent lemma"
+                    % (step, cited)})
+    for step in report["unjustified"]:
+        blocking += 1
+        out.append({"kind": "UNJUSTIFIED", "severity": "fail", "location": step,
+                    "message": "step %s is derived from nothing (move to premises/axioms if assumed)"
+                    % step})
+    if report["cycle"]:
+        blocking += 1
+        out.append({"kind": "CYCLE", "severity": "fail", "location": report["cycle"][0],
+                    "message": "circular reasoning " + " -> ".join(report["cycle"])})
+    if not report["goal_reachable"]:
+        blocking += 1
+        out.append({"kind": "UNREACHABLE", "severity": "fail", "location": report["goal"],
+                    "message": "goal %r is not grounded in the premises/axioms" % report["goal"]})
+    for step in report["irrelevant"]:
+        out.append({"kind": "IRRELEVANT", "severity": "advisory", "location": step,
+                    "message": "step %s is off any path to the goal — dead weight" % step})
+    ok = blocking == 0
+    if not out:
+        summary = "citation graph is a DAG, no dangling refs, goal reachable"
+    else:
+        summary = ("%d finding(s) (%d blocking, %d advisory) — the argument's structure does not hold"
+                   % (len(out), blocking, len(out) - blocking))
+    return {"tool": "proof-structure-check", "ok": ok, "summary": summary, "findings": out}
+
+
 # --- selftest fixtures -------------------------------------------------------------------------
 VALID = {
     "premises": ["p1"], "axioms": ["A"],
@@ -284,6 +341,56 @@ def selftest():
             errs.append("parse_skeleton accepted malformed: %s" % bad)
         except ValueError:
             pass
+
+    # --- --json report selftest (the shared schema) -------------------------------------------
+    import io
+    import contextlib
+
+    def _capture_report(report_obj):
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            _report_json(report_obj["tool"], report_obj["ok"], report_obj["summary"],
+                         report_obj["findings"])
+        return json.loads(buf.getvalue())
+
+    def _assert_report(rep, want_ok, want_nonempty, label):
+        if not isinstance(rep, dict):
+            errs.append("--json %s: report is not a dict" % label); return
+        if rep.get("tool") != "proof-structure-check":
+            errs.append("--json %s: tool=%r, want 'proof-structure-check'" % (label, rep.get("tool")))
+        if rep.get("ok") is not want_ok:
+            errs.append("--json %s: ok=%r, want %r" % (label, rep.get("ok"), want_ok))
+        if not isinstance(rep.get("summary"), str) or not rep["summary"]:
+            errs.append("--json %s: summary missing/empty" % label)
+        f = rep.get("findings")
+        if not isinstance(f, list):
+            errs.append("--json %s: findings not a list" % label); return
+        if want_nonempty and not f:
+            errs.append("--json %s: findings should be non-empty" % label)
+        if not want_nonempty and f:
+            errs.append("--json %s: findings should be [] on clean input, got %s" % (label, f))
+        for fd in f:
+            if not isinstance(fd, dict) or any(k not in fd for k in ("kind", "severity", "location", "message")):
+                errs.append("--json %s: a finding is missing a required key: %r" % (label, fd))
+            elif fd["severity"] not in ("fail", "warn", "advisory"):
+                errs.append("--json %s: bad severity %r" % (label, fd["severity"]))
+
+    # dirty fixture (CIRCULAR ⇒ a CYCLE fail): tool right, ok false, findings non-empty
+    _, crep = check(CIRCULAR)
+    dirty_rep = _capture_report(build_report(crep))
+    _assert_report(dirty_rep, False, True, "dirty")
+    if not any(fd["kind"] == "CYCLE" and fd["severity"] == "fail" for fd in dirty_rep["findings"]):
+        errs.append("--json dirty: CYCLE should map to severity 'fail'")
+    # advisory-only fixture (IRRELEVANT passes the gates but flags an off-path step) keeps ok TRUE
+    _, irep = check(IRRELEVANT)
+    adv_rep = _capture_report(build_report(irep))
+    _assert_report(adv_rep, True, True, "advisory-only")
+    if not any(fd["kind"] == "IRRELEVANT" and fd["severity"] == "advisory" for fd in adv_rep["findings"]):
+        errs.append("--json advisory-only: IRRELEVANT should map to severity 'advisory'")
+    # clean fixture ⇒ ok true, findings []
+    _, vrep = check(VALID)
+    _assert_report(_capture_report(build_report(vrep)), True, False, "clean")
+
     return errs
 
 
@@ -309,6 +416,13 @@ def main(argv):
             return 1
         print("proof-structure-check: OK — dangling / cycle / reachability / irrelevance verified over fixtures")
         return 0
+    # --json is a parse-anywhere reporting flag — strip it out, remember it, leave everything else.
+    as_json = "--json" in argv
+    if as_json:
+        argv = [a for a in argv if a != "--json"]
+        if not argv:
+            sys.stderr.write("usage: proof-structure-check.py [--json] <skeleton.json>\n")
+            return 2
     try:
         doc = json.load(open(argv[0], encoding="utf-8"))
         ok, rep = check(doc)
@@ -318,6 +432,10 @@ def main(argv):
     except ValueError as e:
         sys.stderr.write("proof-structure-check: invalid skeleton — %s\n" % e)
         return 2
+    if as_json:
+        out = build_report(rep)
+        _report_json(out["tool"], out["ok"], out["summary"], out["findings"])
+        return 0 if ok else 1
     _print_report(rep)
     if rep["irrelevant"]:
         print("  ⚠ %d irrelevant step(s) off any path to the goal (advisory): %s"
