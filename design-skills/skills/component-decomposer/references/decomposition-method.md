@@ -29,19 +29,24 @@ averaged**. An averaged "3/5" hides which of the two you have.
 
 | Axis | Direction | Levels (in order) | Asks |
 |---|---|---|---|
-| **A · Compose** | whole → part | **A1** Layer `[gate]` → **A2** Anatomy `[gate]` → **A3** API surface → **A4** Composition → **A5** Coherence | "Is it the *right component*, shaped to compose?" |
-| **B · Realize** | part → whole | **B1** Geometry `[gate, code]` → **B2** Element `[gate]` → **B3** Semantics `[gate]` → **B4** Interaction → **B5** Fidelity | "Does it *render exact and work*, here, with no native control?" |
+| **A · Compose** | whole → part | **A1** Layer `[gate]` → **A2** Anatomy `[gate]` → **A3** API surface → **A4** Composition *(tier ladder · seam — `[gate, code]` joints)* → **A5** Coherence | "Is it the *right component*, shaped to compose?" |
+| **B · Realize** | part → whole | **B1** Geometry `[gate, code]` → **B2** Element `[gate]` → **B3** Semantics `[gate]` *(+ cross-component state)* → **B4** Interaction *(+ cross-component reflow)* → **B5** Fidelity | "Does it *render exact and work*, here, with no native control?" |
 
 `A1 · A2` and `B1 · B2 · B3` are **`[gate]`s** — a failure cascades and BLOCKS the reviews below it
 on that axis (you can't judge an API that's mis-layered, or fidelity for an element that never
-attaches internals). `A3–A5 · B4–B5` are **`[review]`s** (1–5). A shippable component is **≥4 on
-every review with zero gate failures**, reported as two separate axis scores plus the quadrant.
+attaches internals). `A3–A5 · B4–B5` are **`[review]`s** (1–5) — **with one exception: A4's
+tier-consistency and seam joints are a mechanizable gate** (a mis-cut tier or a seamless component
+blocks A4). A shippable component (or composition) is **≥4 on every review with zero gate failures**,
+reported as two separate axis scores plus the quadrant.
 
-Two gates route to code, never inference:
+Three gates route to code, never inference:
 - **B1 Geometry** → `bin/geometry-check.py` (the ramp + the `(height − glyph)/2` law). See
   `geometry-system.md`.
-- **A1/A2/B2/B3/B4 contract** → `bin/component-contract-check.py` (layer, parts, FACE, role,
-  APG-keyboard minimum, forced-colors). See `api-policy.md` and `platform-baseline.md`.
+- **A1/A2/B2/B3/B4 contract** (single-component card) → `bin/component-contract-check.py` (layer,
+  parts, FACE, role, APG-keyboard minimum, forced-colors). See `api-policy.md`, `platform-baseline.md`.
+- **A4/A5 composition** (multi-component card) → `bin/composition-check.py` (tier-consistency, the
+  seam gate, overflow-declared, the slot-presence → grid generator, no self-margin). See
+  `composition-patterns.md`.
 
 ### A · Compose (whole → part)
 
@@ -59,11 +64,30 @@ Two gates route to code, never inference:
   attributes (+ reflection), declared-vs-manual properties, semantic events, the form-value channel
   (`attributes-as-api.md`). **A3 cannot score 5 while a `manual:true` property has no upgrade story**
   (the lazy-upgrade / `upgradeProperty` hazard — *designed-right, built-wrong* in API form).
-- **A4 Composition `[review]`** — does it compose *up* without boolean-prop explosion, without owning
-  its outer margin, without leaking compound-component state? Does its anatomy nest (a button is also
-  the trigger of a select, the item of a menu)?
+- **A4 Composition `[review, with gated joints]`** — does it compose *up*? This rung carries the
+  **tier ladder** (**primitive → component → module**) and **the seam**:
+  - **Tier `[gate, code]`** — a *primitive* composes no other `x-*` (an atom — the leaf, graded as a
+    single component below); a *component* composes ≥1 primitive **and adds a seam**; a *module*
+    arranges ≥2 components into regions **with cross-component state**. A mis-tiered piece (a
+    "component" that's really a module; a "module" that's one component in a frame; a primitive doing a
+    component's job) poisons everything below. `composition-check.py` gates tier-consistency.
+  - **Seam `[gate, code]`** — a component **wires** its primitives through a real seam: **named slots**,
+    the **slot-presence grid** (the layout reshapes by which slots are filled — `:has()`-driven, no
+    phantom column on an absent slot; the deterministic `slot-grid` joint), and, for a
+    capacity-constrained axis, an **overflow mechanism** (priority-ordered collapse, the *same* items,
+    one source of truth). A component with no seam (children hardcoded) is **boxed but inert** — it
+    renders once and breaks when content varies. A `god-component` (one element swallowing many
+    concerns) is the inverse defect.
+  - **Nest `[review]`** — does its own anatomy nest (a button is also the trigger of a select, the item
+    of a menu)? Does it compose without boolean-prop explosion or leaking compound-component state? The
+    leaf primitives are **cited** (the single-component contract), never re-derived here.
 - **A5 Coherence `[review]`** — naming, the semantic-token contract, size/density attributes, the
   versioning/deprecation surface — does it look like it belongs to the same library as its siblings?
+  **No self-owned outer margin** (spacing *between* pieces is the parent composition's `gap` / region
+  grid — the single most common composition-wide drift). And the **up-handoff**: the *module* is the
+  largest thing this skill owns; the **app shell / page region grid** it sits inside hands UP to
+  layout-decomposer — A5 checks only *"does the module cohere as one workflow and fit the slot the
+  shell hands it"*, not the shell's design.
 
 ### B · Realize (part → whole)
 
@@ -75,11 +99,17 @@ Two gates route to code, never inference:
   default; nothing leaked on disconnect).
 - **B3 Semantics `[gate]`** — role/ARIA/`:state()` set via `ElementInternals`; any control is
   **form-associated** (`formAssociated`, `setFormValue` on first render *and* change, a `name`, a
-  `setValidity` story). No native `<input>/<button>/<select>/<textarea>` anywhere.
+  `setValidity` story). No native `<input>/<button>/<select>/<textarea>` anywhere. **Cross-component
+  note:** in a composition, state flows *up* (a primitive's change event → component → module) and
+  control flows *down*; cross-piece coordination (a modal's `open`, the settings nav↔content selection,
+  the toolbar's overflowed set) lives at the **lowest common parent**, never duplicated. State authored
+  twice (a modal that owns its own `open` *and* a parent that owns one) is the cross-component defect.
 - **B4 Interaction `[review]`** — the APG keyboard + focus contract (roving tabindex vs
   `aria-activedescendant`), and the **native-parity budget**: every native affordance you gave up
   (focus ring, label association, autofill, mobile picker, forced-colors, IME) rebuilt and proven.
-  `@media (forced-colors: active)` present.
+  `@media (forced-colors: active)` present. **Cross-component note:** a composition must *adapt* — the
+  overflow actually collapses when width runs out (every overflowed action stays reachable), the
+  slot-presence grid reshapes for present/absent slots, and empty/loading/error states are designed.
 - **B5 Fidelity `[review]`** — SSR via declarative shadow DOM (adopt-don't-recreate) or light-DOM,
   theming surface (`::part` + custom properties), inline-SVG-in-shadow icons, and graceful
   degradation on the non-Baseline edge (anchor positioning, cross-doc view transitions).
@@ -104,17 +134,24 @@ A · COMPOSE  │ built right, designed  │       REBUILD           │
 ```
 
 The quadrant **names the fix**: top-right needs platform/geometry work; bottom-left needs API
-surgery. Report the cell, not an average.
+surgery. Report the cell, not an average. For a **composition**, the same two cells read in the
+tier-ladder dialect: a beautifully-bounded composition whose seam is fake (a hardcoded "···" overflow,
+static slots, state authored twice) is **boxed but inert** — Compose's A4 *seam* gate fails while the
+boundaries look clean; a composition that works but whose tiers are mis-cut (a god-component, a
+"component" that's really a module) is *built right, designed wrong* at A4.
 
 ## Modes
 
-- **DESIGN** — new component. Walk **A-down** (layer → anatomy → API → composition), then **B-up**
-  (geometry → element → semantics → interaction → resilience), reconcile at the contract, run both
-  `bin/` checks, hand the locked contract card to a code author (e.g. the `ui-build-components`
-  peer). Output: a `*.contract.json` card + a geometry spec + the two-axis grade.
-- **DECOMPOSE** — read an existing component (code, or a screenshot + measurements). Name its layer
-  and anatomy (A1–A2), walk its realization bottom-up (B1–B3), then score the reviews. Output: its
-  contract card + a platform/geometry gap list.
+- **DESIGN** — new component **or composition**. Walk **A-down** (layer/tier → anatomy → API → the
+  composition seam → coherence), then **B-up** (geometry → element → semantics+state → interaction →
+  resilience), reconcile at the contract, run the relevant `bin/` checks, hand the locked artifacts to
+  a code author (e.g. the `ui-build-components` peer); the *app shell* hands up to layout-decomposer.
+  Output: a `*.contract.json` card and/or a `*.composition.json` card + a geometry spec + the two-axis
+  grade.
+- **DECOMPOSE** — read an existing component or composition (code, or a screenshot + measurements).
+  Name its layer/tier and anatomy/boundary (A1–A2; A4 tier for a composition), walk its realization
+  bottom-up (B1–B3), find the seam (A4) and cross-component state (B3), then score the reviews. Output:
+  its contract/composition card + a platform/geometry gap list.
 - **GRADE** — score both axes against the rubric (`component-rubric.md` lives inline in this file
   via the leveled walk above). Gates first, in cascade order; stop an axis at its first failed gate;
   place the result in the quadrant; name one corrective per failure.

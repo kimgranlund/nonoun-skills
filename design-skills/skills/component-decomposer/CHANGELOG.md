@@ -3,6 +3,43 @@
 All notable changes to this skill are recorded here. Versioned independently of the `design-skills`
 plugin; the gate (`bin/check-skills.py`) must pass for any release.
 
+## 0.3.0 — beta
+
+**Absorbed the composition scale** — merged the composition layer of the untracked v0.1 `ui-decomposer`
+draft INTO this skill, then retired the draft. component-decomposer now grades a **single component AND
+how components nest + wire (compose) up to the module**, on the *same* COMPOSE × REALIZE axis pair (no
+second axis added). The decision: ONE skill covers a component and its composition; the draft is gone.
+
+What folded in, by where it landed:
+
+- **A4 Composition / A5 Coherence deepened** (`SKILL.md` + `references/decomposition-method.md`): A4 now
+  carries the **tier ladder** (primitive → component → module), the **seam** (named slots · the
+  slot-presence grid · the overflow mechanism) as a `[gate, code]` joint, and the **god-component**
+  defect; A5 carries the no-self-margin rule between composed pieces and the **up-handoff** — the module
+  is the largest scale this skill owns; the *app shell / page region grid* hands UP to layout-decomposer.
+  The **wire/seam mechanics** (cross-component state at the lowest common parent; overflow reflow /
+  slot-presence adaptation) fold into REALIZE's **B3 (semantics/state)** and **B4 (interaction)** as
+  cross-component notes — *not* a new axis.
+- **New `references/composition-patterns.md`** (from the draft): the tier-ladder recipe library —
+  component patterns (toolbar+overflow, card, modal) and module patterns (settings nav+content,
+  master-detail, wizard), each with anatomy · seam · state · adaptation, plus the leaf-DOWN /
+  app-shell-UP boundaries (the useful content from the draft's `handoffs.md`, folded in here rather than
+  copied as a stray doc).
+- **New `bin/composition-check.py`** (from the draft, reframed to COMPOSE A4/A5 vocabulary): the
+  **multi-component composition-card gate** — complements `component-contract-check.py` (the
+  single-component contract card). Lints a `*.composition.json` card: tier-consistency · the seam gate ·
+  overflow-declared · god-component fanout · no self-margin; `slot-grid` emits the deterministic
+  slot-presence → grid-template-columns mapping. `selftest` green (6 fixtures + the slot-grid law).
+- **`examples/walkthrough.md`** gains a second worked example — a toolbar+overflow on COMPOSE × REALIZE,
+  where the A4 seam gate catches a fake overflow (the *built-right-designed-wrong* / boxed-but-inert
+  composition defect), salvaged from the draft's walkthrough.
+- **Description + corpus**: the frontmatter description now reads "a component AND how components nest +
+  wire up to the module"; the corpus gains composition positives (nest, the toolbar↔overflow seam, a
+  god-component, slot-presence) and sharpened layout-decomposer negatives (app shell / page region grid
+  / archetype) so the module→shell boundary stays fenced and does not collide with layout-decomposer.
+- `skill.json` `files[]` registers the two new files; three `bin/` selftests now run (geometry · contract
+  · composition).
+
 ## 0.2.1 — beta
 
 **Attributes as API** folded into the Compose A3 surface (spec: `spec/attributes-as-api.spec.md`).

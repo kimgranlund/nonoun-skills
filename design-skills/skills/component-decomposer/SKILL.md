@@ -1,17 +1,17 @@
 ---
 name: component-decomposer
 description: >
-  Decompose, design, and grade zero-dependency web components (Custom Elements, FACE, no native form
-  elements) on two crossing axes — COMPOSE (layer → anatomy → API → composition) and REALIZE
-  (geometry → element → semantics → interaction → fidelity) — scored separately so a clean API can't
-  hide a broken control. Backed by a gated rubric, a deterministic geometry engine ((height-glyph)/2
-  padding law, XS–2XL ramp, square icon-only buttons), a contract-card linter, recipes for controls
-  and overlays (modals, menus, selects, popovers), and the baseline FACE/ElementInternals, anchor
-  positioning, Popover API, declarative-shadow-DOM SSR. Use when designing a component library,
-  fixing a component's geometry/parts/API, building a no-native-form-element pattern, or grading a
-  component. NOT for a function graded on spec & execution axes (code-decomposer), a proof or
-  argument graded on its logic (proof-decomposer), code generation (ui-build-components), app-shell
-  layout (layout-decomposer), or token math (ui-build-tokens).
+  Decompose, design, and grade a zero-dependency web component (Custom Elements, FACE, no native form
+  elements) AND how components nest + wire (compose) up to the module, on two crossing axes — COMPOSE
+  (layer → anatomy → API → composition → coherence: the primitive → component → module tier ladder +
+  seams/slots/overflow) and REALIZE (geometry → element → semantics → interaction → fidelity) — scored
+  separately (the defect quadrant) so a clean API can't hide an inert composition. Backed by a gated
+  rubric, the (height-glyph)/2 geometry engine, a contract-card linter, and a composition-card linter
+  (tier · seam · overflow · slot-presence). Use when
+  designing, nesting, or grading a component or composition, fixing geometry/parts/API, building a
+  no-native-form-element control, or spotting a god-component. NOT for a function (code-decomposer), a
+  proof (proof-decomposer), code (ui-build-components), an app shell / page region grid / archetype
+  (layout-decomposer), or tokens (ui-build-tokens).
 ---
 
 # component-decomposer — design a component on two crossing axes
@@ -22,9 +22,12 @@ applies to space and the [mermaid-decomposer](../mermaid-decomposer/SKILL.md) ap
 here applied to a zero-dependency web component:
 
 - **Compose · whole → part** grades the **abstraction**: the layer → its anatomy (named parts) → its
-  API surface → how it composes upward → its coherence with the library.
+  API surface → **how it composes upward** (the primitive → component → module tier ladder: the seam,
+  slots, overflow, and cross-component state that wire components into modules) → its coherence with
+  the library.
 - **Realize · part → whole** grades the **embodiment**: its exact geometry → the custom element → its
-  platform semantics (ARIA/FACE) → its interaction contract → its rendered fidelity.
+  platform semantics (ARIA/FACE) → its interaction contract (incl. the cross-component seam) → its
+  rendered fidelity.
 
 They **cross at the component contract** — a named part with an API that is *also* a real box with
 exact pixels, an `ElementInternals`-bearing element, and a keyboard map. That crossing is the whole
@@ -58,9 +61,33 @@ contract card, a geometry spec on the ramp, and a two-axis grade with the defect
 > 4. **Verify + report:** `bin/component-contract-check.py` over the contract card, then the two axis
 >    scores + the quadrant cell — gate failures first.
 
+For a **composition** — how components nest + wire up to the module — Compose's A4/A5 carry the
+tier ladder, and the second `bin/` gate is the **composition card**:
+
+> *"Build a toolbar with primary actions and an overflow menu."* →
+> 1. **Compose — A4 tier + seam:** it's a **component** on the **primitive → component → module**
+>    ladder — it composes primitive `x-button`s + an `x-menu` and adds a **seam** `[gate]`; its
+>    boundary is *one* toolbar, not a loose button row. The seam is a **priority + overflow**
+>    mechanism: actions render inline until they don't fit, then collapse *lowest-priority-first* into
+>    the overflow menu (the *same* actions, one source of truth — never authored twice). Containment:
+>    `toolbar → [ action-group · spacer · overflow-trigger → menu(items) ]`.
+> 2. **Realize — cite the leaves, then the cross-component notes:** the leaf `x-button` / `x-menu`
+>    contracts are the single-component REALIZE concern — **cite them, don't re-derive**. The
+>    cross-component **state** (the overflowed set, derived from width) folds into B3; the reflow
+>    folds into B4.
+> 3. **A5 coherence + the up-handoff `[review]`:** zero outer margin (spacing between pieces is the
+>    parent's gap); the *module* it sits in hands the **app shell / page region grid UP to
+>    [layout-decomposer](../layout-decomposer/SKILL.md)** — this skill stops at "does the module
+>    cohere and fit the slot the shell hands it".
+> 4. **Verify + report:** `bin/composition-check.py` over the `*.composition.json` card
+>    (tier-consistency · the seam gate · overflow-declared · the slot-presence → grid generator · no
+>    self-margin), then the two axis scores + the quadrant — a beautifully-bounded toolbar with a fake
+>    overflow is **built right, designed wrong** at A4.
+
 **Modes:** **DESIGN** (Compose-down → Realize-up → reconcile at the contract → hand off to a code
-peer) · **DECOMPOSE** (read a component → layer + anatomy + realization walk + grade) · **GRADE**
-(score both axes against the rubric, gates before reviews).
+peer; the app shell hands up to layout-decomposer) · **DECOMPOSE** (read a component or composition →
+layer/tier + anatomy + realization walk + grade) · **GRADE** (score both axes against the rubric,
+gates before reviews).
 
 ## The two axes (the method)
 
@@ -68,14 +95,17 @@ Load `references/decomposition-method.md` for the full method. The skeleton:
 
 | Axis | Direction | Levels (in order) | Asks |
 |---|---|---|---|
-| **A · Compose** | whole → part | **A1** Layer → **A2** Anatomy → **A3** API → **A4** Composition → **A5** Coherence | "Is it the *right component*, shaped to compose?" |
-| **B · Realize** | part → whole | **B1** Geometry → **B2** Element → **B3** Semantics → **B4** Interaction → **B5** Fidelity | "Does it *render exact and work*, here, with no native control?" |
+| **A · Compose** | whole → part | **A1** Layer → **A2** Anatomy → **A3** API → **A4** Composition *(the primitive → component → module tier ladder: seam · slots · overflow)* → **A5** Coherence | "Is it the *right component*, shaped to compose?" |
+| **B · Realize** | part → whole | **B1** Geometry → **B2** Element → **B3** Semantics *(+ cross-component state)* → **B4** Interaction *(+ cross-component reflow)* → **B5** Fidelity | "Does it *render exact and work*, here, with no native control?" |
 
 `A1 · A2` and `B1 · B2 · B3` are **`[gate]`s** (a failure cascades and BLOCKS the reviews below it on
-that axis). `A3–A5 · B4–B5` are **`[review]`s** (1–5). A shippable component is **≥4 on every review
-with zero gate failures**, reported as two separate axis scores plus the defect quadrant. Two gates
-route to code: **B1 geometry** → `bin/geometry-check.py`; **A1/A2/B2/B3/B4 contract** →
-`bin/component-contract-check.py`.
+that axis). `A3–A5 · B4–B5` are **`[review]`s** (1–5) — **except A4's tier/seam joints, which are a
+mechanizable gate** (a seamless component or a mis-cut tier blocks A4 just as B1 blocks Realize). A
+shippable component is **≥4 on every review with zero gate failures**, reported as two separate axis
+scores plus the defect quadrant. **Three** gates route to code: **B1 geometry** →
+`bin/geometry-check.py`; **A1/A2/B2/B3/B4 contract** (the single-component card) →
+`bin/component-contract-check.py`; **A4/A5 composition** (the multi-component card — tier-consistency
+· seam · overflow · slot-presence grid · no self-margin) → `bin/composition-check.py`.
 
 ## The doctrine — geometry is computed, not guessed
 
@@ -117,6 +147,43 @@ APG + the top layer).
 tracked in ROADMAP; their geometry is already covered by `geometry-system.md`'s composed-padding and
 square-glyph rules.)
 
+## The composition scale (A4 / A5 — how components nest + wire)
+
+A4 carries more than "does this one component nest" — it grades the **tier ladder**: the same skill
+that designs a single component grades **how components compose up to the module**. The single
+component is the leaf; A4/A5 walk **up** from it. `references/composition-patterns.md` is the recipe
+library (anatomy · seam · state · adaptation, per pattern), mechanized by `bin/composition-check.py`.
+
+**The three tiers** (A4's first decision — `composition-check.py`'s tier-consistency gate):
+
+| Tier | What it is | Owned by |
+|---|---|---|
+| **Primitive** | an atomic control — composes no other `x-*` (button · input · select / menu · spinner) | a single **contract card** (the families above + the REALIZE geometry law) — the leaf |
+| **Component** | a composition of primitives + a **seam** (named slots · a slot-presence grid · an overflow mechanism) | A4 — the **component** patterns (toolbar+overflow, card, modal) |
+| **Module** | a whole embedded **workflow** — components in regions, with cross-component state | A4 — the **module** patterns (settings nav+content, master-detail, wizard); the *app shell* hands UP to layout-decomposer |
+
+**The seam is a gate.** A "component" whose children are hardcoded — no slots, no slot-presence
+adaptation, no overflow story — is **boxed but inert**: it renders once and breaks the moment content
+varies. The **slot-presence → grid-columns** mapping (an *absent* slot leaves *no* phantom column) is
+the one deterministic joint, so it's routed to code like the geometry law. A capacity-constrained axis
+carrying many actions **must** declare an overflow mechanism (priority-ordered collapse into a menu,
+the *same* actions projected, one source of truth — never two hand-kept lists).
+
+**Cross-component state folds into REALIZE.** The wire mechanics — value flows *up*, control flows
+*down*, cross-piece coordination (a modal's `open`, the settings nav↔content selection, the toolbar's
+overflowed set) lives at the **lowest common parent**, never duplicated — are the cross-component
+notes on **B3 (semantics/state)** and **B4 (interaction/reflow)**. State authored twice (a modal that
+owns its own `open` *and* a parent that owns one) is the cross-component defect.
+
+**A5 / the up-handoff.** Spacing *between* pieces is the parent composition's `gap` / region grid — a
+self-owned outer margin is the most common composition-wide drift (the same no-outer-margin rule the
+single component obeys). The **module is the largest thing this skill owns**; the *page* it lives in —
+the fixed app shell, the header/nav/canvas/footer region grid, which archetype it is — hands **UP to
+[layout-decomposer](../layout-decomposer/SKILL.md)**. A5 checks only *"does this module cohere as one
+workflow and fit the slot the shell hands it"*; a module that fights its frame is an A5 finding **and**
+a hand-up. (Down the other way: anything *inside* one element — its parts, padding, ARIA — is the
+single-component REALIZE concern; cite the leaf's contract, don't re-derive it.)
+
 ## §SelfAudit
 
 - **Geometry is arithmetic, not taste.** The paddings, the squareness, the pill radius, and the
@@ -133,14 +200,21 @@ square-glyph rules.)
   Averaging *designed-right-built-wrong* with *built-right-designed-wrong* hides which you have —
   and they need opposite fixes (platform/geometry work vs API surgery).
 - **Components don't set their own outer margin.** Spacing is the parent's job (a layout primitive's
-  `gap`). A self-owned margin is the single most common library-wide drift — flag it every time.
-- **Contract, not code.** This skill locks the contract card, the geometry spec, and the grade — it
-  does not emit the element. Hand the locked contract to a code author (e.g. the `ui-build-components`
-  peer); speak the host's signals + `UIElement`/`UIFormElement` + `@scope`-CSS idiom.
+  `gap`). A self-owned margin is the single most common library-wide drift — flag it every time, at
+  the single-component scale **and** between composed pieces (A5).
+- **Composition without a seam is a pile.** A "component" whose children are hardcoded — no slots, no
+  slot-presence adaptation, no overflow — is **boxed but inert** (it renders once, breaks when content
+  varies). The seam (A4) is a gate, not a nicety — run `composition-check.py`. And **don't re-derive
+  the leaf**: a primitive's pixels / FACE / keyboard are the single-component REALIZE concern; the
+  *app shell* hands UP to layout-decomposer — duplicating either neighbour's scale is a finding.
+- **Contract, not code.** This skill locks the contract card (single component), the composition card
+  (how they nest + wire), the geometry spec, and the grade — it does not emit the element. Hand the
+  locked artifacts to a code author (e.g. the `ui-build-components` peer); speak the host's signals +
+  `UIElement`/`UIFormElement` + `@scope`-CSS idiom.
 
 ## Verify Target
 
-A component is **done** when: it sits at the right layer with named, `::part`/slot/`:state()`-exposed
+A **component** is **done** when: it sits at the right layer with named, `::part`/slot/`:state()`-exposed
 anatomy; its geometry passes `geometry-check.py` (on the ramp, derived paddings, glyph-only square,
 composed insets); it's an autonomous element with role via `ElementInternals` and — if it bears a
 value — is form-associated with a `setValidity` story; the APG keyboard + focus contract and
@@ -150,6 +224,18 @@ is clean but the pixels are off the ramp, it submits nothing in a form, or it va
 colors (*designed right, built wrong*); or it's exact and accessible but prop-exploded,
 outer-margined, or mis-layered (*built right, designed wrong*); or anatomy is named that can't be
 embodied; or one blended score is reported.
+
+A **composition** (how components nest + wire) is **done** when: every piece sits at the right tier
+with a clean boundary; the containment tree is named (module → regions → components → slots →
+primitives); each component has a real **seam** (named slots / a slot-presence grid / an overflow that
+keeps every action reachable); cross-component state flows one way with a single source of truth at the
+lowest common parent; it adapts (reflow / overflow / slot-presence / empty-loading-error); it owns only
+its insides (no outer margin); the leaf contracts are cited (not re-derived) and the app shell is handed
+UP to layout-decomposer; `composition-check.py` passes; and both axes score ≥4 with zero gate failures.
+**NOT done** when: the pieces are cleanly boxed but the overflow never collapses, the slots are static,
+or state is authored twice (*boxed but inert* — built right, designed wrong at A4); or everything works
+but a god-component swallows five concerns, a "component" is really a module, or boundaries leak; or a
+tier is named the piece can't embody.
 
 ## References
 
@@ -162,5 +248,7 @@ embodied; or one blended score is reported.
 | `references/attributes-as-api.md` | **A3 for a custom element** — the four-channel surface (typed attributes + reflection · declared-vs-manual properties · semantic events · the FACE value channel) and the lazy-upgrade / `upgradeProperty` hazard the contract linter checks |
 | `references/family-controls.md` | **a form control** — button · select/combobox · checkbox · switch · radio · textarea-like: anatomy, states, role, keyboard, FACE contract, and the geometry they share |
 | `references/family-overlays.md` | **a top-layer surface** — modal card · menu · popover · drawer · tooltip · toast: the focus-behavior spine, Popover API + anchor positioning, and composed-padding cards |
+| `references/composition-patterns.md` | **the A4/A5 composition scale / any nest · seam · slot · overflow / tier question** — the primitive → component → module tier ladder's recipe library (toolbar+overflow, card, modal; settings nav, master-detail, wizard), each with anatomy · seam · state · adaptation, plus the leaf-DOWN / app-shell-UP boundaries; mechanized by `bin/composition-check.py` |
 | `bin/geometry-check.py` | **mechanizes B1** — holds the ramp + the `(height − glyph)/2` law; `ramp` prints it, `layout <SIZE> <slots>` lays out a permutation, `validate <file>` checks a declared geometry, `selftest` proves the law against the source table |
-| `bin/component-contract-check.py` | **mechanizes A1/A2/B2/B3/B4** — lints a `*.contract.json` card (hyphenated tag, layer, parts, FACE, APG-keyboard minimum, forced-colors; warns on boolean-prop explosion + self-owned margin); `selftest` over good/bad fixtures |
+| `bin/component-contract-check.py` | **mechanizes A1/A2/B2/B3/B4** (the single-component contract card) — lints a `*.contract.json` card (hyphenated tag, layer, parts, FACE, APG-keyboard minimum, forced-colors; warns on boolean-prop explosion + self-owned margin); `selftest` over good/bad fixtures |
+| `bin/composition-check.py` | **mechanizes A4/A5** (the multi-component composition card) — lints a `*.composition.json` card: tier-consistency (no tier-skips, no god-components), the seam gate, overflow-declared on a constrained axis, no self-margin; `slot-grid` emits the slot-presence → grid-template-columns mapping; `selftest` over good/bad fixtures |

@@ -1,6 +1,6 @@
 {
   "skill": "component-decomposer",
-  "_note": "Checked-in routing corpus for component-decomposer. CAVEAT: routing-eval measures LEXICAL TOKEN OVERLAP ONLY — it is a legibility aid, not a verdict. The indirect/paraphrase positives (the last 2–3) are deliberately low-overlap to test recall; a lexical miss on them is a PROXY artifact (B4-blindness), NOT a description defect. The negatives are ADVERSARIAL: each is a real trigger for a NAMED confusable sibling. Every *-decomposer in this repo shares the 'decompose / design / grade on two crossing axes' vocabulary, so the family collides on surface tokens by construction. The sharpest collision is code-decomposer (which also says 'design this', 'grade this', 'is it production-ready') — it owns a UNIT OF CODE (function/module, SPEC×EXECUTION, tests), where this skill owns a ZERO-DEP WEB COMPONENT (Custom Element, geometry, FACE, COMPOSE×REALIZE). layout-decomposer owns the app shell, query/type/regex own SQL/schemas/patterns, and ui-build-components owns the actual code emission. The negatives surface exactly these collisions; re-derive when the neighbourhood changes.",
+  "_note": "Checked-in routing corpus for component-decomposer. CAVEAT: routing-eval measures LEXICAL TOKEN OVERLAP ONLY — it is a legibility aid, not a verdict. The indirect/paraphrase positives are deliberately low-overlap to test recall; a lexical miss on them is a PROXY artifact (paraphrase-blindness), NOT a description defect. The negatives are ADVERSARIAL: each is a real trigger for a NAMED confusable sibling. Every *-decomposer in this repo shares the 'decompose / design / grade on two crossing axes' vocabulary, so the family collides on surface tokens by construction. As of 0.3.0 this skill covers a ZERO-DEP WEB COMPONENT (Custom Element, geometry, FACE, COMPOSE×REALIZE) AND how components NEST + WIRE (compose) up to the MODULE — the tier ladder primitive → component → module, seams/slots/overflow, cross-component state (absorbed from the retired ui-decomposer draft). The two sharpest collisions: (1) code-decomposer (also says 'design this', 'grade this', 'is it production-ready') owns a UNIT OF CODE (function/module, SPEC×EXECUTION, tests); (2) layout-decomposer — the MODULE → app-shell seam — owns the APP SHELL / PAGE region grid / which archetype (OUTSIDE-IN×INSIDE-OUT); the module is the largest thing THIS skill owns and it HANDS the shell UP. The layout-decomposer negatives deliberately use 'app shell / page / region grid / archetype' to fence that boundary. query/type/regex own SQL/schemas/patterns; ui-build-components owns the actual code emission. The negatives surface exactly these collisions; re-derive when the neighbourhood changes.",
   "siblings_in_repo": ["code-decomposer", "layout-decomposer", "mermaid-decomposer", "query-decomposer", "type-decomposer", "regex-decomposer", "config-decomposer", "proof-decomposer"],
   "global_peers": ["skills-studio"],
   "positives": [
@@ -17,7 +17,14 @@
     "the icon-only button isn't square — check the geometry against the ramp",
     "we're standing up a component library and need the layering and contract for each control",
     "this element sets its own outer margin and it's rotting the whole library",
-    "our popover ignores anchor positioning and the keyboard map is incomplete"
+    "our popover ignores anchor positioning and the keyboard map is incomplete",
+    "how should these components nest into a toolbar with an overflow menu",
+    "build a toolbar whose primary actions collapse into an overflow when width runs out",
+    "what is the seam between this toolbar and its overflow menu",
+    "this component swallows nav and content and its own state — is it a god-component",
+    "which slots does this card need and how does the slot-presence grid lay out",
+    "compose a settings module with a left nav and a content panel sharing one selection",
+    "decompose this composed UI into tiers — primitive, component, or module — and grade how it wires"
   ],
   "negatives": [
     "decompose and grade this function against its contract on the spec and execution axes",
@@ -26,12 +33,15 @@
     "harden this test suite and check for vacuous mock-only tests",
     "decompose this UI layout into regions and groups and name the shell",
     "design an app shell and wireframe a saas dashboard",
+    "which archetype is this page — productivity shell or saas dashboard",
+    "name the regions in this whole-page dashboard mockup and grade the page layout",
+    "lay out the header, nav, canvas, and footer region grid for my editor's app shell",
     "grade this SQL query for grain and read the execution plan",
     "design a type or schema so it can't admit illegal states",
     "score this regex for correctness against its test cases",
-    "decompose this mermaid diagram and grade its layout and semantics",
+    "decompose this mermaid flowchart and check why its edges won't render",
     "decompose this Terraform config for drift and safety",
-    "write the actual Lit code for this button component",
+    "write the actual Lit code for this toolbar component",
     "extract a color palette and tune the contrast tokens",
     "grade a proof on its logic and rigor axes"
   ]
