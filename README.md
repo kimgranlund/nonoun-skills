@@ -27,6 +27,7 @@ The same shape, specialized per domain — the axis pair is the skill's fingerpr
 | **regex-decomposer** | code | LANGUAGE × MATCH | `regex-check.py` (example-set + ReDoS smell) |
 | **query-decomposer** | code | SEMANTICS × EXECUTION | `sql-lint.py` · `query-harness.py` (EXPLAIN/dry-run) |
 | **type-decomposer** | code | MODEL × VALIDITY | `instance-check.py` (legal/illegal instance sets) · `model-smells.py` |
+| **architecture-decomposer** | code | STRUCTURE × INTEGRITY | `dependency-check.py` (acyclicity / layering / coupling) |
 | **extraction-decomposer** | data | FIDELITY × VALIDITY | `groundedness-check.py` · `schema-check.py` |
 | **routing-decomposer** | meta | INSTRUCTION × ROUTING | `routing-eval.py` (precision/recall) · `description-lint.py` |
 | **proof-decomposer** | reasoning | ARGUMENT × VERIFICATION | `proof-structure-check.py` (DAG) · `numeric-spotcheck.py` |

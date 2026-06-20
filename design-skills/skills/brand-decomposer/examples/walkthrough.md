@@ -38,17 +38,26 @@ B4: all six domains covered, five surfaces enumerated. **Axis B = 5.**
 
 ```sh
 python3 bin/brand-spec-check.py lint examples/acme.red.brand.json
-# brand-spec-check: FAIL (4)
+# brand-spec-check: FAIL (7)
+#   - Acme: GENERIC_IDEA — brand_idea is only interchangeable adjectives/filler ('Modern, bold, and simple.') …
 #   - Acme: UNTRACED — rule 'r1' has no evidence[] …
+#   - Acme: LOW_CONFIDENCE — inferred rule 'r1' at 0.60 (< 0.75) not marked review (B2 gate …)
+#   - Acme: COLLAPSED_TRUTH — rule 'r2' truth 'guess' not one of observed/inferred/proposed (B2 gate)
 #   - Acme: rule 'r2' severity 'loud' not in ['may', 'must', 'should']
 #   - Acme: UNTRACED — token 'color.brand' has no evidence[] …
 #   - Acme: CONTRAST_FAIL — pair 'grey on white' 2.64:1 below AA 4.5 …
-#   ⚠ LOW_CONFIDENCE (inferred r1 at 0.60 not review) · COLLAPSED_TRUTH (r2 truth 'guess')
-#   ⚠ BARE_TOKEN (color.brand value, no role+meaning) · INCOMPLETE (mark/expression/governance; no surfaces)
+#   ⚠ meaning_chain has 2 links · BARE_TOKEN (color.brand value, no role+meaning)
+#   ⚠ INCOMPLETE (mark/expression/governance; no surfaces)
 ```
 
-- **Axis B fails outright** — `UNTRACED`, malformed `severity`, `CONTRAST_FAIL` are B1–B3 gate
-  failures. The spec is not operable: an agent cannot trust or cite it. **B = 1.**
+Note `LOW_CONFIDENCE` and `COLLAPSED_TRUTH` are **B2 gate FAILS**, not advisories — an unflagged weak
+inference or a collapsed truth reads as a settled rule, the exact trust defect the three-truths model
+exists to stop. (`GENERIC_IDEA` is caught even with a filler noun — `"…simple solutions"` doesn't
+escape; only a *concrete* subject does.)
+
+- **Axis B fails outright** — `UNTRACED`, `LOW_CONFIDENCE`, `COLLAPSED_TRUTH`, malformed `severity`,
+  `CONTRAST_FAIL` are B1–B3 gate failures. The spec is not operable: an agent cannot trust or cite it.
+  **B = 1.**
 - **Axis A also fails** — `brand_idea` is *"Modern, bold, and simple."* → `GENERIC_IDEA` (A1 gate). A
   competitor could copy-paste it; the two-link chain (`idea→color`) does not propagate. **A = 1.**
 

@@ -25,6 +25,16 @@ grouped by date; the first tagged release is **v0.2.0** (2026-06-17).
   fine-grained `brand_domain` values normalized to the six rubric domains) — both caught by the bin's
   own selftest and locked with adversarial fixtures (incl. a bool-`confidence` rejection and a
   zero-false-positive-WARN check on the green card).
+- **Adversarial-review hardening (fresh-context red-team).** A separate reviewer that *ran* the bin
+  against crafted cards found five real defects, all now fixed and locked as fixtures: a CRITICAL
+  severity contradiction (`LOW_CONFIDENCE`/`COLLAPSED_TRUTH` were advisory WARNs while every doc page
+  calls them B2 gate fails — the trust defect passed green; now FAILs), a one-noun-evadable
+  `GENERIC_IDEA` (closed with a `GENERIC_NOUNS` set + must-flag/must-not-flag fixtures), tracebacks on
+  malformed cards (type-guarded to graded FAILs), a falsy-`value` `BARE_TOKEN` bypass, and a
+  reverse-parsed `--json` `kind` (findings now carry explicit `(kind, message)` tuples). See the skill
+  CHANGELOG.
+- **README fix:** added the missing `architecture-decomposer` row (STRUCTURE × INTEGRITY) to the
+  decomposer axis-pairs table — a stale gap from its graduation out of `arch-system`.
 
 ## 2026-06-19 — post-v0.3.0 cross-cutting work
 

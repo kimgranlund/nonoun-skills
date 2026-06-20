@@ -62,3 +62,30 @@ component-decomposer).
   Added `DOMAIN_ALIASES` + `_norm_domain` so a card authored against the full corpus `brand_domain`
   enum (`logo`, `typography`, the 11 expression sub-domains) normalizes to the six rubric domains
   instead of tripping spurious "unknown domain" warnings. Verified with a corpus-style fixture.
+
+### Defect fixes — adversarial-review hardening (fresh-context red-team, locked as fixtures)
+
+A fresh-context adversarial review (which *ran* the bin against crafted cards) surfaced five real
+defects; each fix is locked by a selftest fixture so it can't regress:
+
+- **(CRITICAL) `LOW_CONFIDENCE` / `COLLAPSED_TRUTH` were advisory WARNs but every doc page calls them
+  B2 gate fails** — so the skill's own central trust defect (a guess shown as a documented rule, a weak
+  inference shown as settled) passed the gate **green**. Escalated both to FAILs, matching the
+  documented B2-gate contract; the selftest now asserts they appear among `fails`, not `warns`.
+- **(MAJOR) `GENERIC_IDEA` was one-noun-evadable** — `"Modern, bold, simple solutions."` slipped through
+  because the filler noun `solutions` read as substantive. Added a `GENERIC_NOUNS` set (category/filler
+  words); locked with a must-FLAG fixture (`"…simple solutions"`) **and** a must-NOT-flag fixture (a real
+  idea naming a concrete subject — `"Agreements are dynamic moments of connection."`).
+- **(MAJOR) the bin tracebacked on plausible malformed cards** (`[]`, `null`, `"strategy": "text"`,
+  `"rules": "oops"`, `"color_pairs": ["#000"]`). Added type-guards so every shape returns a graded
+  `WELL_FORMED` FAIL (never an uncaught exception), preserving the `--json` contract; locked with a
+  no-crash / must-FAIL fixture loop.
+- **(MINOR) `BARE_TOKEN` was bypassed by a falsy `value`** (`""`/`0`) — switched the truthiness test to
+  `"value" in tok`.
+- **(MINOR) the `--json` `kind` was reverse-parsed from the message** (garbage for code-less findings).
+  Findings now carry an explicit `(kind, message)` tuple, so `--json` emits a real `kind` per finding —
+  the shared `{tool, ok, summary, findings[]}` report is now harness-keyable.
+
+The corpus-faithfulness and routing-fence surfaces were found clean; the "operable-but-hollow" quadrant
+is (by design) caught by the adversarial idea-refutation, with `GENERIC_IDEA` as its now-hardened
+deterministic backstop.

@@ -70,6 +70,12 @@ GENERIC = {"modern", "bold", "simple", "innovative", "trusted", "clean", "friend
 # stopwords don't count as substantive — else "modern, bold, AND simple" reads as non-generic
 STOPWORDS = {"and", "the", "a", "an", "of", "to", "is", "are", "be", "with", "for", "or", "that",
              "this", "it", "as", "our", "we", "you", "your", "but", "yet", "so", "in", "on", "at"}
+# generic filler nouns don't rescue adjective-salad either — "modern, bold, simple SOLUTIONS" is still
+# interchangeable. A real idea names a concrete subject (agreements, signing, tax), not a category word.
+GENERIC_NOUNS = {"solutions", "solution", "products", "product", "experiences", "experience", "platform",
+                 "platforms", "tools", "services", "service", "brands", "brand", "company", "business",
+                 "results", "value", "values", "innovation", "technology", "things", "stuff", "design",
+                 "designs", "ideas", "world", "future", "way", "ways", "people"}
 
 
 # --- WCAG contrast (shared with color-verifier's contrast-check) -------------------------------
@@ -102,92 +108,129 @@ def _aa_floor(size, role):
 
 # --- the operability checks --------------------------------------------------------------------
 def check_card(card):
-    """Return (fails, warns) for one brand-spec card."""
+    """Return (fails, warns), each a list of (kind, message) — so --json carries a real kind, and a
+    malformed card produces a graded FAIL rather than a traceback."""
     fails, warns = [], []
+
+    def F(kind, msg):
+        fails.append((kind, msg))
+
+    def W(kind, msg):
+        warns.append((kind, msg))
+
+    if not isinstance(card, dict):
+        F("WELL_FORMED", "card is not a JSON object (got %s)" % type(card).__name__)
+        return fails, warns
     brand = card.get("brand", "<card>")
 
-    strat = card.get("strategy") or {}
+    strat = card.get("strategy")
+    if strat is None:
+        strat = {}
+    elif not isinstance(strat, dict):
+        F("WELL_FORMED", "%s: strategy is not an object" % brand)
+        strat = {}
     idea = (strat.get("brand_idea") or "").strip()
     if not idea:
-        fails.append("%s: no strategy.brand_idea — the spec has no core to propagate (A1 gate)" % brand)
+        F("WELL_FORMED", "%s: no strategy.brand_idea — the spec has no core to propagate (A1 gate)" % brand)
     else:
         words = re.findall(r"[a-z']+", idea.lower())
-        nongeneric = [w for w in words if w not in GENERIC and w not in STOPWORDS and len(w) > 2]
+        nongeneric = [w for w in words if w not in GENERIC and w not in STOPWORDS
+                      and w not in GENERIC_NOUNS and len(w) > 2]
         if words and not nongeneric:
-            fails.append("%s: GENERIC_IDEA — brand_idea is only interchangeable adjectives (%r); a "
-                         "competitor could copy-paste it (rubric weak signal #1)" % (brand, idea))
+            F("GENERIC_IDEA", "%s: GENERIC_IDEA — brand_idea is only interchangeable adjectives/filler "
+              "(%r); a competitor could copy-paste it (rubric weak signal #1)" % (brand, idea))
 
     chain = strat.get("meaning_chain") or []
     if idea and len(chain) < 4:
-        warns.append("%s: meaning_chain has %d links — the idea isn't propagated to the primitives "
-                     "(idea→voice→mark→color→type→…)" % (brand, len(chain)))
+        W("MEANING_CHAIN", "%s: meaning_chain has %d links — the idea isn't propagated to the "
+          "primitives (idea→voice→mark→color→type→…)" % (brand, len(chain)))
 
-    # provenance + truth + value on every typed record
-    def _provenance(rec, kind, label):
-        rid = rec.get("id", label)
+    # provenance + truth + value on every typed record. LOW_CONFIDENCE and COLLAPSED_TRUTH are B2 GATE
+    # failures (the trust contract), not advisories — an unflagged weak inference or a collapsed truth
+    # reads as a settled rule, the exact defect the three-truths model exists to stop.
+    def _provenance(rec, kind, rid):
         if not rec.get("evidence"):
-            fails.append("%s: UNTRACED — %s '%s' has no evidence[] (every non-obvious claim needs a "
-                         "source)" % (brand, kind, rid))
+            F("UNTRACED", "%s: UNTRACED — %s '%s' has no evidence[] (every non-obvious claim needs a "
+              "source)" % (brand, kind, rid))
         conf = rec.get("confidence")
         if conf is None:
-            fails.append("%s: %s '%s' has no confidence" % (brand, kind, rid))
+            F("WELL_FORMED", "%s: %s '%s' has no confidence" % (brand, kind, rid))
         elif isinstance(conf, bool) or not isinstance(conf, (int, float)) or not 0 <= conf <= 1:
-            fails.append("%s: %s '%s' confidence %r not in [0,1]" % (brand, kind, rid, conf))
+            F("WELL_FORMED", "%s: %s '%s' confidence %r not in [0,1]" % (brand, kind, rid, conf))
         elif conf < CONFIDENCE_REVIEW and rec.get("truth") == "inferred" and not rec.get("review"):
-            warns.append("%s: LOW_CONFIDENCE — inferred %s '%s' at %.2f (< %.2f) not marked review"
-                         % (brand, kind, rid, conf, CONFIDENCE_REVIEW))
+            F("LOW_CONFIDENCE", "%s: LOW_CONFIDENCE — inferred %s '%s' at %.2f (< %.2f) not marked "
+              "review (B2 gate — an unflagged weak inference reads as settled)"
+              % (brand, kind, rid, conf, CONFIDENCE_REVIEW))
         t = rec.get("truth")
         if t is not None and t not in TRUTHS:
-            warns.append("%s: COLLAPSED_TRUTH — %s '%s' truth %r not one of observed/inferred/proposed"
-                         % (brand, kind, rid, t))
+            F("COLLAPSED_TRUTH", "%s: COLLAPSED_TRUTH — %s '%s' truth %r not one of "
+              "observed/inferred/proposed (B2 gate)" % (brand, kind, rid, t))
 
-    for r in card.get("rules") or []:
-        _provenance(r, "rule", "rule")
+    def _records(key):
+        recs = card.get(key) or []
+        if not isinstance(recs, list):
+            F("WELL_FORMED", "%s: %s is not a list" % (brand, key))
+            return []
+        out = []
+        for i, rec in enumerate(recs):
+            if isinstance(rec, dict):
+                out.append(rec)
+            else:
+                F("WELL_FORMED", "%s: %s[%d] is not an object" % (brand, key, i))
+        return out
+
+    for r in _records("rules"):
+        rid = r.get("id", "?")
+        _provenance(r, "rule", rid)
         if r.get("severity") not in SEVERITIES:
-            fails.append("%s: rule '%s' severity %r not in %s" % (brand, r.get("id", "?"),
-                                                                  r.get("severity"), sorted(SEVERITIES)))
+            F("WELL_FORMED", "%s: rule '%s' severity %r not in %s" % (brand, rid, r.get("severity"),
+                                                                      sorted(SEVERITIES)))
         if _norm_domain(r.get("domain")) not in DOMAINS:
-            warns.append("%s: rule '%s' domain %r not a known brand domain" % (brand, r.get("id", "?"),
-                                                                               r.get("domain")))
-    for tok in card.get("tokens") or []:
-        _provenance(tok, "token", "token")
+            W("UNKNOWN_DOMAIN", "%s: rule '%s' domain %r not a known brand domain"
+              % (brand, rid, r.get("domain")))
+    for tok in _records("tokens"):
+        tid = tok.get("id", "?")
+        _provenance(tok, "token", tid)
         if tok.get("type") not in TOKEN_TYPES:
-            warns.append("%s: token '%s' type %r unknown" % (brand, tok.get("id", "?"), tok.get("type")))
-        if tok.get("value") and not (tok.get("role") and tok.get("meaning")):
-            warns.append("%s: BARE_TOKEN — '%s' has a value but no role+meaning (a palette, not a "
-                         "system)" % (brand, tok.get("id", "?")))
-    for ex in card.get("examples") or []:
+            W("UNKNOWN_TYPE", "%s: token '%s' type %r unknown" % (brand, tid, tok.get("type")))
+        if "value" in tok and not (tok.get("role") and tok.get("meaning")):
+            W("BARE_TOKEN", "%s: BARE_TOKEN — '%s' has a value but no role+meaning (a palette, not a "
+              "system)" % (brand, tid))
+    for ex in _records("examples"):
         if not ex.get("evidence"):
-            warns.append("%s: example '%s' has no evidence[]" % (brand, ex.get("id", "?")))
+            W("UNTRACED_EXAMPLE", "%s: example '%s' has no evidence[]" % (brand, ex.get("id", "?")))
 
     # contrast — the one accessibility joint a deck rarely proves by hand
-    for p in card.get("color_pairs") or []:
+    for p in _records("color_pairs"):
         try:
             ratio = contrast(p["fg"], p["bg"])
-        except (KeyError, ValueError) as e:
-            warns.append("%s: color_pair %r unreadable (%s)" % (brand, p.get("name", "?"), e))
+        except (KeyError, ValueError, TypeError) as e:
+            W("BAD_PAIR", "%s: color_pair %r unreadable (%s)" % (brand, p.get("name", "?"), e))
             continue
         floor = _aa_floor(p.get("size", "normal"), p.get("role", "text"))
         if ratio < floor:
-            fails.append("%s: CONTRAST_FAIL — pair '%s' %.2f:1 below AA %.1f (the color system isn't "
-                         "accessible here)" % (brand, p.get("name", "?"), ratio, floor))
+            F("CONTRAST_FAIL", "%s: CONTRAST_FAIL — pair '%s' %.2f:1 below AA %.1f (the color system "
+              "isn't accessible here)" % (brand, p.get("name", "?"), ratio, floor))
 
     # completeness — every domain covered by at least one rule or token; surfaces present
-    domains_present = {_norm_domain(d) for d in (card.get("domains") or {})}
-    rule_domains = {_norm_domain(r.get("domain")) for r in card.get("rules") or []}
+    domains_obj = card.get("domains") or {}
+    domains_present = {_norm_domain(d) for d in domains_obj} if isinstance(domains_obj, dict) else set()
+    rule_domains = {_norm_domain(r.get("domain")) for r in (card.get("rules") or []) if isinstance(r, dict)}
     tok_domains = set()
-    for t in card.get("tokens") or []:
+    for t in (card.get("tokens") or []):
+        if not isinstance(t, dict):
+            continue
         tt = t.get("type")
         tok_domains.add({"color": "color", "type": "type", "space": "expression", "radius": "expression",
                          "motion": "expression", "elevation": "expression"}.get(tt, tt))
     have = domains_present | rule_domains | tok_domains
     missing = [d for d in DOMAINS if d not in have]
     if missing:
-        warns.append("%s: INCOMPLETE — domains with no rule/token: %s (the spec can't answer 'how here?'"
-                     " for them)" % (brand, ", ".join(missing)))
+        W("INCOMPLETE", "%s: INCOMPLETE — domains with no rule/token: %s (the spec can't answer "
+          "'how here?' for them)" % (brand, ", ".join(missing)))
     if not card.get("surfaces"):
-        warns.append("%s: INCOMPLETE — no surfaces[] (an OUTSIDE-IN spec must say where the brand "
-                     "shows up)" % brand)
+        W("INCOMPLETE", "%s: INCOMPLETE — no surfaces[] (an OUTSIDE-IN spec must say where the brand "
+          "shows up)" % brand)
     return fails, warns
 
 
@@ -263,18 +306,15 @@ def selftest():
     if gw:  # a complete, traced, accessible card must be clean of WARNs too (no false positives)
         errs.append("GREEN (DocuSign) card produced false-positive WARNs: %s" % gw)
     rf, rw = check_card(RED)
-    need = ["GENERIC_IDEA", "UNTRACED", "CONTRAST_FAIL"]
-    for kind in need:
-        if not any(kind in f for f in rf):
-            errs.append("RED card missed %s (fails=%s)" % (kind, rf))
-    if not any("severity" in f for f in rf):
+    rk = {k for k, _ in rf}
+    # LOW_CONFIDENCE and COLLAPSED_TRUTH are GATE FAILS (B2), not advisories — assert they're in fails
+    for kind in ["GENERIC_IDEA", "UNTRACED", "CONTRAST_FAIL", "LOW_CONFIDENCE", "COLLAPSED_TRUTH"]:
+        if kind not in rk:
+            errs.append("RED card missed gate-fail %s (fail kinds=%s)" % (kind, sorted(rk)))
+    if not any("severity" in m for _k, m in rf):
         errs.append("RED card: bad severity 'loud' not caught")
-    if not any("BARE_TOKEN" in w for w in rw):
+    if not any(k == "BARE_TOKEN" for k, _ in rw):
         errs.append("RED card: BARE_TOKEN not warned")
-    if not any("LOW_CONFIDENCE" in w for w in rw):
-        errs.append("RED card: sub-0.75 inferred rule not flagged")
-    if not any("COLLAPSED_TRUTH" in w for w in rw):
-        errs.append("RED card: truth 'guess' not caught")
     # contrast math sanity (shared with contrast-check)
     if not (abs(contrast("#000", "#fff") - 21.0) < 0.01 and contrast("#9aa0a6", "#ffffff") < 4.5):
         errs.append("contrast math wrong")
@@ -282,26 +322,42 @@ def selftest():
     bf, _ = check_card({"brand": "B", "strategy": {"brand_idea": "A specific forcing idea about X."},
                         "tokens": [{"id": "t", "type": "color", "role": "text", "value": "#000",
                                     "meaning": "ink", "evidence": _EV, "confidence": True}]})
-    if not any("confidence True not in [0,1]" in f for f in bf):
+    if not any("confidence True not in [0,1]" in m for _k, m in bf):
         errs.append("bool confidence (True) accepted as a valid number (fails=%s)" % bf)
+    # adversarial: GENERIC_IDEA must NOT be evaded by one filler noun…
+    ef, _ = check_card({"strategy": {"brand_idea": "Modern, bold, simple solutions."}})
+    if not any(k == "GENERIC_IDEA" for k, _ in ef):
+        errs.append("GENERIC_IDEA evaded by a filler noun ('…simple solutions')")
+    # …but must NOT false-positive on a real, specific idea naming a concrete subject
+    rf2, _ = check_card({"strategy": {"brand_idea": "Agreements are dynamic moments of connection."}})
+    if any(k == "GENERIC_IDEA" for k, _ in rf2):
+        errs.append("GENERIC_IDEA false-positive on a real, specific idea")
+    # adversarial: malformed inputs must FAIL cleanly, never raise (the --json contract must hold)
+    for bad in [[], None, "txt", {"strategy": "txt"}, {"rules": "oops"}, {"color_pairs": ["#000"]}]:
+        try:
+            mfails, _mw = check_card(bad)
+        except Exception as exc:  # noqa: BLE001 — the whole point is "no uncaught exception"
+            errs.append("check_card crashed on %r (%s)" % (bad, exc))
+            continue
+        if not mfails:
+            errs.append("malformed card %r produced no FAIL" % (bad,))
     return errs
 
 
 def _report(card, fails, warns, as_json):
+    brand = card.get("brand", "<card>") if isinstance(card, dict) else "<card>"
     if as_json:
-        find = [{"kind": f.split(":")[1].strip().split(" ")[0] if "—" in f or ":" in f else "FAIL",
-                 "severity": "fail", "location": card.get("brand"), "message": f} for f in fails]
-        find += [{"kind": w.split(":")[1].strip().split(" ")[0], "severity": "advisory",
-                  "location": card.get("brand"), "message": w} for w in warns]
+        find = [{"kind": k, "severity": "fail", "location": brand, "message": m} for k, m in fails]
+        find += [{"kind": k, "severity": "advisory", "location": brand, "message": m} for k, m in warns]
         print(json.dumps({"tool": "brand-spec-check", "ok": not fails,
                           "summary": "%d fail, %d advisory" % (len(fails), len(warns)),
                           "findings": find}, indent=2))
         return 1 if fails else 0
-    for w in warns:
+    for _k, w in warns:
         print("  ⚠ %s" % w)
     if fails:
         sys.stderr.write("brand-spec-check: FAIL (%d)\n" % len(fails))
-        for f in fails:
+        for _k, f in fails:
             sys.stderr.write("  - %s\n" % f)
         return 1
     print("brand-spec-check: OK — operability gates clear (well-formed, traced, accessible, complete); "
