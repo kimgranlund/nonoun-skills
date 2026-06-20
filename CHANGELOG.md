@@ -35,6 +35,11 @@ grouped by date; the first tagged release is **v0.2.0** (2026-06-17).
   CHANGELOG.
 - **README fix:** added the missing `architecture-decomposer` row (STRUCTURE × INTEGRITY) to the
   decomposer axis-pairs table — a stale gap from its graduation out of `arch-system`.
+- **Formal card schema (ROADMAP top item).** Added `schema/brand-spec.schema.json` (JSON Schema, Draft
+  2020-12) as the declarative B1 contract, printable via `brand-spec-check.py schema`. The selftest
+  **drift-guards** it against the gate's enums (proven by a corrupt-the-enum negative test); full
+  per-card validation is delegated to `type-decomposer`'s `instance-check.py` rather than reimplemented
+  (which would degrade the gate's domain-meaningful findings into generic `SCHEMA_INVALID`).
 
 ## 2026-06-19 — post-v0.3.0 cross-cutting work
 

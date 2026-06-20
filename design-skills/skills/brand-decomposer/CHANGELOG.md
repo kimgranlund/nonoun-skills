@@ -89,3 +89,18 @@ defects; each fix is locked by a selftest fixture so it can't regress:
 The corpus-faithfulness and routing-fence surfaces were found clean; the "operable-but-hollow" quadrant
 is (by design) caught by the adversarial idea-refutation, with `GENERIC_IDEA` as its now-hardened
 deterministic backstop.
+
+### Added — the formal card schema (declarative B1 contract)
+
+- **`schema/brand-spec.schema.json`** — a machine-readable JSON Schema (Draft 2020-12, with `$defs` for
+  `evidence_ref` / `token` / `rule` / `example` / `color_pair`) for the `*.brand.json` card: structure,
+  types, enums (`severity {must,should,may}`, the three truths, token `type`, the 19-value `domain`
+  set), and required fields. `references/brand-spec-schema.md` is now its prose companion. Print it with
+  `bin/brand-spec-check.py schema`; validate an arbitrary card against it with `type-decomposer`'s
+  `instance-check.py` (the skill that owns instance-validation — not reimplemented here, which would
+  degrade the gate's domain-meaningful findings into generic `SCHEMA_INVALID`).
+- **Drift guard** — the selftest's `_schema_coherence()` asserts the schema's enums match the bin's
+  constants and that the GREEN fixture satisfies the schema's required-field contract, so the artifact
+  and the executable gate can't silently diverge. Proven non-trivial by a corrupt-the-enum negative
+  test (mutating the schema's `severity` enum is detected). Closes the ROADMAP's top item to "formal
+  schema + drift-guard shipped; full per-card validation delegated to type-decomposer."

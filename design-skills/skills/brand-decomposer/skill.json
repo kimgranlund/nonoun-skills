@@ -38,6 +38,7 @@
     "references/the-six-domains.md",
     "references/critique-mode.md",
     "references/policy.md",
+    "schema/brand-spec.schema.json",
     "bin/brand-spec-check.py",
     "examples/walkthrough.md",
     "examples/docusign.green.brand.json",

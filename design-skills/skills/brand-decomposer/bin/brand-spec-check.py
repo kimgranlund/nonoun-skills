@@ -28,9 +28,12 @@ score can still encode a generic, hollow brand.
   python3 bin/brand-spec-check.py contrast <fg> <bg> [large|ui]
   python3 bin/brand-spec-check.py selftest                    # green (DocuSign) / red (degraded) fixtures
   python3 bin/brand-spec-check.py lint <card> --json          # the shared {tool, ok, summary, findings} report
+  python3 bin/brand-spec-check.py schema                      # print the formal card schema (to stdout)
 
 A *.brand.json card (the gradeable subset of the corpus schema — strategy + typed, evidence-linked
-primitives):
+primitives). The formal, declarative contract is ../schema/brand-spec.schema.json (the selftest
+drift-guards it against this file's enums); validate an arbitrary card against it with type-decomposer's
+instance-check.py. Shape:
   {"brand": "...",
    "strategy": {"brand_idea": "...", "meaning_chain": ["idea","voice","mark","color","type",...]},
    "domains": {"mark": {...}, "voice": {...}, "color": {...}, "type": {...}, "expression": {...},
@@ -45,6 +48,7 @@ primitives):
 Python 3.8+.
 """
 import json
+import os
 import re
 import sys
 
@@ -298,8 +302,59 @@ RED = {
 }
 
 
+# --- the formal schema artifact (declarative contract) + a drift guard ------------------------
+def _schema_path():
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "schema",
+                        "brand-spec.schema.json")
+
+
+def _schema_coherence():
+    """The formal schema (schema/brand-spec.schema.json) and this gate must not silently diverge.
+    Assert the enums agree and the GREEN fixture meets the schema's required-field contract. This is a
+    bounded coherence check, NOT a general JSON-Schema validator — validate an arbitrary card against
+    the schema with type-decomposer's instance-check.py or any JSON-Schema tool."""
+    errs = []
+    try:
+        sch = json.load(open(_schema_path(), encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as e:
+        return ["schema/brand-spec.schema.json unreadable (%s)" % e]
+    defs = sch.get("$defs", {})
+    try:
+        enum_checks = [
+            ("rule.severity", set(defs["rule"]["properties"]["severity"]["enum"]), SEVERITIES),
+            ("truth", set(defs["truth"]["enum"]), TRUTHS),
+            ("token.type", set(defs["token"]["properties"]["type"]["enum"]), TOKEN_TYPES),
+            ("rule.domain", set(defs["rule"]["properties"]["domain"]["enum"]),
+             set(DOMAINS) | set(DOMAIN_ALIASES)),
+        ]
+    except KeyError as e:
+        return ["schema shape changed — missing %s (schema/bin drift)" % e]
+    for name, in_schema, in_bin in enum_checks:
+        if in_schema != in_bin:
+            errs.append("schema/bin enum drift on %s: schema=%s bin=%s"
+                        % (name, sorted(in_schema), sorted(in_bin)))
+
+    def _need(obj, where, reqd):
+        for k in reqd:
+            if not isinstance(obj, dict) or k not in obj:
+                errs.append("GREEN fixture violates schema-required %s.%s" % (where, k))
+
+    _need(GREEN, "card", sch.get("required", []))
+    _need(GREEN.get("strategy", {}), "strategy", sch["properties"]["strategy"].get("required", []))
+    for r in GREEN.get("rules", []):
+        _need(r, "rule[%s]" % r.get("id"), defs["rule"].get("required", []))
+    for t in GREEN.get("tokens", []):
+        _need(t, "token[%s]" % t.get("id"), defs["token"].get("required", []))
+    for ex in GREEN.get("examples", []):
+        _need(ex, "example[%s]" % ex.get("id"), defs["example"].get("required", []))
+    for p in GREEN.get("color_pairs", []):
+        _need(p, "color_pair", defs["color_pair"].get("required", []))
+    return errs
+
+
 def selftest():
     errs = []
+    errs += _schema_coherence()
     gf, gw = check_card(GREEN)
     if gf:
         errs.append("GREEN (DocuSign) card produced FAILs: %s" % gf)
@@ -387,6 +442,13 @@ def main(argv):
         floor = _aa_floor("large" if size == "large" else "normal", "ui" if size == "ui" else "text")
         print("  %.2f:1  (AA floor %.1f — %s)" % (r, floor, "PASS" if r >= floor else "FAIL"))
         return 0 if r >= floor else 1
+    if argv[0] == "schema":
+        try:
+            sys.stdout.write(open(_schema_path(), encoding="utf-8").read())
+        except OSError as e:
+            sys.stderr.write("brand-spec-check: schema unreadable (%s)\n" % e)
+            return 2
+        return 0
     if argv[0] == "lint":
         try:
             card = json.load(open(argv[1], encoding="utf-8"))
@@ -395,7 +457,8 @@ def main(argv):
             return 2
         fails, warns = check_card(card)
         return _report(card, fails, warns, as_json)
-    sys.stderr.write("usage: brand-spec-check.py lint <card> | contrast <fg> <bg> | selftest [--json]\n")
+    sys.stderr.write("usage: brand-spec-check.py lint <card> | contrast <fg> <bg> | schema | "
+                     "selftest [--json]\n")
     return 2
 
 

@@ -5,11 +5,20 @@ the `*.brand.json` card, the six-domain depth, and CRITIQUE mode). Everything be
 
 ## `bin/brand-spec-check.py`
 
-- [ ] **JSON-Schema validation of the card** — `B1` currently checks required fields and enums
-      imperatively. Vendor or generate a JSON Schema for the `*.brand.json` card (the gradeable subset
-      of `brand_guideline_corpus.schema.json`) and validate against it, so the well-formedness gate is
-      declarative and a card-shape change can't silently drift from the docstring. Reuse
-      `type-decomposer`'s `instance-check.py` validator pattern.
+- [~] **JSON-Schema validation of the card (partially done).**
+      - [x] **The formal schema ships** — `schema/brand-spec.schema.json` (Draft 2020-12, with `$defs`
+        for evidence_ref/token/rule/example/color_pair) is the declarative B1 contract, printable via
+        `bin/brand-spec-check.py schema` and documented by `references/brand-spec-schema.md`.
+      - [x] **Drift guard** — the selftest's `_schema_coherence()` asserts the schema's enums
+        (`severity`, `truth`, token `type`, `domain`) match the bin's constants and that the GREEN
+        fixture meets the schema's required-field contract, so the artifact and the gate can't silently
+        diverge (proven by a corrupt-the-enum negative test).
+      - [ ] **Full per-card validation** is intentionally **delegated** to `type-decomposer`'s
+        `instance-check.py` (the skill that owns "does an instance validate against a schema") rather
+        than reimplemented here — a generic validator would also degrade the gate's domain-meaningful
+        findings (`COLLAPSED_TRUTH`, `BARE_TOKEN`) into generic `SCHEMA_INVALID`. If a self-contained
+        structural pre-gate is later wanted, vendor a *minimal* validator (type/required/enum/$ref only)
+        and lock the bool-is-not-number / string-is-not-int traps as fixtures.
 - [ ] **Evidence-reference integrity** — beyond *presence*, check that each `evidence[]` entry is
       well-formed (`deck_id` + `slide_id`/`source_url` + `extraction_method` + a per-evidence
       `confidence`), and that `rules_demonstrated[]` in an example points at a real rule `id` in the

@@ -5,6 +5,15 @@
 evidence spans → typed records → brand systems); the card keeps only what the **two axes** need — the
 strategy (axis A) and the typed, evidence-linked primitives (axis B) — in one self-contained object.
 
+> **The machine-readable contract is [`schema/brand-spec.schema.json`](../schema/brand-spec.schema.json)**
+> (JSON Schema, Draft 2020-12) — this page is its prose companion. Print it with
+> `bin/brand-spec-check.py schema`; the bin's selftest **drift-guards** it against the gate's enums
+> (`severity`, `truth`, token `type`, `domain`) so the two can't silently diverge. The schema is the
+> *declarative* B1 contract (structure, types, enums, required fields); the *semantic* gates (UNTRACED
+> provenance, LOW_CONFIDENCE, COLLAPSED_TRUTH, CONTRAST_FAIL, GENERIC_IDEA, INCOMPLETE) are not
+> expressible in JSON Schema and live in the bin with domain-meaningful finding kinds. To validate an
+> arbitrary card against the schema, pipe it through `type-decomposer`'s `instance-check.py`.
+
 ## The card
 
 ```json

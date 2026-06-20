@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/kimgranlund/nonoun-skills/design-skills/brand-decomposer/brand-spec.schema.json",
+  "title": "Brand-spec card",
+  "description": "The gradeable subset of brand_guideline_corpus.schema.json — a brand's strategy plus its typed, evidence-linked primitives, flattened into one self-contained object. Consumed by bin/brand-spec-check.py (the B1 well-formedness contract). The semantic gates (UNTRACED provenance, LOW_CONFIDENCE, COLLAPSED_TRUTH, CONTRAST_FAIL, GENERIC_IDEA, INCOMPLETE) are NOT expressible here — they live in the bin and are reported with domain-meaningful kinds. This schema is the declarative contract; validate a card against it with type-decomposer's instance-check.py or any JSON-Schema tool.",
+  "type": "object",
+  "required": ["brand", "strategy"],
+  "additionalProperties": true,
+  "properties": {
+    "brand": { "type": "string", "minLength": 1 },
+    "strategy": {
+      "type": "object",
+      "required": ["brand_idea"],
+      "additionalProperties": true,
+      "properties": {
+        "brand_idea": { "type": "string", "minLength": 1, "description": "The central idea (A1). GENERIC_IDEA fails if it is only interchangeable adjectives/filler." },
+        "meaning_chain": { "type": "array", "items": { "type": "string" }, "description": "idea -> voice -> mark -> color -> type -> ... (A2); < 4 links warns." }
+      }
+    },
+    "domains": {
+      "type": "object",
+      "description": "Presence map — a key present marks that rubric domain claimed-covered (B4)."
+    },
+    "tokens": { "type": "array", "items": { "$ref": "#/$defs/token" } },
+    "rules": { "type": "array", "items": { "$ref": "#/$defs/rule" } },
+    "examples": { "type": "array", "items": { "$ref": "#/$defs/example" } },
+    "surfaces": { "type": "array", "items": { "type": "string" }, "description": "Where the brand lives (B4); empty = INCOMPLETE." },
+    "color_pairs": { "type": "array", "items": { "$ref": "#/$defs/color_pair" } }
+  },
+  "$defs": {
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Operational trust band: >=0.90 explicit, >=0.75 strong, >=0.50 review-required, <0.50 do-not-use. A boolean is NOT a valid confidence."
+    },
+    "truth": {
+      "enum": ["observed", "inferred", "proposed"],
+      "description": "The three truths, never collapsed. A value outside this set is COLLAPSED_TRUTH (a B2 gate fail in the bin)."
+    },
+    "evidence_ref": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "deck_id": { "type": "string" },
+        "slide_id": { "type": "string" },
+        "slide_number": { "type": "integer" },
+        "source_url": { "type": "string" },
+        "extraction_method": { "type": "string" },
+        "confidence": { "$ref": "#/$defs/confidence" }
+      }
+    },
+    "token": {
+      "type": "object",
+      "required": ["id", "type", "evidence", "confidence"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "type": {
+          "enum": ["color", "type", "space", "radius", "motion", "elevation"]
+        },
+        "role": { "type": "string" },
+        "value": { "type": "string", "description": "A token with a value but no role+meaning is a BARE_TOKEN (advisory)." },
+        "meaning": { "type": "string" },
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence_ref" } },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "truth": { "$ref": "#/$defs/truth" },
+        "review": { "type": "boolean", "description": "Marks a low-confidence inference as human-review-flagged." }
+      }
+    },
+    "rule": {
+      "type": "object",
+      "required": ["id", "domain", "statement", "severity", "evidence", "confidence"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "domain": {
+          "description": "The six rubric domains, or any full-corpus brand_domain value (normalized: logo->mark, typography->type, the 11 expression sub-domains->expression).",
+          "enum": [
+            "mark", "voice", "color", "type", "expression", "governance",
+            "logo", "typography", "layout", "photography", "illustration", "motion",
+            "product", "marketing", "social", "packaging", "environmental",
+            "co_branding", "data_visualization"
+          ]
+        },
+        "statement": { "type": "string" },
+        "severity": {
+          "enum": ["must", "should", "may"],
+          "description": "RFC-2119 (the corpus enum): must = hard rule, should = strong default, may = flexible range."
+        },
+        "context": { "type": "string", "description": "Where the rule applies / does not (B5 retrievability)." },
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence_ref" } },
+        "confidence": { "$ref": "#/$defs/confidence" },
+        "truth": { "$ref": "#/$defs/truth" },
+        "review": { "type": "boolean" }
+      }
+    },
+    "example": {
+      "type": "object",
+      "required": ["id", "surface", "description", "evidence"],
+      "additionalProperties": true,
+      "properties": {
+        "id": { "type": "string" },
+        "surface": { "type": "string" },
+        "description": { "type": "string", "description": "What it teaches, not just what it looks like." },
+        "rules_demonstrated": { "type": "array", "items": { "type": "string" } },
+        "evidence": { "type": "array", "items": { "$ref": "#/$defs/evidence_ref" } }
+      }
+    },
+    "color_pair": {
+      "type": "object",
+      "required": ["fg", "bg"],
+      "additionalProperties": true,
+      "properties": {
+        "name": { "type": "string" },
+        "fg": { "type": "string", "description": "Foreground color, #rgb or #rrggbb." },
+        "bg": { "type": "string", "description": "Background color, #rgb or #rrggbb." },
+        "size": { "enum": ["normal", "large"], "description": "Drives the WCAG AA floor (normal 4.5, large 3.0)." },
+        "role": { "enum": ["text", "ui"], "description": "role:ui uses the 3.0 floor (UI components)." }
+      }
+    }
+  }
+}
