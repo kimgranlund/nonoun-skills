@@ -104,3 +104,19 @@ deterministic backstop.
   and the executable gate can't silently diverge. Proven non-trivial by a corrupt-the-enum negative
   test (mutating the schema's `severity` enum is detected). Closes the ROADMAP's top item to "formal
   schema + drift-guard shipped; full per-card validation delegated to type-decomposer."
+
+### Added — four B-axis depth checks (advisory; locked with must-flag/must-not-flag fixtures)
+
+Two more ROADMAP items, deepening the B axis beyond bare presence — all advisory, none can fire on the
+GREEN fixture (no false positives), each locked by a fixture:
+
+- **Evidence-reference integrity** — `THIN_EVIDENCE` (an `evidence[]` entry present but with no
+  `deck_id`/`slide_id`/`source_url` — it points nowhere; still can't prove the id is *real*) and
+  `DANGLING_REF` (an example's `rules_demonstrated[]` names a rule `id` not in the card — a silent B5
+  retrieval break).
+- **Confidence/severity & truth coherence** — `WEAK_MANDATE` (a `must` hard rule at `confidence < 0.90`
+  — mandating what the deck didn't explicitly state) and `TRUTH_CONFIDENCE_MISMATCH` (an `observed`
+  record at `confidence < 0.90` — a direct observation you're unsure of is really an inference). Locked
+  with must-NOT-flag fixtures too (a `should` rule / an `inferred` record at the same confidence stays
+  quiet). *(The sketched token role↔type mismatch was dropped — role is free-text, no low-false-positive
+  deterministic form.)*

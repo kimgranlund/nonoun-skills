@@ -19,14 +19,19 @@ the `*.brand.json` card, the six-domain depth, and CRITIQUE mode). Everything be
         findings (`COLLAPSED_TRUTH`, `BARE_TOKEN`) into generic `SCHEMA_INVALID`. If a self-contained
         structural pre-gate is later wanted, vendor a *minimal* validator (type/required/enum/$ref only)
         and lock the bool-is-not-number / string-is-not-int traps as fixtures.
-- [ ] **Evidence-reference integrity** — beyond *presence*, check that each `evidence[]` entry is
-      well-formed (`deck_id` + `slide_id`/`source_url` + `extraction_method` + a per-evidence
-      `confidence`), and that `rules_demonstrated[]` in an example points at a real rule `id` in the
-      card. A dangling rule reference is a silent retrieval break (B5).
-- [ ] **Confidence/role coherence smells** — flag a `must`-severity rule whose `confidence < 0.90`
-      (a hard constraint presented on weak evidence), and a token whose declared `role` contradicts its
-      `type` (a `color` token with a `type`-domain role). Lock each with a must-FLAG / must-NOT-flag
-      fixture pair.
+- [x] **Evidence-reference integrity** (done) — `THIN_EVIDENCE` flags an `evidence[]` entry present but
+      with no `deck_id`/`slide_id`/`source_url` (it points nowhere — a structural strengthening of the
+      presence-only check; it still can't prove the id is *real*), and `DANGLING_REF` flags an example's
+      `rules_demonstrated[]` naming a rule `id` not in the card (a silent B5 retrieval break). Both
+      advisory; locked with must-flag fixtures.
+- [x] **Confidence/severity & truth coherence smells** (done) — `WEAK_MANDATE` flags a `must` (hard)
+      rule at `confidence < 0.90` (mandating what the deck didn't explicitly state), and
+      `TRUTH_CONFIDENCE_MISMATCH` flags an `observed` record at `confidence < 0.90` (a direct
+      observation you're unsure of is really an inference). Both advisory band-coherence checks; locked
+      with must-flag **and** must-NOT-flag fixtures (a `should` rule / an `inferred` record at the same
+      confidence must stay quiet). *(The originally-sketched token role↔type mismatch was dropped — role
+      is free-text, so it has no low-false-positive deterministic form; the truth↔band check is the
+      cleaner, corpus-grounded coherence smell.)*
 - [ ] **Contrast: large-text + non-text UI defaults** — the gate reads `size`/`role` per `color_pair`;
       add an optional check that a pair used for *both* body and large text is graded at the stricter
       4.5 floor, and surface APCA as an advisory alongside WCAG 2.x (mirroring `color-verifier`'s

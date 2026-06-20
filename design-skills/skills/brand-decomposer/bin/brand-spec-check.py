@@ -18,6 +18,12 @@ routed here so a beautiful-but-unusable spec can't pass on looks:
                    rubric's #1 weak signal: specific enough that a competitor couldn't copy-paste it
   INCOMPLETE       a rubric domain (mark · voice · color · type · expression · governance) with no
                    rule or token, or no surface coverage — the spec can't answer "how here?"
+  THIN_EVIDENCE    an evidence[] entry present but with no deck_id/slide_id/source_url (points nowhere)
+  DANGLING_REF     an example's rules_demonstrated names a rule id not in the card (broken retrieval, B5)
+  WEAK_MANDATE     a 'must' (hard) rule at confidence < 0.90 — mandating what the deck didn't explicitly
+                   state (band↔severity coherence)
+  TRUTH_CONFIDENCE_MISMATCH  an 'observed' record at confidence < 0.90 — a direct observation you're
+                   unsure of is really an inference (band↔truth coherence)
 
 This is a PRE-FILTER, not an oracle: a clean run means the spec is well-formed, traced, accessible, and
 complete *enough to operate* — it does NOT mean the brand idea is good or the meaning chain is right
@@ -67,7 +73,9 @@ TRUTHS = {"observed", "inferred", "proposed"}
 
 def _norm_domain(d):
     return DOMAIN_ALIASES.get(d, d)
-CONFIDENCE_REVIEW = 0.75
+CONFIDENCE_REVIEW = 0.75    # below this an inferred record must be review-flagged
+CONFIDENCE_EXPLICIT = 0.90  # the "explicitly stated by the deck" band — a must-rule / observed claim
+#                             below it is a coherence smell (mandating/observing on non-explicit evidence)
 # the rubric's "voice is only adjectives" trap — a brand idea that is JUST these is interchangeable
 GENERIC = {"modern", "bold", "simple", "innovative", "trusted", "clean", "friendly", "premium",
            "playful", "minimal", "approachable", "dynamic", "human", "authentic", "fresh", "sleek"}
@@ -153,13 +161,22 @@ def check_card(card):
     # failures (the trust contract), not advisories — an unflagged weak inference or a collapsed truth
     # reads as a settled rule, the exact defect the three-truths model exists to stop.
     def _provenance(rec, kind, rid):
-        if not rec.get("evidence"):
+        ev = rec.get("evidence")
+        if not ev:
             F("UNTRACED", "%s: UNTRACED — %s '%s' has no evidence[] (every non-obvious claim needs a "
               "source)" % (brand, kind, rid))
+        elif isinstance(ev, list) and any(
+                isinstance(e, dict) and not (e.get("deck_id") or e.get("slide_id") or e.get("source_url"))
+                for e in ev):
+            # present but pointing nowhere — a structural strengthening of the presence-only check (it
+            # still can't prove the deck_id is REAL; confirm that out of band)
+            W("THIN_EVIDENCE", "%s: THIN_EVIDENCE — %s '%s' has an evidence entry with no "
+              "deck_id/slide_id/source_url (it points nowhere)" % (brand, kind, rid))
         conf = rec.get("confidence")
+        is_num = isinstance(conf, (int, float)) and not isinstance(conf, bool)
         if conf is None:
             F("WELL_FORMED", "%s: %s '%s' has no confidence" % (brand, kind, rid))
-        elif isinstance(conf, bool) or not isinstance(conf, (int, float)) or not 0 <= conf <= 1:
+        elif not is_num or not 0 <= conf <= 1:
             F("WELL_FORMED", "%s: %s '%s' confidence %r not in [0,1]" % (brand, kind, rid, conf))
         elif conf < CONFIDENCE_REVIEW and rec.get("truth") == "inferred" and not rec.get("review"):
             F("LOW_CONFIDENCE", "%s: LOW_CONFIDENCE — inferred %s '%s' at %.2f (< %.2f) not marked "
@@ -169,6 +186,11 @@ def check_card(card):
         if t is not None and t not in TRUTHS:
             F("COLLAPSED_TRUTH", "%s: COLLAPSED_TRUTH — %s '%s' truth %r not one of "
               "observed/inferred/proposed (B2 gate)" % (brand, kind, rid, t))
+        # coherence: an 'observed' claim you're not ~certain of is really an inference (band↔truth)
+        if t == "observed" and is_num and conf < CONFIDENCE_EXPLICIT:
+            W("TRUTH_CONFIDENCE_MISMATCH", "%s: TRUTH_CONFIDENCE_MISMATCH — %s '%s' is 'observed' at "
+              "%.2f (< %.2f explicit); a direct observation you're unsure of is an inference"
+              % (brand, kind, rid, conf, CONFIDENCE_EXPLICIT))
 
     def _records(key):
         recs = card.get(key) or []
@@ -183,15 +205,25 @@ def check_card(card):
                 F("WELL_FORMED", "%s: %s[%d] is not an object" % (brand, key, i))
         return out
 
+    rule_ids = set()
     for r in _records("rules"):
         rid = r.get("id", "?")
+        rule_ids.add(r.get("id"))
         _provenance(r, "rule", rid)
-        if r.get("severity") not in SEVERITIES:
-            F("WELL_FORMED", "%s: rule '%s' severity %r not in %s" % (brand, rid, r.get("severity"),
+        sev = r.get("severity")
+        if sev not in SEVERITIES:
+            F("WELL_FORMED", "%s: rule '%s' severity %r not in %s" % (brand, rid, sev,
                                                                       sorted(SEVERITIES)))
         if _norm_domain(r.get("domain")) not in DOMAINS:
             W("UNKNOWN_DOMAIN", "%s: rule '%s' domain %r not a known brand domain"
               % (brand, rid, r.get("domain")))
+        # coherence: a 'must' (hard) rule on non-explicit evidence — don't mandate what wasn't stated
+        rc = r.get("confidence")
+        if sev == "must" and isinstance(rc, (int, float)) and not isinstance(rc, bool) \
+                and rc < CONFIDENCE_EXPLICIT:
+            W("WEAK_MANDATE", "%s: WEAK_MANDATE — rule '%s' is 'must' (hard) at confidence %.2f "
+              "(< %.2f explicit); don't hard-mandate what the source didn't explicitly state"
+              % (brand, rid, rc, CONFIDENCE_EXPLICIT))
     for tok in _records("tokens"):
         tid = tok.get("id", "?")
         _provenance(tok, "token", tid)
@@ -201,8 +233,13 @@ def check_card(card):
             W("BARE_TOKEN", "%s: BARE_TOKEN — '%s' has a value but no role+meaning (a palette, not a "
               "system)" % (brand, tid))
     for ex in _records("examples"):
+        eid = ex.get("id", "?")
         if not ex.get("evidence"):
-            W("UNTRACED_EXAMPLE", "%s: example '%s' has no evidence[]" % (brand, ex.get("id", "?")))
+            W("UNTRACED_EXAMPLE", "%s: example '%s' has no evidence[]" % (brand, eid))
+        for ref in ex.get("rules_demonstrated") or []:
+            if ref not in rule_ids:
+                W("DANGLING_REF", "%s: DANGLING_REF — example '%s' demonstrates rule '%s', which is "
+                  "not in the card (a broken retrieval link — B5)" % (brand, eid, ref))
 
     # contrast — the one accessibility joint a deck rarely proves by hand
     for p in _records("color_pairs"):
@@ -396,6 +433,35 @@ def selftest():
             continue
         if not mfails:
             errs.append("malformed card %r produced no FAIL" % (bad,))
+    # coherence smells (must-flag): a 'must' rule + an 'observed' token, both at 0.80 (< 0.90 explicit,
+    # but >= 0.75 so LOW_CONFIDENCE stays quiet — isolating the two coherence checks)
+    coh, cw = check_card({"strategy": {"brand_idea": "Agreements are dynamic moments of connection."},
+                          "rules": [{"id": "m", "domain": "mark", "statement": "x", "severity": "must",
+                                     "evidence": _EV, "confidence": 0.80, "truth": "inferred"}],
+                          "tokens": [{"id": "tk", "type": "color", "role": "text", "value": "#000",
+                                      "meaning": "ink", "evidence": _EV, "confidence": 0.80,
+                                      "truth": "observed"}]})
+    ck = {k for k, _ in cw}
+    for kind in ["WEAK_MANDATE", "TRUTH_CONFIDENCE_MISMATCH"]:
+        if kind not in ck:
+            errs.append("coherence smell %s not raised (warn kinds=%s)" % (kind, sorted(ck)))
+    # …must-NOT-flag: a 'should' rule and an 'inferred' record at the same 0.80 are coherent
+    _ok, okw = check_card({"strategy": {"brand_idea": "Agreements are dynamic moments of connection."},
+                           "rules": [{"id": "s", "domain": "mark", "statement": "x", "severity": "should",
+                                      "evidence": _EV, "confidence": 0.80, "truth": "inferred"}]})
+    if any(k in ("WEAK_MANDATE", "TRUTH_CONFIDENCE_MISMATCH") for k, _ in okw):
+        errs.append("coherence smell false-positive on a should/inferred record (warns=%s)" % okw)
+    # evidence integrity (must-flag): a dangling rules_demonstrated ref + a pointer-less evidence entry
+    _ef2, ew2 = check_card({"strategy": {"brand_idea": "Agreements are dynamic moments of connection."},
+                            "rules": [{"id": "real", "domain": "mark", "statement": "x",
+                                       "severity": "should", "evidence": [{"note": "trust me"}],
+                                       "confidence": 0.80, "truth": "inferred"}],
+                            "examples": [{"id": "e", "surface": "web", "description": "d",
+                                          "rules_demonstrated": ["ghost"], "evidence": _EV}]})
+    ek = {k for k, _ in ew2}
+    for kind in ["DANGLING_REF", "THIN_EVIDENCE"]:
+        if kind not in ek:
+            errs.append("evidence-integrity %s not raised (warn kinds=%s)" % (kind, sorted(ek)))
     return errs
 
 

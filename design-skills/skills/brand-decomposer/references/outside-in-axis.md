@@ -41,6 +41,17 @@ collapsed.** This is the trust contract; full detail in `references/evidence-and
   Fusing what the slide *shows* with what the system *infers* with what the agent *proposes* destroys
   the reader's ability to tell a rule from a guess.
 
+Three **coherence smells** (advisory, on top of the gate) sharpen B2 beyond bare presence:
+
+- **`THIN_EVIDENCE`** — an `evidence[]` entry is *present* but carries no `deck_id` / `slide_id` /
+  `source_url`: it points nowhere. (The gate still can't prove the id is *real* — confirm that out of
+  band — but it can prove the pointer exists.)
+- **`WEAK_MANDATE`** — a `must` (hard) rule at `confidence < 0.90`. The `0.90–1.00` band is "explicitly
+  stated"; hard-mandating something the deck didn't explicitly state is a severity↔band incoherence.
+- **`TRUTH_CONFIDENCE_MISMATCH`** — an `observed` record at `confidence < 0.90`. A *direct observation*
+  you are only tentatively sure of is really an **inference** — the truth band and the confidence band
+  disagree.
+
 ## B3 · Accessible `[gate]` — mechanized
 
 The one accessibility joint a deck **almost never proves by hand**: every declared color role-pair
@@ -83,6 +94,10 @@ The spec passes B5 when it can answer all six agent-readiness questions:
 
 A rule without a **context** (where it applies / where it does not) cannot be retrieved correctly — it
 will fire on the wrong surface. *Rules know where they apply* is the corpus's "Contextual" quality bar.
+
+One mechanizable B5 smell (advisory): **`DANGLING_REF`** — an example's `rules_demonstrated[]` names a
+rule `id` that is **not in the card**. The link an agent would follow to retrieve the demonstrated rule
+is broken; the example over-claims a rule that does not exist.
 
 ## Scoring the outside-in axis — and the discipline
 

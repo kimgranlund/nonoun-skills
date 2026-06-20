@@ -77,8 +77,12 @@ ability to tell a documented rule from a guess from a recommendation.
 `brand-spec-check.py` mechanizes the **claim/rule/token QA** that is arithmetic:
 
 - Every typed record has `evidence[]` and a `confidence` in `[0,1]`. *(UNTRACED, range checks)*
+- Each evidence entry actually **points somewhere** — a `deck_id` / `slide_id` / `source_url`, not a
+  bare note. *(THIN_EVIDENCE — structural; it still can't prove the id is real)*
 - Inferred records below `0.75` are review-flagged. *(LOW_CONFIDENCE)*
 - `truth` is one of the three. *(COLLAPSED_TRUTH)*
+- The **band agrees with the claim**: a `must` (hard) rule and an `observed` record are *explicit*
+  (`≥ 0.90`); a tentative one is a coherence smell. *(WEAK_MANDATE, TRUTH_CONFIDENCE_MISMATCH)*
 - Severity, token type in their enums; tokens have role + meaning. *(WELL_FORMED, BARE_TOKEN)*
 
 It **cannot** mechanize the judgment QA — you must still confirm by reading:
