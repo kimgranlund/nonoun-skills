@@ -1,0 +1,195 @@
+{
+  "brand": "Empower",
+  "strategy": {
+    "brand_idea": "Empowering people to do their best work.",
+    "meaning_chain": [
+      "idea",
+      "voice",
+      "mark",
+      "color",
+      "type"
+    ]
+  },
+  "domains": {
+    "mark": {},
+    "voice": {},
+    "color": {},
+    "type": {},
+    "expression": {},
+    "governance": {}
+  },
+  "tokens": [
+    {
+      "id": "color.primary",
+      "type": "color",
+      "role": "accent",
+      "value": "#2d6cdf",
+      "meaning": "primary brand blue",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.95,
+      "truth": "observed"
+    },
+    {
+      "id": "color.surface",
+      "type": "color",
+      "role": "background",
+      "value": "#ffffff",
+      "meaning": "default surface",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.95,
+      "truth": "observed"
+    },
+    {
+      "id": "type.body",
+      "type": "type",
+      "role": "body",
+      "value": "Inter / 16px",
+      "meaning": "clean modern sans for readability",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.95,
+      "truth": "observed"
+    }
+  ],
+  "rules": [
+    {
+      "id": "mark.space",
+      "domain": "mark",
+      "statement": "Keep clearspace around the logo.",
+      "severity": "must",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.95,
+      "truth": "observed"
+    },
+    {
+      "id": "voice.tone",
+      "domain": "voice",
+      "statement": "Write in a clear, friendly, human tone.",
+      "severity": "should",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.95,
+      "truth": "observed"
+    },
+    {
+      "id": "color.use",
+      "domain": "color",
+      "statement": "Use the primary color for emphasis and CTAs.",
+      "severity": "should",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.95,
+      "truth": "observed"
+    },
+    {
+      "id": "type.hier",
+      "domain": "type",
+      "statement": "Maintain a clear typographic hierarchy.",
+      "severity": "should",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.95,
+      "truth": "observed"
+    },
+    {
+      "id": "expr.grid",
+      "domain": "expression",
+      "statement": "Use a consistent grid and generous whitespace.",
+      "severity": "should",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.95,
+      "truth": "observed"
+    },
+    {
+      "id": "gov.owner",
+      "domain": "governance",
+      "statement": "The brand team owns and approves changes.",
+      "severity": "must",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.95,
+      "truth": "observed"
+    }
+  ],
+  "examples": [
+    {
+      "id": "ex.web",
+      "surface": "homepage",
+      "description": "A clean hero with the primary CTA.",
+      "rules_demonstrated": [
+        "color.use"
+      ],
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ]
+    }
+  ],
+  "surfaces": [
+    "homepage",
+    "product-ui",
+    "social",
+    "email"
+  ],
+  "color_pairs": [
+    {
+      "name": "ink on white",
+      "fg": "#1a1a2e",
+      "bg": "#ffffff",
+      "size": "normal",
+      "role": "text"
+    }
+  ]
+}

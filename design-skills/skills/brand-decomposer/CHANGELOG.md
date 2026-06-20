@@ -120,3 +120,16 @@ GREEN fixture (no false positives), each locked by a fixture:
   with must-NOT-flag fixtures too (a `should` rule / an `inferred` record at the same confidence stays
   quiet). *(The sketched token role↔type mismatch was dropped — role is free-text, no low-false-positive
   deterministic form.)*
+
+### Added — the operable-but-hollow fixture (the quadrant the gate can't see)
+
+- **`examples/empower.hollow.brand.json`** — a third fixture for the **operable-but-hollow** quadrant
+  (high B, low A). It is fully typed, traced, accessible, complete, and band-coherent, so it passes
+  **every mechanizable gate clean** (`--json`: 0 findings, `ok:true`) — yet the brand idea is generic
+  ("Empowering people to do their best work."), the voice rule is only adjectives, and the meaning chain
+  is decorative. `GENERIC_IDEA` can't catch it (the idea isn't *pure* adjective/filler salad). This is
+  the concrete proof that the gate is **necessary, not sufficient** and that the adversarial
+  idea-refutation (axis A) is the only thing that catches a subtly-hollow brand — directly answering the
+  adversarial review's open Surface-4 question ("can a hollow brand pass the whole skill?" — yes, if the
+  refutation is skipped). The selftest asserts the card produces **zero** findings and that
+  `GENERIC_IDEA` does **not** fire; a new walkthrough section (§3) demonstrates the B=5 / A=1 grade.

@@ -43,6 +43,7 @@
     "examples/walkthrough.md",
     "examples/docusign.green.brand.json",
     "examples/acme.red.brand.json",
+    "examples/empower.hollow.brand.json",
     "brand-decomposer.corpus.json",
     "CHANGELOG.md",
     "ROADMAP.md"

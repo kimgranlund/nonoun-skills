@@ -76,7 +76,35 @@ python3 bin/brand-spec-check.py contrast "#130032" "#ffffff"     #  19.56:1  (AA
 The `--json` form (`lint … --json`) emits the shared `{tool, ok, summary, findings[]}` report for
 piping into a harness.
 
-## 3 · CRITIQUE work against the validated DocuSign spec
+## 3 · The operable-but-hollow quadrant — why the gate is *necessary, not sufficient*
+
+Acme fails both axes loudly. The dangerous case is quieter: a brand that is **fully operable yet
+hollow** (high B, low A). `empower.hollow.brand.json` is exactly typed, traced, accessible, complete,
+and band-coherent — so it passes **every mechanizable gate clean**:
+
+```sh
+python3 bin/brand-spec-check.py lint examples/empower.hollow.brand.json
+# brand-spec-check: OK — operability gates clear (well-formed, traced, accessible, complete);
+#                   the meaning axis is judged separately       (--json: 0 findings, ok:true → B = 5)
+```
+
+But read the idea: *"Empowering people to do their best work."* Any SaaS company could copy-paste it.
+The voice rule is only adjectives ("clear, friendly, human"); the meaning chain lists `idea→voice→mark→
+color→type` but no link is *forced* by the idea. The gate cannot see any of this — `GENERIC_IDEA` only
+catches *pure* adjective/filler salad, and "empowering / best / work" reads as substantive. **This is
+the whole point of the skill.** Run the **adversarial idea-refutation** (a skeptic in a fresh context):
+
+- *Could a competitor copy-paste this idea?* Yes → **fails A1.**
+- *Does each chain link force its primitive?* No — "clean modern sans because it's readable" is
+  decorative → **the chain is hollow.**
+- *Is the voice a behavior or adjectives?* Adjectives → **fails A3.**
+
+**Verdict:** B = 5, A = 1 → **operable but hollow** — the quadrant a green gate hides. A spec can reach
+this state and *pass the bin completely*; only the axis-A refutation catches it. That is why the skill
+**scores the two axes separately** and why a clean `brand-spec-check` run is **necessary, not
+sufficient**: it proves the brand is *operable*, never that it is *good*.
+
+## 4 · CRITIQUE work against the validated DocuSign spec
 
 CRITIQUE requires a spec that **passes the gate** — DocuSign does, Acme does not (so critiquing against
 Acme would be ungrounded). Suppose the work is a campaign hero that paints the whole viewport in the

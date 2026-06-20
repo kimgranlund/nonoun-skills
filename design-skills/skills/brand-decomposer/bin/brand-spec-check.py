@@ -337,6 +337,50 @@ RED = {
     "color_pairs": [{"name": "grey on white", "fg": "#9aa0a6", "bg": "#ffffff", "size": "normal",
                      "role": "text"}],
 }
+# HOLLOW — the OPERABLE-BUT-HOLLOW quadrant (high B, low A). It is fully typed, traced (every evidence
+# points somewhere), accessible, complete, and band-coherent — so it passes EVERY mechanizable gate
+# clean. Yet the brand idea is generic ("empowering people to do their best work" — any SaaS could
+# copy-paste it), the voice rule is only adjectives, and the meaning chain is decorative. The gate
+# CANNOT see this — it is the proof that brand-spec-check is necessary, not sufficient, and that the
+# adversarial idea-refutation (axis A) is essential. The selftest asserts this card produces ZERO
+# findings.
+HOLLOW = {
+    "brand": "Empower",
+    "strategy": {
+        "brand_idea": "Empowering people to do their best work.",
+        "meaning_chain": ["idea", "voice", "mark", "color", "type"],
+    },
+    "domains": {d: {} for d in DOMAINS},
+    "tokens": [
+        {"id": "color.primary", "type": "color", "role": "accent", "value": "#2d6cdf",
+         "meaning": "primary brand blue", "evidence": _EV, "confidence": 0.95, "truth": "observed"},
+        {"id": "color.surface", "type": "color", "role": "background", "value": "#ffffff",
+         "meaning": "default surface", "evidence": _EV, "confidence": 0.95, "truth": "observed"},
+        {"id": "type.body", "type": "type", "role": "body", "value": "Inter / 16px",
+         "meaning": "clean modern sans for readability", "evidence": _EV, "confidence": 0.95,
+         "truth": "observed"},
+    ],
+    "rules": [
+        {"id": "mark.space", "domain": "mark", "statement": "Keep clearspace around the logo.",
+         "severity": "must", "evidence": _EV, "confidence": 0.95, "truth": "observed"},
+        {"id": "voice.tone", "domain": "voice", "statement": "Write in a clear, friendly, human tone.",
+         "severity": "should", "evidence": _EV, "confidence": 0.95, "truth": "observed"},
+        {"id": "color.use", "domain": "color", "statement": "Use the primary color for emphasis and "
+         "CTAs.", "severity": "should", "evidence": _EV, "confidence": 0.95, "truth": "observed"},
+        {"id": "type.hier", "domain": "type", "statement": "Maintain a clear typographic hierarchy.",
+         "severity": "should", "evidence": _EV, "confidence": 0.95, "truth": "observed"},
+        {"id": "expr.grid", "domain": "expression", "statement": "Use a consistent grid and generous "
+         "whitespace.", "severity": "should", "evidence": _EV, "confidence": 0.95, "truth": "observed"},
+        {"id": "gov.owner", "domain": "governance", "statement": "The brand team owns and approves "
+         "changes.", "severity": "must", "evidence": _EV, "confidence": 0.95, "truth": "observed"},
+    ],
+    "examples": [
+        {"id": "ex.web", "surface": "homepage", "description": "A clean hero with the primary CTA.",
+         "rules_demonstrated": ["color.use"], "evidence": _EV}],
+    "surfaces": ["homepage", "product-ui", "social", "email"],
+    "color_pairs": [{"name": "ink on white", "fg": "#1a1a2e", "bg": "#ffffff", "size": "normal",
+                     "role": "text"}],
+}
 
 
 # --- the formal schema artifact (declarative contract) + a drift guard ------------------------
@@ -397,6 +441,15 @@ def selftest():
         errs.append("GREEN (DocuSign) card produced FAILs: %s" % gf)
     if gw:  # a complete, traced, accessible card must be clean of WARNs too (no false positives)
         errs.append("GREEN (DocuSign) card produced false-positive WARNs: %s" % gw)
+    # the OPERABLE-BUT-HOLLOW quadrant: a hollow brand wrapped in a perfect operating system MUST pass
+    # every mechanizable gate clean — the proof that the gate is necessary, not sufficient, and that
+    # the adversarial idea-refutation (axis A) is the only thing that catches this.
+    hf, hw = check_card(HOLLOW)
+    if hf or hw:
+        errs.append("HOLLOW (operable-but-hollow) card should pass clean but produced %s / %s" % (hf, hw))
+    if any(k == "GENERIC_IDEA" for k, _ in hf):
+        errs.append("HOLLOW idea was caught by GENERIC_IDEA — it is meant to EVADE the gate (the point "
+                    "is the gate can't see a subtly-hollow idea)")
     rf, rw = check_card(RED)
     rk = {k for k, _ in rf}
     # LOW_CONFIDENCE and COLLAPSED_TRUTH are GATE FAILS (B2), not advisories — assert they're in fails
