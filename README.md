@@ -2,7 +2,7 @@
 
 A home + marketplace for **general-purpose Claude Code skills** — domain-agnostic authoring aids that aren't tied to any one plugin's job. Versioned, validated, and installable, kept separate from the product plugins (which live in [`nonoun-plugins`](https://github.com/kimgranlund/nonoun-plugins)) so the skills don't bloat a plugin's standing context or stretch its scope.
 
-Skills ship as cohesive **skill-bundle plugins** — a plugin that bundles only skills (no commands, agents, or MCP). The repo holds **11 plugins / 37 skills**, and the spine running through most of them is one technique: the **decomposer**.
+Skills ship as cohesive **skill-bundle plugins** — a plugin that bundles only skills (no commands, agents, or MCP). The repo holds **11 plugins / 38 skills**, and the spine running through most of them is one technique: the **decomposer**.
 
 → Building a skill? See **[HOWTO.md](HOWTO.md)**. Repo history: **[CHANGELOG.md](CHANGELOG.md)**. What's next: **[ROADMAP.md](ROADMAP.md)**.
 
@@ -22,6 +22,7 @@ The same shape, specialized per domain — the axis pair is the skill's fingerpr
 | **layout-decomposer** | design | OUTSIDE-IN × INSIDE-OUT | — (ASCII-wireframe archetype library) |
 | **mermaid-decomposer** | design | INTENT × RENDER | `mermaid-render-check.py` (keyword gate + `mmdc`) |
 | **component-decomposer** | design | COMPOSE × REALIZE | `geometry-check.py` (the (h−glyph)/2 law) · `component-contract-check.py` |
+| **brand-decomposer** | design | MEANING × OPERABILITY | `brand-spec-check.py` (schema/provenance/WCAG-contrast/completeness) |
 | **code-decomposer** | code | SPEC × EXECUTION | `execution-harness.py` · `test-vacuity-check.py` |
 | **regex-decomposer** | code | LANGUAGE × MATCH | `regex-check.py` (example-set + ReDoS smell) |
 | **query-decomposer** | code | SEMANTICS × EXECUTION | `sql-lint.py` · `query-harness.py` (EXPLAIN/dry-run) |
@@ -37,7 +38,7 @@ The non-decomposer skills follow two other vintages: deep **reference** skills t
 
 | Plugin | Domain | Skills |
 | --- | --- | --- |
-| **design-skills** | UI / visual | decomposers `layout-` · `mermaid-` · `component-decomposer` · reference `color-science` · `typography-lettering` · `ref-polyfills` · verifiers `color-` · `focus-` · `i18n-` · `perf-` · `safety-verifier` |
+| **design-skills** | UI / visual | decomposers `layout-` · `mermaid-` · `component-` · `brand-decomposer` · reference `color-science` · `typography-lettering` · `ref-polyfills` · verifiers `color-` · `focus-` · `i18n-` · `perf-` · `safety-verifier` |
 | **code-skills** | engineering | `code-` · `regex-` · `query-` · `type-` · `architecture-decomposer` (decomposers) · `figma-plugins` (domain build) |
 | **data-skills** | structured data | `extraction-decomposer` |
 | **meta-skills** | skills about skills | `routing-decomposer` |
@@ -51,7 +52,7 @@ The non-decomposer skills follow two other vintages: deep **reference** skills t
 
 What each carries:
 
-- **design-skills** — `layout-decomposer` (read/grade/design a UI, with a four-archetype ASCII-wireframe library) · `mermaid-decomposer` (advanced Mermaid on a verbatim 11-type syntax catalog + a mechanized render-check) · `component-decomposer` (a zero-dependency web component *and* how components compose — nest/wire — up to the module, with a deterministic geometry engine — every glyph centered in a square cell, so edge padding = (height − glyph)/2 — plus a composition-card linter; hands the app shell up to layout-decomposer) · `color-science` (perceptual color + a TypeScript color library + 54 interactive demos) · `typography-lettering` (type anatomy → world scripts → the modern CSS text surface) · `ref-polyfills` (CSS/JS feature support, polyfills, the Baseline landscape) · the **verifiers** `color-`/`focus-`/`i18n-`/`perf-`/`safety-verifier` (gate a UI surface on contrast, focus order, i18n, perf budgets, and safety — each a card-based `bin/` check).
+- **design-skills** — `layout-decomposer` (read/grade/design a UI, with a four-archetype ASCII-wireframe library) · `mermaid-decomposer` (advanced Mermaid on a verbatim 11-type syntax catalog + a mechanized render-check) · `component-decomposer` (a zero-dependency web component *and* how components compose — nest/wire — up to the module, with a deterministic geometry engine — every glyph centered in a square cell, so edge padding = (height − glyph)/2 — plus a composition-card linter; hands the app shell up to layout-decomposer) · `brand-decomposer` (a brand-guidelines spec graded as an *operating system* — INSIDE-OUT meaning × OUTSIDE-IN operability — with a 100-pt rubric, an evidence/confidence/three-truths trust model, a stdlib operability gate (schema/provenance/WCAG-contrast/completeness), and a CRITIQUE mode that grounds work-critique in a validated spec) · `color-science` (perceptual color + a TypeScript color library + 54 interactive demos) · `typography-lettering` (type anatomy → world scripts → the modern CSS text surface) · `ref-polyfills` (CSS/JS feature support, polyfills, the Baseline landscape) · the **verifiers** `color-`/`focus-`/`i18n-`/`perf-`/`safety-verifier` (gate a UI surface on contrast, focus order, i18n, perf budgets, and safety — each a card-based `bin/` check).
 - **code-skills** — `code-decomposer` (a unit of code: right + provably runs, with an execution harness and a test-vacuity linter that attacks the "green but wrong" quadrant) · `regex-decomposer` (a pattern that means the right language and won't ReDoS) · `query-decomposer` (a SQL query at the right grain that actually plans) · `type-decomposer` (make illegal states unrepresentable, proven by legal/illegal instance sets) · `architecture-decomposer` (a system on STRUCTURE × INTEGRITY, with an acyclicity/layering/coupling checker) · `figma-plugins` (build/test Figma plugins across the sandbox↔iframe message bridge).
 - **data-skills** — `extraction-decomposer` (is a structured extraction both schema-valid *and* true to its source — the instructive inversion where the cheap gate isn't the dangerous axis).
 - **meta-skills** — `routing-decomposer` (does a skill's frontmatter description fire on the right requests and hold against the wrong ones — graded by a mechanized routing eval).

@@ -4,6 +4,28 @@ Notable changes to the **nonoun-skills marketplace** — plugins, the gate, and 
 Each skill also keeps its own `CHANGELOG.md`; this file tracks the repo as a whole. Entries are
 grouped by date; the first tagged release is **v0.2.0** (2026-06-17).
 
+## 2026-06-20 — new skill: brand-decomposer (design-skills → 0.7.0)
+
+- **brand-decomposer (draft, 0.1.0)** — the fourth crossing-axis decomposer in `design-skills`, and the
+  first to make *brand* gradeable. Built from an analysis of a 21-file agentic brand-guidelines corpus
+  (the DocuSign-and-16-peers Deck.gallery reference set), which reframes a brand from "taste" into a
+  typed, evidence-linked **operating system** with deterministic properties. Axes: **A · INSIDE-OUT
+  (meaning)** — brand idea → meaning chain → primitives express it → range → governance, scored by a
+  100-point rubric — × **B · OUTSIDE-IN (operability)** — well-formed → traced & trusted (evidence +
+  confidence + three-truths) → accessible (WCAG) → complete → retrievable, routed to a stdlib
+  `bin/brand-spec-check.py`. Opposite defects: *beautiful but unusable* (right meaning, won't operate)
+  vs *typed but hollow* (operable, generic idea). Ships nine references, a green/red fixture pair, a
+  worked walkthrough, a sibling-collision-tested routing corpus, and a **CRITIQUE mode** that grounds
+  design-**work** critique in a *validated* spec (name the mechanism, never "off-brand") — fenced
+  against the `brand-forge` makers/judges (`brand-muse`/`brand-copywriter`/`brand-council`/
+  `brand-evaluate`). Marketplace now **11 plugins / 38 skills**; the gate runs **28 bin selftests**.
+- **brand-spec-check hardening (locked as fixtures).** A GENERIC_IDEA stopword false-negative
+  (`"Modern, bold, and simple."` read as non-generic because "and" isn't an adjective) and a
+  schema-faithfulness gap (the `severity` enum aligned to the corpus's `{must, should, may}`; corpus
+  fine-grained `brand_domain` values normalized to the six rubric domains) — both caught by the bin's
+  own selftest and locked with adversarial fixtures (incl. a bool-`confidence` rejection and a
+  zero-false-positive-WARN check on the green card).
+
 ## 2026-06-19 — post-v0.3.0 cross-cutting work
 
 - **Behavioral-eval method piloted + templated** — a new root [`behavioral-eval-method.md`](behavioral-eval-method.md):

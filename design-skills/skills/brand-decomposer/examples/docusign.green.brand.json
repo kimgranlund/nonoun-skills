@@ -1,0 +1,199 @@
+{
+  "brand": "DocuSign",
+  "strategy": {
+    "brand_idea": "Agreements are dynamic moments of connection, not static documents \u2014 make the moment of agreement feel like forward progress.",
+    "meaning_chain": [
+      "idea",
+      "voice",
+      "mark",
+      "color",
+      "type",
+      "layout",
+      "imagery",
+      "apps"
+    ]
+  },
+  "domains": {
+    "mark": {},
+    "voice": {},
+    "color": {},
+    "type": {},
+    "expression": {},
+    "governance": {}
+  },
+  "tokens": [
+    {
+      "id": "color.ink",
+      "type": "color",
+      "role": "text",
+      "value": "#130032",
+      "meaning": "primary ink for body and headlines",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.95,
+      "truth": "observed"
+    },
+    {
+      "id": "color.surface",
+      "type": "color",
+      "role": "background",
+      "value": "#ffffff",
+      "meaning": "default light surface",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.95,
+      "truth": "observed"
+    },
+    {
+      "id": "type.display",
+      "type": "type",
+      "role": "display",
+      "value": "DS Indigo / 48-72px",
+      "meaning": "expressive headline voice",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.9,
+      "truth": "observed"
+    }
+  ],
+  "rules": [
+    {
+      "id": "mark.clearspace",
+      "domain": "mark",
+      "statement": "Maintain clearspace = the height of the logomark on all sides.",
+      "severity": "must",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.95,
+      "truth": "observed"
+    },
+    {
+      "id": "voice.active",
+      "domain": "voice",
+      "statement": "Write agreements as active progress, never static 'document management'.",
+      "severity": "should",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.85,
+      "truth": "inferred"
+    },
+    {
+      "id": "color.activation",
+      "domain": "color",
+      "statement": "Use the primary as an activation accent, not a full-field background.",
+      "severity": "should",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.8,
+      "truth": "inferred"
+    },
+    {
+      "id": "type.scale",
+      "domain": "type",
+      "statement": "Use the modular display/body scale; never set display below 32px.",
+      "severity": "should",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.9,
+      "truth": "observed"
+    },
+    {
+      "id": "expr.grid",
+      "domain": "expression",
+      "statement": "8pt grid; imagery is product-true, not stock.",
+      "severity": "should",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.8,
+      "truth": "inferred"
+    },
+    {
+      "id": "gov.partner",
+      "domain": "governance",
+      "statement": "Partner lockups require brand-team approval.",
+      "severity": "must",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.9,
+      "truth": "observed"
+    }
+  ],
+  "examples": [
+    {
+      "id": "ex.ui",
+      "surface": "product-ui",
+      "description": "A high-trust signing moment: neutral system carries the base, primary only as the activation CTA.",
+      "rules_demonstrated": [
+        "color.activation"
+      ],
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ]
+    }
+  ],
+  "surfaces": [
+    "homepage",
+    "product-ui",
+    "social",
+    "email",
+    "campaign"
+  ],
+  "color_pairs": [
+    {
+      "name": "ink on surface",
+      "fg": "#130032",
+      "bg": "#ffffff",
+      "size": "normal",
+      "role": "text"
+    }
+  ]
+}

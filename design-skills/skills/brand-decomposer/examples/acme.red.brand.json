@@ -1,0 +1,60 @@
+{
+  "brand": "Acme",
+  "strategy": {
+    "brand_idea": "Modern, bold, and simple.",
+    "meaning_chain": [
+      "idea",
+      "color"
+    ]
+  },
+  "domains": {
+    "color": {},
+    "type": {}
+  },
+  "tokens": [
+    {
+      "id": "color.brand",
+      "type": "color",
+      "value": "#9aa0a6",
+      "evidence": [],
+      "confidence": 0.6
+    }
+  ],
+  "rules": [
+    {
+      "id": "r1",
+      "domain": "color",
+      "statement": "Use the brand grey.",
+      "severity": "should",
+      "evidence": [],
+      "confidence": 0.6,
+      "truth": "inferred"
+    },
+    {
+      "id": "r2",
+      "domain": "voice",
+      "statement": "Be bold.",
+      "severity": "loud",
+      "evidence": [
+        {
+          "deck_id": "docusign-2024",
+          "slide_id": "docusign-2024-slide-007",
+          "confidence": 0.92
+        }
+      ],
+      "confidence": 0.55,
+      "truth": "guess"
+    }
+  ],
+  "examples": [],
+  "surfaces": [],
+  "color_pairs": [
+    {
+      "name": "grey on white",
+      "fg": "#9aa0a6",
+      "bg": "#ffffff",
+      "size": "normal",
+      "role": "text"
+    }
+  ]
+}

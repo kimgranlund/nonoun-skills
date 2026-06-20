@@ -1,0 +1,38 @@
+{
+  "skill": "brand-decomposer",
+  "_note": "brand-decomposer's checked-in routing corpus. This is a LEXICAL-OVERLAP legibility aid, NOT a verdict — routing-eval.py measures token overlap between a phrase and the description only. Positives span the invocation families (imperative 'grade/decompose this brand book', diagnostic 'is this brand spec usable / an operating system', symptom 'generic idea / palette without roles / unsourced rules / voice is only adjectives', object-first 'this brand guidelines document', the CRITIQUE family 'does this work align to the brand system', plus 2-3 indirect paraphrases). The indirect positives ('beautiful but no one can use it') are deliberately low-overlap and MAY score recall 0 here — a proxy limit, not a description defect. Negatives are drawn ADVERSARIALLY from the most CONFUSABLE neighbours: the brand-forge MAKERS/JUDGES (brand-muse, brand-copywriter, brand-council, brand-evaluate — this skill grades the SPEC and aligns work to it; it neither makes the brand nor passes expert-taste judgment), and the design-skills siblings it fences against (layout-decomposer, color-verifier, color-science, typography-lettering), plus near-miss decomposers. Each negative belongs to a NAMED peer. Re-derive when the neighbourhood changes.",
+  "siblings_in_repo": ["layout-decomposer", "color-verifier", "color-science", "typography-lettering", "component-decomposer", "config-decomposer"],
+  "global_peers": ["brand-muse", "brand-copywriter", "brand-council", "brand-evaluate"],
+  "positives": [
+    "grade this brand book on the two axes",
+    "decompose this brand guidelines deck and tell me if it's right",
+    "is this brand spec actually usable by an agency or an agent",
+    "is this brand book an operating system or just a logo rulebook",
+    "this brand idea is generic and could belong to any competitor",
+    "the color section is a palette with no roles, ratios, or contrast",
+    "every rule in this brand book is unsourced with no evidence",
+    "the voice section is only adjectives, not writing behavior",
+    "are the brand rules traced to evidence with a confidence band",
+    "does this brand spec keep observed, inferred, and proposed separate",
+    "all six brand domains aren't covered and there are no surface examples",
+    "help me structure this brand into a typed, evidence-linked spec",
+    "critique this campaign against our documented brand guidelines",
+    "does this homepage align with the brand system, and which rule",
+    "this brand deck is beautiful but no one can actually use it",
+    "can an agent retrieve and cite anything from this brand book"
+  ],
+  "negatives": [
+    "invent a brand idea and positioning for my startup",
+    "write the brand's tagline, name, and body copy",
+    "what would the brand council or Paula S. say about this identity",
+    "is this brand work brilliant and differentiated enough",
+    "name the highest version of this brand to aspire to",
+    "grade this page layout and wireframe on two axes",
+    "measure the rendered contrast and color-blind safety of this UI",
+    "explain the perceptual color science behind this palette",
+    "teach me type anatomy and how to set this typeface in CSS",
+    "decompose and grade how these components compose into a module",
+    "grade this IaC config artifact on intent and validity",
+    "run the product council on this PRD"
+  ]
+}
