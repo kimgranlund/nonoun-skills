@@ -18,8 +18,10 @@ routed here so a beautiful-but-unusable spec can't pass on looks:
                    rubric's #1 weak signal: specific enough that a competitor couldn't copy-paste it
   INCOMPLETE       a rubric domain (mark · voice · color · type · expression · governance) with no
                    rule or token, or no surface coverage — the spec can't answer "how here?"
-  THIN_EVIDENCE    an evidence[] entry present but with no deck_id/slide_id/source_url (points nowhere)
+  THIN_EVIDENCE    evidence present but no entry points to a deck_id/slide_id/source_url (a non-list,
+                   a list of bare strings, or only pointer-less dicts)
   DANGLING_REF     an example's rules_demonstrated names a rule id not in the card (broken retrieval, B5)
+  UNACTIONABLE     a rule with no statement — it can't say what to do (corpus bar: "rule is actionable")
   WEAK_MANDATE     a 'must' (hard) rule at confidence < 0.90 — mandating what the deck didn't explicitly
                    state (band↔severity coherence)
   TRUTH_CONFIDENCE_MISMATCH  an 'observed' record at confidence < 0.90 — a direct observation you're
@@ -165,12 +167,13 @@ def check_card(card):
         if not ev:
             F("UNTRACED", "%s: UNTRACED — %s '%s' has no evidence[] (every non-obvious claim needs a "
               "source)" % (brand, kind, rid))
-        elif isinstance(ev, list) and any(
-                isinstance(e, dict) and not (e.get("deck_id") or e.get("slide_id") or e.get("source_url"))
+        elif not isinstance(ev, list) or not any(
+                isinstance(e, dict) and (e.get("deck_id") or e.get("slide_id") or e.get("source_url"))
                 for e in ev):
-            # present but pointing nowhere — a structural strengthening of the presence-only check (it
-            # still can't prove the deck_id is REAL; confirm that out of band)
-            W("THIN_EVIDENCE", "%s: THIN_EVIDENCE — %s '%s' has an evidence entry with no "
+            # present but NO entry points anywhere (a non-list evidence, a list of bare strings, or
+            # only pointer-less dicts) — a structural strengthening of the presence-only check. It still
+            # can't prove the deck_id is REAL; confirm that out of band.
+            W("THIN_EVIDENCE", "%s: THIN_EVIDENCE — %s '%s' evidence has no entry that points to a "
               "deck_id/slide_id/source_url (it points nowhere)" % (brand, kind, rid))
         conf = rec.get("confidence")
         is_num = isinstance(conf, (int, float)) and not isinstance(conf, bool)
@@ -214,6 +217,9 @@ def check_card(card):
         if sev not in SEVERITIES:
             F("WELL_FORMED", "%s: rule '%s' severity %r not in %s" % (brand, rid, sev,
                                                                       sorted(SEVERITIES)))
+        if not (isinstance(r.get("statement"), str) and r.get("statement").strip()):
+            W("UNACTIONABLE", "%s: UNACTIONABLE — rule '%s' has no statement (a rule must say what to "
+              "do; the corpus bar is 'rule is actionable')" % (brand, rid))
         if _norm_domain(r.get("domain")) not in DOMAINS:
             W("UNKNOWN_DOMAIN", "%s: rule '%s' domain %r not a known brand domain"
               % (brand, rid, r.get("domain")))
@@ -236,10 +242,12 @@ def check_card(card):
         eid = ex.get("id", "?")
         if not ex.get("evidence"):
             W("UNTRACED_EXAMPLE", "%s: example '%s' has no evidence[]" % (brand, eid))
-        for ref in ex.get("rules_demonstrated") or []:
-            if ref not in rule_ids:
-                W("DANGLING_REF", "%s: DANGLING_REF — example '%s' demonstrates rule '%s', which is "
-                  "not in the card (a broken retrieval link — B5)" % (brand, eid, ref))
+        rd = ex.get("rules_demonstrated")
+        if isinstance(rd, list):  # guard: a string here would otherwise iterate character-by-character
+            for ref in rd:
+                if ref not in rule_ids:
+                    W("DANGLING_REF", "%s: DANGLING_REF — example '%s' demonstrates rule '%s', which "
+                      "is not in the card (a broken retrieval link — B5)" % (brand, eid, ref))
 
     # contrast — the one accessibility joint a deck rarely proves by hand
     for p in _records("color_pairs"):
@@ -515,6 +523,30 @@ def selftest():
     for kind in ["DANGLING_REF", "THIN_EVIDENCE"]:
         if kind not in ek:
             errs.append("evidence-integrity %s not raised (warn kinds=%s)" % (kind, sorted(ek)))
+    # 2nd-review regressions (all caught by self-running the bin on crafted malformed shapes):
+    # THIN_EVIDENCE must also catch evidence that is a dict (not a list) and a list of bare strings…
+    for shape in ({"deck_id": "d"}, ["slide7"]):
+        _tf, tw = check_card({"strategy": {"brand_idea": "A concrete forcing idea about signing."},
+                              "rules": [{"id": "r", "domain": "mark", "statement": "x",
+                                         "severity": "should", "evidence": shape, "confidence": 0.80,
+                                         "truth": "inferred"}]})
+        if not any(k == "THIN_EVIDENCE" for k, _ in tw):
+            errs.append("THIN_EVIDENCE missed malformed evidence %r" % (shape,))
+    # …DANGLING_REF must NOT cascade over a string rules_demonstrated (iterating chars)
+    _df, dw = check_card({"strategy": {"brand_idea": "A concrete forcing idea about signing."},
+                          "rules": [{"id": "color.use", "domain": "color", "statement": "x",
+                                     "severity": "should", "evidence": _EV, "confidence": 0.9,
+                                     "truth": "observed"}],
+                          "examples": [{"id": "e", "surface": "web", "description": "d",
+                                        "rules_demonstrated": "color.use", "evidence": _EV}]})
+    if any(k == "DANGLING_REF" for k, _ in dw):
+        errs.append("DANGLING_REF cascaded over a string rules_demonstrated (should be guarded)")
+    # …UNACTIONABLE must flag a rule with no statement (schema-required; the bin had ignored it)
+    _uf, uw = check_card({"strategy": {"brand_idea": "A concrete forcing idea about signing."},
+                          "rules": [{"id": "r", "domain": "mark", "severity": "should",
+                                     "evidence": _EV, "confidence": 0.9, "truth": "observed"}]})
+    if not any(k == "UNACTIONABLE" for k, _ in uw):
+        errs.append("UNACTIONABLE not raised for a rule with no statement")
     return errs
 
 

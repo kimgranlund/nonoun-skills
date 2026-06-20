@@ -133,3 +133,24 @@ GREEN fixture (no false positives), each locked by a fixture:
   adversarial review's open Surface-4 question ("can a hollow brand pass the whole skill?" — yes, if the
   refutation is skipped). The selftest asserts the card produces **zero** findings and that
   `GENERIC_IDEA` does **not** fire; a new walkthrough section (§3) demonstrates the B=5 / A=1 grade.
+
+### Defect fixes — second adversarial pass over the NEW surfaces
+
+The schema/drift-guard, the four coherence checks, the type-guards, and the hollow fixture were all
+added *after* the first review, so a second pass (self-run when the reviewer agent was rate-limited)
+attacked them by crafting malformed cards and running the bin. Three real defects in the new code,
+fixed and locked as fixtures:
+
+- **(MAJOR) `DANGLING_REF` cascaded over a string `rules_demonstrated`** — a string (not a list) was
+  iterated character-by-character, emitting one false `DANGLING_REF` per character. Guarded with
+  `isinstance(rd, list)`; locked with a must-NOT-cascade fixture.
+- **(MAJOR) `THIN_EVIDENCE` false-negatives** — evidence as a *dict* (not a list), or a list of bare
+  strings, slipped through (truthy → no `UNTRACED`; not the old `any(pointer-less dict)` shape → no
+  `THIN_EVIDENCE`). Rewrote the test to fire when **no** entry points anywhere (catching non-list,
+  string-list, and pointer-less-dict evidence); locked with both malformed shapes as fixtures.
+- **(MINOR) the bin ignored `statement`** though the schema marks it required — a rule with no
+  statement is unactionable (the corpus's "rule is actionable" bar). Added `UNACTIONABLE`; locked with
+  a fixture. The bin's mechanizable surface is now **13 finding kinds**.
+
+The type-guards (no traceback on deeply-malformed cards) and the `0.90` coherence boundaries (a `must`
+rule / `observed` record at *exactly* 0.90 does not flag) were re-attacked and held.
