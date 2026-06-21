@@ -158,3 +158,22 @@ fixed and locked as fixtures:
 
 The type-guards (no traceback on deeply-malformed cards) and the `0.90` coherence boundaries (a `must`
 rule / `observed` record at *exactly* 0.90 does not flag) were re-attacked and held.
+
+### Added — the `project` (corpus → card) helper, closing the DECOMPOSE loop
+
+- **`brand-spec-check.py project <corpus-record.json>`** reads a corpus brand record in the dossier
+  shape (`examples/docusign_seed_example.json`: brand / deck / strategy{`brand_idea`,
+  `creative_platform`} / visual_identity{`mark_system`, `color_system`}) and projects it into a
+  gradeable card — mapping the idea (`claim` + `normalized_claim`), the mark, the colors, and the
+  creative platform into typed records, and **deriving `truth` from the confidence band** (≥0.90 →
+  `observed`, else `inferred`; a sub-0.75 inference is `review`-flagged) so the projection is
+  band-coherent by construction (no invented `must` mandates, no observed-but-unsure claims). Pipe
+  `project … | lint …` to grade an ingested corpus record directly.
+- **Verified end-to-end against the real DocuSign seed** (read from the unblocked corpus): the projected
+  card grades clean on the operability gates and honestly flags `INCOMPLETE` for the voice/type/
+  governance/surface coverage the *seed* lacks — the loop working as intended, with the missing work
+  named rather than papered over. Walkthrough §5 demonstrates it; the embedded `_CORPUS_SEED` fixture
+  locks the projector (brand/idea preserved, mark+expression rules, both colors → tokens, band
+  coherence, sub-0.75 review-flagging, deck_id defaulting, and a clean `ValueError` on a non-object
+  record). Closes the ROADMAP's `--corpus` item. *(The corpus leaves `brand_system`'s sub-objects open,
+  so the projector maps the example-demonstrated dossier shape; richer records extend the same mapping.)*

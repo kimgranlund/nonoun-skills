@@ -97,7 +97,10 @@ The non-obvious core, straight from the corpus, and the reason this earns a skil
 
 - **DECOMPOSE** — read an existing brand-guidelines artifact (a deck, a PDF, a Notion page) → recover
   the meaning chain and extract typed primitives into a brand-spec card → run `brand-spec-check.py` →
-  grade both axes. *"Is this brand book actually operable?"*
+  grade both axes. *"Is this brand book actually operable?"* When the source is already an *ingested
+  corpus record* (the dossier shape), `brand-spec-check.py project <record.json>` does the extraction
+  mechanically — mapping the idea/mark/colors/platform into typed records and deriving `truth` from the
+  confidence band — so you can pipe `project … | lint …` and read the grade (see `examples/walkthrough.md` §5).
 - **DESIGN** — inside-out down: lock the brand idea (A1) → propagate the meaning chain (A2) → declare
   the operability plan (which domains, surfaces, tokens, evidence) → emit a brand-spec card. *"Help me
   structure this brand into an operating system."*

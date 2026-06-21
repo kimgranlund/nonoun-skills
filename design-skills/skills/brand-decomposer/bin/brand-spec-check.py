@@ -37,6 +37,7 @@ score can still encode a generic, hollow brand.
   python3 bin/brand-spec-check.py selftest                    # green (DocuSign) / red (degraded) fixtures
   python3 bin/brand-spec-check.py lint <card> --json          # the shared {tool, ok, summary, findings} report
   python3 bin/brand-spec-check.py schema                      # print the formal card schema (to stdout)
+  python3 bin/brand-spec-check.py project <corpus-record.json> # DECOMPOSE a corpus dossier → a card (stdout)
 
 A *.brand.json card (the gradeable subset of the corpus schema — strategy + typed, evidence-linked
 primitives). The formal, declarative contract is ../schema/brand-spec.schema.json (the selftest
@@ -283,6 +284,87 @@ def check_card(card):
     return fails, warns
 
 
+# --- DECOMPOSE: project a corpus brand record into a gradeable card ----------------------------
+def _slug(s):
+    return re.sub(r"[^a-z0-9]+", "-", str(s).lower()).strip("-") or "x"
+
+
+def project_corpus(rec):
+    """Project a corpus brand record (the `examples/docusign_seed_example.json` dossier shape — brand /
+    deck / strategy{brand_idea, creative_platform} / visual_identity{mark_system, color_system}) into a
+    gradeable *.brand.json card. Best-effort and deliberately lossy: it maps the fields the corpus
+    actually carries and DERIVES `truth` from the confidence band (>=0.90 observed, else inferred; an
+    inference < 0.75 is review-flagged) so the projection is band-coherent by construction — no invented
+    `must` mandates, no observed-but-unsure records. Whatever the source lacks (voice, type, governance,
+    surfaces, hex values) is left absent, so the resulting grade honestly shows the gap rather than
+    papering over it. Raises ValueError on a non-object record."""
+    if not isinstance(rec, dict):
+        raise ValueError("corpus record must be a JSON object (got %s)" % type(rec).__name__)
+    deck_id = (rec.get("deck") or {}).get("id") if isinstance(rec.get("deck"), dict) else None
+
+    def _ev(evlist):
+        out = []
+        for x in evlist or []:
+            if isinstance(x, dict):
+                d = dict(x)
+                if deck_id and not d.get("deck_id"):
+                    d["deck_id"] = deck_id
+                out.append(d)
+        return out
+
+    def _conf(evlist):  # most-conservative confidence across the evidence
+        cs = [x["confidence"] for x in evlist or [] if isinstance(x, dict)
+              and isinstance(x.get("confidence"), (int, float)) and not isinstance(x.get("confidence"), bool)]
+        return min(cs) if cs else None
+
+    def _band(evlist):  # shared evidence / confidence / band-derived truth / review for a record
+        c = _conf(evlist)
+        d = {"evidence": _ev(evlist), "confidence": c,
+             "truth": "observed" if (c is not None and c >= CONFIDENCE_EXPLICIT) else "inferred"}
+        if c is not None and c < CONFIDENCE_REVIEW:
+            d["review"] = True
+        return d
+
+    def _claim_text(o):
+        if isinstance(o, dict):
+            return ": ".join(p for p in (o.get("claim"), o.get("normalized_claim")) if p)
+        return str(o or "")
+
+    strat = rec.get("strategy") or {}
+    vis = rec.get("visual_identity") or {}
+    rules, tokens, chain = [], [], ["idea"]
+
+    mark = (vis.get("mark_system") or {}).get("primary_symbol")
+    if isinstance(mark, dict):
+        rules.append(dict(id="mark.symbol", domain="mark", severity="should",
+                          statement="Primary symbol %r — %s" % (mark.get("name"), mark.get("meaning")),
+                          **_band(mark.get("evidence"))))
+        chain.append("mark")
+    for c in (vis.get("color_system") or {}).get("colors") or []:
+        if not isinstance(c, dict):
+            continue
+        tok = dict(id="color.%s" % _slug(c.get("name")), type="color", role=c.get("role"),
+                   meaning="%s (%s)" % (c.get("name"), c.get("role")), **_band(c.get("evidence")))
+        if c.get("value"):
+            tok["value"] = c["value"]
+        tokens.append(tok)
+    if tokens:
+        chain.append("color")
+    cp = strat.get("creative_platform")
+    if isinstance(cp, dict):
+        rules.append(dict(id="expr.platform", domain="expression", severity="should",
+                          statement=_claim_text(cp), **_band(cp.get("evidence"))))
+        chain.append("expression")
+
+    card = {"brand": rec.get("brand", "<corpus>"),
+            "strategy": {"brand_idea": _claim_text(strat.get("brand_idea")), "meaning_chain": chain}}
+    if rules:
+        card["rules"] = rules
+    if tokens:
+        card["tokens"] = tokens
+    return card
+
+
 # --- fixtures ----------------------------------------------------------------------------------
 _EV = [{"deck_id": "docusign-2024", "slide_id": "docusign-2024-slide-007", "confidence": 0.92}]
 GREEN = {
@@ -388,6 +470,27 @@ HOLLOW = {
     "surfaces": ["homepage", "product-ui", "social", "email"],
     "color_pairs": [{"name": "ink on white", "fg": "#1a1a2e", "bg": "#ffffff", "size": "normal",
                      "role": "text"}],
+}
+# _CORPUS_SEED — a record in the corpus dossier shape (examples/docusign_seed_example.json), used to
+# lock project_corpus(): a strong idea + creative platform, a mark, and two colors at different
+# confidence bands (0.85 strong → inferred; 0.60 → inferred + review-flagged).
+_CORPUS_SEED = {
+    "brand": "TestCo",
+    "deck": {"id": "testco-2024"},
+    "strategy": {
+        "brand_idea": {"claim": "A specific idea", "normalized_claim": "signing agreements as progress",
+                       "evidence": [{"slide_number": 1, "confidence": 0.92}]},
+        "creative_platform": {"claim": "Active connection", "normalized_claim": "motion expresses progress",
+                              "evidence": [{"slide_number": 2, "confidence": 0.9}]},
+    },
+    "visual_identity": {
+        "mark_system": {"primary_symbol": {"name": "Knot", "meaning": "two parties joining",
+                        "evidence": [{"slide_number": 3, "confidence": 0.88}]}},
+        "color_system": {"colors": [
+            {"name": "Cobalt", "role": "primary", "evidence": [{"slide_number": 4, "confidence": 0.85}]},
+            {"name": "Faint", "role": "tentative", "evidence": [{"slide_number": 5, "confidence": 0.60}]},
+        ]},
+    },
 }
 
 
@@ -547,6 +650,31 @@ def selftest():
                                      "evidence": _EV, "confidence": 0.9, "truth": "observed"}]})
     if not any(k == "UNACTIONABLE" for k, _ in uw):
         errs.append("UNACTIONABLE not raised for a rule with no statement")
+    # DECOMPOSE projector: a corpus record projects to a band-coherent, gradeable card
+    seed = project_corpus(_CORPUS_SEED)
+    if seed.get("brand") != "TestCo":
+        errs.append("projector lost brand")
+    if "signing" not in seed["strategy"]["brand_idea"]:
+        errs.append("projector dropped the normalized_claim from the idea")
+    if not {"mark", "expression"} <= {r["domain"] for r in seed.get("rules", [])}:
+        errs.append("projector missed the mark/expression rules")
+    if len(seed.get("tokens", [])) != 2:
+        errs.append("projector did not map both colors to tokens")
+    pf, pw = check_card(seed)
+    pk = {k for k, _ in pf} | {k for k, _ in pw}
+    for bad in ("TRUTH_CONFIDENCE_MISMATCH", "WEAK_MANDATE", "LOW_CONFIDENCE"):
+        if bad in pk:  # the band→truth derivation makes the projection coherent by construction
+            errs.append("projected card is NOT band-coherent: %s present (%s)" % (bad, sorted(pk)))
+    faint = [t for t in seed["tokens"] if t.get("confidence") == 0.60]
+    if not (faint and faint[0].get("review") is True):
+        errs.append("projector did not review-flag the sub-0.75 color")
+    if any(not e.get("deck_id") for r in seed.get("rules", []) for e in r.get("evidence", [])):
+        errs.append("projector did not default deck_id from the deck block")
+    try:
+        project_corpus(["not a dict"])
+        errs.append("project_corpus did not raise on a non-object record")
+    except ValueError:
+        pass
     return errs
 
 
@@ -599,6 +727,15 @@ def main(argv):
         except OSError as e:
             sys.stderr.write("brand-spec-check: schema unreadable (%s)\n" % e)
             return 2
+        return 0
+    if argv[0] == "project":
+        try:
+            rec = json.load(open(argv[1], encoding="utf-8"))
+            card = project_corpus(rec)
+        except (OSError, IndexError, json.JSONDecodeError, ValueError) as e:
+            sys.stderr.write("brand-spec-check: cannot project (%s)\n" % e)
+            return 2
+        print(json.dumps(card, indent=2, ensure_ascii=False))
         return 0
     if argv[0] == "lint":
         try:

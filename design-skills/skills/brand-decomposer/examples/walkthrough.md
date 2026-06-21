@@ -127,3 +127,29 @@ The critique separates **observed** (the hero), **the spec** (the cited rules), 
 moves) — and never says "off-brand" without naming the mechanism. For other directions, move along a
 documented axis (*premium restraint ↔ campaign loudness*), not random variety. See
 `references/critique-mode.md`.
+
+## 5 · DECOMPOSE from a real corpus record — the projector
+
+The hand-authored cards above are the DESIGN path. The DECOMPOSE path starts from an *ingested* corpus
+record and projects it into a gradeable card. `project` reads the corpus dossier shape (the
+`docusign_seed_example.json` from the agentic brand-guidelines corpus — `brand` / `deck` / `strategy`
+{`brand_idea`, `creative_platform`} / `visual_identity` {`mark_system`, `color_system`}) and emits a
+card; pipe it straight into `lint`:
+
+```sh
+python3 bin/brand-spec-check.py project docusign_seed_example.json | \
+  python3 bin/brand-spec-check.py lint /dev/stdin
+#   ⚠ Docusign: INCOMPLETE — domains with no rule/token: voice, type, governance …
+#   ⚠ Docusign: INCOMPLETE — no surfaces[] …
+# brand-spec-check: OK — operability gates clear (well-formed, traced, accessible, complete) …
+```
+
+The projector is **best-effort and band-honest**: it maps the idea (`claim` + `normalized_claim`), the
+mark, and each color into typed records, and **derives `truth` from the confidence band** (≥0.90 →
+`observed`, otherwise `inferred`; a sub-0.75 inference is `review`-flagged) — so the projection is
+band-coherent by construction (no invented `must` mandates, no observed-but-unsure claims). Crucially,
+whatever the source **lacks** is left absent, so the grade is **honest about the gap**: the DocuSign
+*seed* is a partial ingestion (idea + mark + color + creative platform), so the card grades clean on the
+operability gates but flags `INCOMPLETE` for the voice, type, governance, and surface coverage a full
+guideline system would carry. That is the loop working as intended — a real corpus record in, an honest
+grade out, with the missing work named rather than papered over.

@@ -61,9 +61,16 @@ the `*.brand.json` card, the six-domain depth, and CRITIQUE mode). Everything be
 
 ## Reach
 
-- [ ] **A `--corpus` projection helper** — read a full `brand_guideline_corpus.schema.json` brand
-      record and project it down to a gradeable `*.brand.json` card (strategy + typed primitives),
-      closing the DECOMPOSE loop from a real ingested corpus to the gate without hand-authoring.
+- [x] **A `project` (corpus → card) helper** (done) — `brand-spec-check.py project <record.json>` reads
+      a corpus brand record in the dossier shape (`examples/docusign_seed_example.json`: brand / deck /
+      strategy{brand_idea, creative_platform} / visual_identity{mark_system, color_system}) and projects
+      it into a gradeable card, deriving `truth` from the confidence band so the projection is
+      band-coherent by construction. Closes the DECOMPOSE loop from a real ingested corpus to the gate
+      (`project … | lint …`), verified end-to-end against the real DocuSign seed (it grades clean on the
+      operability gates and honestly flags the voice/type/governance/surface coverage the *seed* lacks).
+      Locked with the embedded `_CORPUS_SEED` fixture. *(Next: as full corpus `brand_system` records
+      with `verbal_identity`/`expression_system`/`governance` and hex `value`s appear, extend the
+      mapping to those branches — the schema leaves them open, so the shape is example-driven.)*
 - [ ] Promote draft → beta once the JSON-Schema card validation and the behavioral-eval pilot land, the
       adversarial-review hardening pass is folded in as selftest fixtures, and a second worked example
       ships.
