@@ -2,8 +2,8 @@
 name: brand-decomposer
 description: >
   Decompose, design, grade, or critique a brand-guidelines artifact — a brand book / design-system spec
-  — on two crossing axes: INSIDE-OUT (idea → meaning chain → voice·mark·color·type·expression →
-  governance) and OUTSIDE-IN (well-formed → traced → contrast → complete → retrievable), scored
+  — on two crossing axes: OUTSIDE-IN (idea → meaning chain → voice·mark·color·type·expression →
+  governance) and INSIDE-OUT (well-formed → traced → contrast → complete → retrievable), scored
   separately so a beautiful-but-unusable deck can't hide a hollow one. Doctrine: a brand book is a typed,
   evidence-linked OPERATING SYSTEM, not a logo rulebook — core object is evidence, three truths never
   collapsed. Operability routes to bin/brand-spec-check.py (schema, provenance, WCAG contrast,
@@ -24,11 +24,11 @@ the **spec**, not the beauty. Like every decomposer in this repo, a brand spec i
 independent axes that walk the same hierarchy** (`idea → voice·mark·color·type·expression → tokens/rules
 → surfaces`) **in opposite directions:**
 
-- **Inside-out · whole → part** grades the **meaning**: brand idea → meaning chain
+- **Outside-in · whole → part** grades the **meaning**: brand idea → meaning chain
   (idea→voice→mark→color→type→expression→applications) → primitives expressing the idea → range without
   losing identity → governance. *"Is it the **right brand**, and does the idea reach the primitives?"*
   Judgment — where an LLM is strong.
-- **Outside-in · part → whole** grades the **operability**: every record well-formed & typed → traced &
+- **Inside-out · part → whole** grades the **operability**: every record well-formed & typed → traced &
   trusted (evidence + confidence + three-truths) → accessible (contrast) → complete & surfaced →
   retrievable in context. *"Can an agent **retrieve, cite, trust, and apply** it at any surface,
   accessibly?"* Where an LLM fails silently — so it routes to a deterministic gate, `bin/brand-spec-check.py`.
@@ -49,10 +49,10 @@ bin, and a two-axis grade with the defect quadrant named — or, in CRITIQUE, me
 grounded in a validated spec.
 
 > *"Is this brand book ready to hand to an agency?"* →
-> 1. **Inside-out — idea → chain:** the brand idea is sharp, not interchangeable adjectives `[gate:
+> 1. **Outside-in — idea → chain:** the brand idea is sharp, not interchangeable adjectives `[gate:
 >    GENERIC_IDEA]`; the meaning chain propagates idea→voice→mark→color→type→… `[gate]`. Then the
 >    100-pt rubric over voice/mark/color/type (A3), expression/examples (A4), governance/usability (A5).
-> 2. **Outside-in — operate it, don't read it:** `bin/brand-spec-check.py lint card.brand.json` runs
+> 2. **Inside-out — operate it, don't read it:** `bin/brand-spec-check.py lint card.brand.json` runs
 >    well-formed `[gate]` + traced/confidence/three-truths `[gate]` + WCAG contrast `[gate]` +
 >    completeness. A green parse proves nothing the bin didn't check.
 > 3. **Attack the dangerous quadrant:** a skeptic in a fresh context tries to *refute* the idea — could
@@ -61,7 +61,7 @@ grounded in a validated spec.
 >    anything needing human/legal verification.
 
 **Modes:** **DECOMPOSE** (read an artifact → recover the chain → extract a card → run the gate → grade)
-· **DESIGN** (inside-out down → declare the operability plan → emit a card) · **GRADE** (score both
+· **DESIGN** (outside-in down → declare the operability plan → emit a card) · **GRADE** (score both
 axes, gates before reviews) · **CRITIQUE** (use a *validated* card to ground critique of design work —
 mechanism-named, spec-cited, never "off-brand").
 
@@ -71,8 +71,8 @@ Load `references/decomposition-method.md` first for the full method. The skeleto
 
 | Axis | Direction | Levels (in order) | Asks |
 |---|---|---|---|
-| **A · Inside-out** | whole → part | **A1** Brand idea `[gate]` → **A2** Meaning chain `[gate]` → **A3** Primitives express it `[review]` → **A4** Range without losing identity `[review]` → **A5** Governance & usability `[review]` | "Is it the *right brand*?" |
-| **B · Outside-in** | part → whole | **B1** Well-formed & typed `[gate]` → **B2** Traced & trusted `[gate]` → **B3** Accessible `[gate]` → **B4** Complete & surfaced `[review]` → **B5** Retrievable in context `[review]` | "Can an agent *operate* it?" |
+| **A · Outside-in** | whole → part | **A1** Brand idea `[gate]` → **A2** Meaning chain `[gate]` → **A3** Primitives express it `[review]` → **A4** Range without losing identity `[review]` → **A5** Governance & usability `[review]` | "Is it the *right brand*?" |
+| **B · Inside-out** | part → whole | **B1** Well-formed & typed `[gate]` → **B2** Traced & trusted `[gate]` → **B3** Accessible `[gate]` → **B4** Complete & surfaced `[review]` → **B5** Retrievable in context `[review]` | "Can an agent *operate* it?" |
 
 `A1·A2` and `B1·B2·B3` are **`[gate]`s** (a failure cascades and BLOCKS the reviews below it on that
 axis). `A3–A5 · B4–B5` are **`[review]`s** (1–5). A spec is **SHIPPABLE** at **≥4 on every review with
@@ -143,9 +143,9 @@ was skipped (bin not run) and reported as a pass; or one blended score is report
 
 | File | Load when |
 |---|---|
-| `references/decomposition-method.md` | **always, first** — the two-axis method (Inside-out × Outside-in), the leveled walk with gates, the quadrant, the brand-as-operating-system + evidence doctrine, and the four modes |
-| `references/inside-out-axis.md` | **the meaning axis (A)** — idea → meaning chain → primitives express it → range → governance; the gates; the adversarial idea-refutation; where **operable-but-hollow** lives |
-| `references/outside-in-axis.md` | **the operability axis (B)** — well-formed → traced → accessible → complete → retrievable; the agent-readiness questions; mechanized by `bin/brand-spec-check.py`; where **right-meaning-won't-operate** lives |
+| `references/decomposition-method.md` | **always, first** — the two-axis method (Outside-in × Inside-out), the leveled walk with gates, the quadrant, the brand-as-operating-system + evidence doctrine, and the four modes |
+| `references/outside-in-axis.md` | **the meaning axis (A)** — idea → meaning chain → primitives express it → range → governance; the gates; the adversarial idea-refutation; where **operable-but-hollow** lives |
+| `references/inside-out-axis.md` | **the operability axis (B)** — well-formed → traced → accessible → complete → retrievable; the agent-readiness questions; mechanized by `bin/brand-spec-check.py`; where **right-meaning-won't-operate** lives |
 | `references/the-rubric.md` | **scoring axis A** — the 100-point rubric (9 areas), the area→A-level map, the 1–5 normalization, and the fast audit (weak/strong signals) |
 | `references/evidence-and-confidence.md` | **the trust contract (B2)** — the evidence model, the four confidence bands, the three truths, and the QA the gate enforces vs. what you must still read |
 | `references/brand-spec-schema.md` | **the `*.brand.json` card** — field-by-field, the enums (severity `must/should/may`, the three truths, the six domains + corpus normalization), and how the card projects from the full corpus schema |

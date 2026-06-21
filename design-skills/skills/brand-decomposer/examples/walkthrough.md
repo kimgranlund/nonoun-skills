@@ -6,7 +6,7 @@ fixtures, written to disk so you can run every command below.
 
 ## 1 · GRADE the green spec — DocuSign
 
-### Outside-in (operability) — run the gate first
+### Inside-out (operability) — run the gate first
 
 ```sh
 python3 bin/brand-spec-check.py lint examples/docusign.green.brand.json
@@ -18,7 +18,7 @@ B1–B3 gates green: every token/rule is typed with `severity ∈ {must,should,m
 + `confidence`, declares a `truth`; the one `color_pair` (`#130032` on `#ffffff`) clears AA at 19.56:1.
 B4: all six domains covered, five surfaces enumerated. **Axis B = 5.**
 
-### Inside-out (meaning) — the rubric, then refute the idea
+### Outside-in (meaning) — the rubric, then refute the idea
 
 - **A1 idea** — *"agreements are dynamic moments of connection, not static documents — make the moment
   of agreement feel like forward progress."* Not interchangeable adjectives (`GENERIC_IDEA` clean). It

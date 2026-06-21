@@ -8,7 +8,7 @@ to close out, or when deciding "is this someone else's skill?".
 
 A brand spec is **SHIPPABLE** when all twelve hold (gate failures are zeros, not deductions):
 
-**Inside-out (meaning) — axis A:**
+**Outside-in (meaning) — axis A:**
 
 1. **Brand idea is sharp** — not interchangeable adjectives; would not copy-paste to a competitor
    (A1 gate; `GENERIC_IDEA` clean).
@@ -21,7 +21,7 @@ A brand spec is **SHIPPABLE** when all twelve hold (gate failures are zeros, not
 5. **Governance & usability** — owners, approvals, change process; navigable, examples near rules
    (A5 ≥ 4; rubric Governance/Usability).
 
-**Outside-in (operability) — axis B (gated by `brand-spec-check.py`):**
+**Inside-out (operability) — axis B (gated by `brand-spec-check.py`):**
 
 6. **Well-formed & typed** — typed records, severities/types/confidences in range, no `BARE_TOKEN`
    (B1 gate).
@@ -74,7 +74,7 @@ spec**. It does not make the brand, and it does not pass expert-taste judgment. 
 | **make** the brand idea / aspiration | `brand-forge` · `brand-muse` | the Muse sets the ideal to pull toward; the decomposer grades the artifact that results |
 | **make** voice, naming, copy | `brand-forge` · `brand-copywriter` | the decomposer grades whether voice is documented as behavior, not whether *this* copy is good |
 | **judge** brand work by expert taste | `brand-forge` · `brand-council` / `brand-evaluate` | the named-critic panel asks "is this good / differentiated / is the Big Idea there"; the decomposer asks "is the spec operable, and does work align to *its* documented rules" |
-| **grade** the page/screen **layout** | `layout-decomposer` | layout is its own OUTSIDE-IN × INSIDE-OUT decomposer; brand-decomposer grades the brand system, not the composition |
+| **grade** the page/screen **layout** | `layout-decomposer` | layout is its own INSIDE-OUT × OUTSIDE-IN decomposer; brand-decomposer grades the brand system, not the composition |
 | **measure** rendered contrast / CVD | `color-verifier` | the spec's contrast floor is a *constraint*; the rendered work must still be measured |
 | the **science** of a color choice | `color-science` | brand-decomposer uses the WCAG math; it does not teach perceptual color |
 | **type craft** (anatomy, scripts, CSS) | `typography-lettering` | brand-decomposer grades that type is documented with hierarchy/fallback; it does not teach the craft |

@@ -10,19 +10,25 @@ Like every decomposer in this repo, a brand spec is **correct on two independent
 same hierarchy in opposite directions** — the brand hierarchy being `idea → voice · mark · color ·
 type · expression → tokens/rules → surfaces/applications`.
 
-- **A · INSIDE-OUT · whole → part** grades the **meaning**: the brand idea → the meaning chain
+- **A · OUTSIDE-IN · whole → part** grades the **meaning**: the brand idea → the meaning chain
   (idea→voice→mark→color→type→expression→applications) → the primitives expressing the idea → range
   without losing identity → governance & usability. *"Is it the **right brand**, and does the idea
   reach the primitives?"* This is judgment — where an LLM is strong.
-- **B · OUTSIDE-IN · part → whole** grades the **operability**: every record well-formed & typed →
+- **B · INSIDE-OUT · part → whole** grades the **operability**: every record well-formed & typed →
   traced & trusted (evidence + confidence + three-truths) → accessible (contrast) → complete & surfaced
   → retrievable in context. *"Can an agent **retrieve, cite, trust, and apply** it at any surface,
   accessibly?"* This is where an LLM fails silently (a vague prose deck *feels* complete), so it is
   **routed to a deterministic, self-tested gate** — `bin/brand-spec-check.py`.
 
-The names are the corpus's own: **inside-out** reasoning starts from the brand's strategic core and
-propagates meaning outward; **outside-in** reasoning starts from the surface the audience encounters
-and asks whether the system can show up there. They are the same hierarchy, opposite directions.
+**Terminology — repo polarity vs. the corpus's words.** This repo fixes one canonical polarity
+(see `HOWTO.md`): **OUTSIDE-IN** is the intent/meaning axis (*"is it the right brand?"*) and
+**INSIDE-OUT** is the structure/operability axis (*"does it hold, can an agent operate it?"*). The
+*source corpus* uses the same two words for **reasoning directions** instead: its *inside-out
+reasoning* starts from the brand's strategic core and propagates meaning outward; its *outside-in
+reasoning* starts from the surface the audience encounters. They map cleanly — deriving the **OUTSIDE-IN
+meaning axis** *is* the corpus's core-first ("inside-out") reasoning, and the **INSIDE-OUT axis**'s
+surface/operability coverage *is* its surface-first ("outside-in") reasoning. Same hierarchy, opposite
+directions; only the labels are repo-canonical.
 
 ## The crossing — and the quadrant
 
@@ -55,16 +61,16 @@ retrievability for one that won't parse. Later levels are **`[review]`s**, score
 
 | Axis | Direction | Levels (in order) | Asks |
 |---|---|---|---|
-| **A · Inside-out** | whole → part | **A1** Brand idea `[gate]` → **A2** Meaning chain `[gate]` → **A3** Primitives express it `[review]` → **A4** Range without losing identity `[review]` → **A5** Governance & usability `[review]` | "Is it the *right brand*?" |
-| **B · Outside-in** | part → whole | **B1** Well-formed & typed `[gate]` → **B2** Traced & trusted `[gate]` → **B3** Accessible `[gate]` → **B4** Complete & surfaced `[review]` → **B5** Retrievable in context `[review]` | "Can an agent *operate* it?" |
+| **A · Outside-in** | whole → part | **A1** Brand idea `[gate]` → **A2** Meaning chain `[gate]` → **A3** Primitives express it `[review]` → **A4** Range without losing identity `[review]` → **A5** Governance & usability `[review]` | "Is it the *right brand*?" |
+| **B · Inside-out** | part → whole | **B1** Well-formed & typed `[gate]` → **B2** Traced & trusted `[gate]` → **B3** Accessible `[gate]` → **B4** Complete & surfaced `[review]` → **B5** Retrievable in context `[review]` | "Can an agent *operate* it?" |
 
 A spec is **SHIPPABLE** when every review is **≥4 with zero gate failures on either axis**, reported as
 two separate axis scores plus the quadrant cell. The B-axis gates (B1·B2·B3) and the one mechanizable
 A-axis smell (A1's GENERIC_IDEA) route to **`bin/brand-spec-check.py`**; the A-axis reviews are the
 100-point rubric (`references/the-rubric.md`), judged and adversarially verified.
 
-- The **A axis** is detailed in `references/inside-out-axis.md`, scored by `references/the-rubric.md`.
-- The **B axis** is detailed in `references/outside-in-axis.md`, mechanized by the bin, with the trust
+- The **A axis** is detailed in `references/outside-in-axis.md`, scored by `references/the-rubric.md`.
+- The **B axis** is detailed in `references/inside-out-axis.md`, mechanized by the bin, with the trust
   contract in `references/evidence-and-confidence.md`.
 
 ## The doctrine — the core object is evidence, not the brand
@@ -101,7 +107,7 @@ The non-obvious core, straight from the corpus, and the reason this earns a skil
   corpus record* (the dossier shape), `brand-spec-check.py project <record.json>` does the extraction
   mechanically — mapping the idea/mark/colors/platform into typed records and deriving `truth` from the
   confidence band — so you can pipe `project … | lint …` and read the grade (see `examples/walkthrough.md` §5).
-- **DESIGN** — inside-out down: lock the brand idea (A1) → propagate the meaning chain (A2) → declare
+- **DESIGN** — outside-in down: lock the brand idea (A1) → propagate the meaning chain (A2) → declare
   the operability plan (which domains, surfaces, tokens, evidence) → emit a brand-spec card. *"Help me
   structure this brand into an operating system."*
 - **GRADE** — score both axes, gates before reviews, report two scores + the quadrant cell, never
@@ -112,6 +118,6 @@ The non-obvious core, straight from the corpus, and the reason this earns a skil
   context, expression range), never "feels off-brand." Requires a spec that *passes the gate* — an
   ungrounded critique is exactly what this mode exists to prevent. See `references/critique-mode.md`.
 
-Read `references/inside-out-axis.md` and `references/outside-in-axis.md` next for the two axes in full,
+Read `references/outside-in-axis.md` and `references/inside-out-axis.md` next for the two axes in full,
 `references/brand-spec-schema.md` for the card the gate consumes, and `references/policy.md` for the
 definition-of-done and the seams to the `brand-forge` makers and judges.

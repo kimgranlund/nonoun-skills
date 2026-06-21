@@ -2,8 +2,8 @@
 """brand-spec-check.py — the brand-decomposer OPERABILITY gate. Self-contained (stdlib only).
 
 A brand-guidelines artifact reads as a *brand operating system*, not a logo rulebook. Most of grading
-it is judgment (the INSIDE-OUT meaning axis — is the idea sharp, is the meaning chain coherent), and
-that stays in SKILL.md. But the OUTSIDE-IN *operability* axis has joints that are arithmetic, not
+it is judgment (the OUTSIDE-IN meaning axis — is the idea sharp, is the meaning chain coherent), and
+that stays in SKILL.md. But the INSIDE-OUT *operability* axis has joints that are arithmetic, not
 taste — a vague prose deck "feels" complete but an agent cannot retrieve, cite, or trust it. Those are
 routed here so a beautiful-but-unusable spec can't pass on looks:
 
@@ -29,7 +29,7 @@ routed here so a beautiful-but-unusable spec can't pass on looks:
 
 This is a PRE-FILTER, not an oracle: a clean run means the spec is well-formed, traced, accessible, and
 complete *enough to operate* — it does NOT mean the brand idea is good or the meaning chain is right
-(that is the INSIDE-OUT axis, judged + adversarially verified). A token table with a perfect contrast
+(that is the OUTSIDE-IN axis, judged + adversarially verified). A token table with a perfect contrast
 score can still encode a generic, hollow brand.
 
   python3 bin/brand-spec-check.py lint <card.brand.json>     # the operability gate
@@ -279,7 +279,7 @@ def check_card(card):
         W("INCOMPLETE", "%s: INCOMPLETE — domains with no rule/token: %s (the spec can't answer "
           "'how here?' for them)" % (brand, ", ".join(missing)))
     if not card.get("surfaces"):
-        W("INCOMPLETE", "%s: INCOMPLETE — no surfaces[] (an OUTSIDE-IN spec must say where the brand "
+        W("INCOMPLETE", "%s: INCOMPLETE — no surfaces[] (an INSIDE-OUT spec must say where the brand "
           "shows up)" % brand)
     return fails, warns
 

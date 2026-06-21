@@ -11,18 +11,18 @@ opposite-defect quadrant. Built from an analysis of a 21-file agentic brand-guid
 DocuSign-and-16-peers Deck.gallery reference set), which reframes a brand from "taste" into a typed,
 evidence-linked **operating system** that *has* gradeable properties.
 
-- **The two-axis method** (`references/decomposition-method.md`): **A · Inside-out** (brand idea →
+- **The two-axis method** (`references/decomposition-method.md`): **A · Outside-in** (brand idea →
   meaning chain → primitives express it → range without losing identity → governance) × **B ·
-  Outside-in** (well-formed → traced & trusted → accessible → complete & surfaced → retrievable),
+  Inside-out** (well-formed → traced & trusted → accessible → complete & surfaced → retrievable),
   crossing at the typed primitive; gates before reviews; the *right-meaning-won't-operate* (beautiful
   but unusable) vs *operable-but-hollow* (typed but hollow) quadrant; and the **core-object-is-evidence**
   doctrine (three truths never collapsed; confidence as an operational band).
-- **The operability gate** (`references/outside-in-axis.md` + `bin/brand-spec-check.py`): a stdlib-only
+- **The operability gate** (`references/inside-out-axis.md` + `bin/brand-spec-check.py`): a stdlib-only
   static checker over a `*.brand.json` card — `WELL_FORMED` · `UNTRACED` · `LOW_CONFIDENCE` ·
   `COLLAPSED_TRUTH` · `CONTRAST_FAIL` (WCAG AA, shared math with `color-verifier`) · `BARE_TOKEN` ·
   `GENERIC_IDEA` · `INCOMPLETE`. `lint` · `contrast <fg> <bg> [large|ui]` · `selftest` · `--json` (the
   shared `{tool, ok, summary, findings[]}` report). Green (DocuSign) / red (degraded) fixtures.
-- **The inside-out axis + the 100-point rubric** (`references/inside-out-axis.md` +
+- **The outside-in axis + the 100-point rubric** (`references/outside-in-axis.md` +
   `references/the-rubric.md`): the nine rubric areas (idea 16 · expression 14 · voice/mark/examples 12 ·
   color/type 10 · governance 8 · usability 6) mapped onto the A-levels, the 1–5 normalization, the fast
   audit (weak/strong signals), and the **adversarial idea-refutation** for the operable-but-hollow
@@ -177,3 +177,15 @@ rule / `observed` record at *exactly* 0.90 does not flag) were re-attacked and h
   coherence, sub-0.75 review-flagging, deck_id defaulting, and a clean `ValueError` on a non-object
   record). Closes the ROADMAP's `--corpus` item. *(The corpus leaves `brand_system`'s sub-objects open,
   so the projector maps the example-demonstrated dossier shape; richer records extend the same mapping.)*
+
+### Changed — repo-canonical OUTSIDE-IN / INSIDE-OUT polarity (relabel only, no behavior change)
+
+Aligned the axis labels to the **repo-wide canonical polarity** (`HOWTO.md`): **OUTSIDE-IN = the
+intent/meaning axis** (A, *"is it the right brand?"*) and **INSIDE-OUT = the structure/operability
+axis** (B). Previously this skill labeled them the other way, after the source corpus's *reasoning-
+direction* terms. Purely a relabel — the two axes, the gates, the rubric, the bin, and every finding
+are unchanged; the gate stays green. The two axis reference files were renamed accordingly so each
+filename matches its content (`outside-in-axis.md` = the meaning axis, `inside-out-axis.md` =
+operability). A **terminology note** in `decomposition-method.md` (and a one-line pointer atop each axis
+file) maps the repo's grading-axis polarity to the corpus's reasoning-direction words, so the
+divergence is documented, not silent.

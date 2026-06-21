@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "status": "draft",
   "target": "both",
-  "description": "Decompose, design, grade, or critique a brand-guidelines artifact — a brand book / design-system spec — on two crossing axes: INSIDE-OUT (idea → meaning chain → voice·mark·color·type·expression → governance) and OUTSIDE-IN (well-formed → traced → contrast → complete → retrievable), scored separately so a beautiful-but-unusable deck can't hide a hollow one. Doctrine: a brand book is a typed, evidence-linked OPERATING SYSTEM, not a logo rulebook — core object is evidence, three truths never collapsed. Operability routes to bin/brand-spec-check.py (schema, provenance, WCAG contrast, completeness); the operable-but-hollow quadrant is adversarially verified. CRITIQUE grounds work-critique in a VALIDATED spec — name the mechanism, never \"feels off-brand\". NOT for MAKING the brand or expert-taste judgment (brand-forge: brand-muse/brand-copywriter/brand-council/brand-evaluate); NOT layout (layout-decomposer), rendered contrast/CVD (color-verifier), color science (color-science), or type craft (typography-lettering).",
+  "description": "Decompose, design, grade, or critique a brand-guidelines artifact — a brand book / design-system spec — on two crossing axes: OUTSIDE-IN (idea → meaning chain → voice·mark·color·type·expression → governance) and INSIDE-OUT (well-formed → traced → contrast → complete → retrievable), scored separately so a beautiful-but-unusable deck can't hide a hollow one. Doctrine: a brand book is a typed, evidence-linked OPERATING SYSTEM, not a logo rulebook — core object is evidence, three truths never collapsed. Operability routes to bin/brand-spec-check.py (schema, provenance, WCAG contrast, completeness); the operable-but-hollow quadrant is adversarially verified. CRITIQUE grounds work-critique in a VALIDATED spec — name the mechanism, never \"feels off-brand\". NOT for MAKING the brand or expert-taste judgment (brand-forge: brand-muse/brand-copywriter/brand-council/brand-evaluate); NOT layout (layout-decomposer), rendered contrast/CVD (color-verifier), color science (color-science), or type craft (typography-lettering).",
   "keywords": [
     "brand",
     "brand-guidelines",
@@ -23,15 +23,15 @@
     "brand-mark",
     "rubric",
     "brand-critique",
-    "inside-out",
     "outside-in",
+    "inside-out",
     "brand-rubric"
   ],
   "files": [
     "SKILL.md",
     "references/decomposition-method.md",
-    "references/inside-out-axis.md",
     "references/outside-in-axis.md",
+    "references/inside-out-axis.md",
     "references/the-rubric.md",
     "references/evidence-and-confidence.md",
     "references/brand-spec-schema.md",

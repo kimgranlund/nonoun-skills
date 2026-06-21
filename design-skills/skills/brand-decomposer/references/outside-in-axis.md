@@ -1,115 +1,100 @@
-# B · The outside-in axis — can an agent operate the spec?
+# A · The outside-in axis — does the meaning reach the primitives?
 
-Outside-in reasoning **starts from the surface the audience encounters** and asks whether the brand
-system can actually show up there: *what is this piece trying to do, where does it live, who is it for,
-and can the agent retrieve, cite, trust, and apply the right rules — accessibly?* This is the
-**operability** axis. It is exactly where an LLM fails silently — a vague prose deck *feels* complete —
-so its gates are **routed to a deterministic, self-tested tool, `bin/brand-spec-check.py`**, and a
-clean run is **necessary, not sufficient.**
+The **OUTSIDE-IN** (intent) axis reasons **from the brand's strategic core — the idea — and propagates
+meaning outward** into visual and verbal decisions. It asks: *what is the brand idea, what does it
+force, and how do the primitives express it?* This is the **meaning** axis — judgment, where an LLM is
+strong — and it is where the **operable-but-hollow** defect lives: a perfectly typed token system
+wrapped around a generic idea whose meaning chain is decorative rather than forcing.
 
-You walk it **part → whole**: each record must be well-formed, then trusted, then accessible, before
-the spec as a whole can be called complete and retrievable. The first three levels are **gates**
-(mechanized); the last two are reviews. This axis is where the **right-meaning-won't-operate** defect
-lives — a sharp idea trapped in unsourced, untyped prose.
+> *Repo polarity:* OUTSIDE-IN = intent/meaning. The source corpus calls this same core-first reasoning
+> "inside-out" — see the terminology note in `references/decomposition-method.md`.
 
-## B1 · Well-formed & typed `[gate]` — mechanized
+You walk it **whole → part**: idea first, then the chain, then each primitive, then range, then
+governance. The first two levels are **gates** (a generic idea or a broken chain blocks the reviews
+below — there is no point grading whether the color expresses an idea that does not exist). The reviews
+are scored by the 100-point rubric in `references/the-rubric.md`.
 
-The data is structured as **claims, rules, tokens, examples** — not one summary blob. Every record has
-its required fields; severities, token types, and confidences are in range.
+## A1 · Brand idea `[gate]`
 
-- **Mechanized by `brand-spec-check.py lint`:** `WELL_FORMED` (required fields present), severity ∈
-  {`must`, `should`, `may`} (the corpus's RFC-2119 enum — must = hard rule, may = flexible range),
-  token type ∈ {`color`, `type`, `space`, `radius`, `motion`, `elevation`}, confidence ∈ `[0,1]` (and
-  not a bool masquerading as a number). `BARE_TOKEN` warns when a token has a value but no role +
-  meaning — a palette, not a color *system*. Corpus fine-grained domains (`logo`, `typography`,
-  `layout`…) normalize to the six rubric domains, so a faithful corpus card does not trip warnings.
-- **Gate failure:** a missing required field, an out-of-range severity (`"loud"`), a confidence of
-  `true`. The spec cannot be reasoned over until its records are typed.
+The central idea, promise, positioning, tension, mission, or creative platform — **specific enough
+that a competitor could not copy-paste it.** Reject generic adjectives unless tied to behavior.
 
-## B2 · Traced & trusted `[gate]` — mechanized
+- **Gate failure — `GENERIC_IDEA`:** the idea is only interchangeable adjectives ("modern, bold,
+  simple", "innovative and trusted", "clean and friendly"). This is the rubric's **#1 weak signal**,
+  and it is mechanizable — `brand-spec-check.py` raises it as a hard fail. If the idea would fit any
+  competitor unchanged, the whole outside-in axis is hollow; stop and fix the idea.
+- **What good looks like:** a sharp idea + audience + tension + promise + proof + behaviors + strategic
+  *exclusions* (what this brand refuses). DocuSign's "*agreements are dynamic moments of connection,
+  not static documents — make the moment of agreement feel like forward progress*" forces voice (active
+  progress, not "document management"), color (activation accent, not full-field), and imagery
+  (product-true). That is an idea doing work.
 
-Every non-obvious claim has **source evidence** and a **confidence**, and the **three truths are never
-collapsed.** This is the trust contract; full detail in `references/evidence-and-confidence.md`.
+## A2 · Meaning chain `[gate]`
 
-- **`UNTRACED`** — a rule / token / example with no `evidence[]`. *Every non-obvious claim needs a
-  source* — a deck id, slide id, source URL, extraction method. An unsourced rule is indistinguishable
-  from an invention.
-- **`LOW_CONFIDENCE`** — an `inferred` record below `0.75` that is not `review`-flagged. The confidence
-  band `0.50–0.74` means "plausible inference requiring review"; below `0.50` means "do not use." An
-  inferred rule presented as settled fact is a trust defect.
-- **`COLLAPSED_TRUTH`** — a record whose `truth` is not one of `observed` / `inferred` / `proposed`.
-  Fusing what the slide *shows* with what the system *infers* with what the agent *proposes* destroys
-  the reader's ability to tell a rule from a guess.
+The idea must **propagate**: `idea → voice → mark → color → type → layout → imagery → applications`.
+Each link should be *forced* by the one above it, not merely listed next to it.
 
-Three **coherence smells** (advisory, on top of the gate) sharpen B2 beyond bare presence:
+- **Gate failure:** the chain is missing or stops at one or two links — the idea names itself and then
+  nothing downstream is derived from it. (`brand-spec-check.py` warns when the chain has < 4 links.)
+- **The test:** for each primitive, ask *"why this, and not the opposite?"* and trace the answer up to
+  the idea. If the answer is "it looked good" or "it's on trend," the link is decorative. A real chain
+  lets you predict a primitive you have not seen yet from the idea alone.
 
-- **`THIN_EVIDENCE`** — an `evidence[]` entry is *present* but carries no `deck_id` / `slide_id` /
-  `source_url`: it points nowhere. (The gate still can't prove the id is *real* — confirm that out of
-  band — but it can prove the pointer exists.)
-- **`WEAK_MANDATE`** — a `must` (hard) rule at `confidence < 0.90`. The `0.90–1.00` band is "explicitly
-  stated"; hard-mandating something the deck didn't explicitly state is a severity↔band incoherence.
-- **`TRUTH_CONFIDENCE_MISMATCH`** — an `observed` record at `confidence < 0.90`. A *direct observation*
-  you are only tentatively sure of is really an **inference** — the truth band and the confidence band
-  disagree.
+## A3 · Primitives express the idea `[review]` — voice · mark · color · type
 
-## B3 · Accessible `[gate]` — mechanized
+Each primitive is graded on **meaning, not just spec** — the corpus's "every primitive has a reason,"
+"explains both meaning and mechanics." The rubric weights: **Voice 12 · Mark 12 · Color 10 · Type 10.**
+Per-domain depth is in `references/the-six-domains.md`; in brief:
 
-The one accessibility joint a deck **almost never proves by hand**: every declared color role-pair
-clears the WCAG AA contrast floor.
+- **Voice (12)** — traits translated into *writing behavior*: vocabulary, headline patterns, UX copy,
+  tone-by-context, banned phrases, do/don't examples, sample expressions. Weak signal: *voice is only
+  adjectives.* "Confident" is not a voice; "lead with the outcome, name the action, cut the hedge" is.
+- **Mark (12)** — origin, meaning, construction, lockups, clearspace, minimum sizes, backgrounds,
+  misuse, motion, partner usage, accessibility. Weak signal: *the mark has rules but no origin or
+  meaning.* A clearspace rule without a reason is a rulebook, not a system.
+- **Color (10)** — meaning, **roles**, ratios, combinations, light/dark behavior, contrast, product/
+  data/marketing usage, print/digital specs, misuse. Weak signal: *a palette without roles, ratios, or
+  contrast.* A hex list is a `BARE_TOKEN` (the gate warns); a role + meaning makes it a system.
+- **Type (10)** — rationale, hierarchy, scale, weights, fallback fonts, responsive behavior,
+  accessibility, localization, numerals, UI use, expressive use. Weak signal: *names fonts but not
+  hierarchy or use cases.*
 
-- **Mechanized by `brand-spec-check.py` (`CONTRAST_FAIL`)** over `color_pairs[]`, using the same
-  sRGB→relative-luminance→`(L1+0.05)/(L2+0.05)` math as `color-verifier`'s `contrast-check`. Floor:
-  **4.5:1** normal text, **3.0:1** large text or UI components. `contrast <fg> <bg> [large|ui]` checks
-  a pair directly.
-- **Gate failure:** a brand grey on white at 2.64:1. The color system "looks" on-brand and is
-  inaccessible — a defect no amount of meaning-axis polish detects.
+## A4 · Range without losing identity `[review]` — expression · examples
 
-## B4 · Complete & surfaced `[review]` — mechanized smell + judgment
+The corpus's strong signal: *examples show range without losing identity; the system explains both
+meaning and mechanics.* Rubric weights: **Expression 14 · Examples 12** (the two largest after the
+idea).
 
-Can the spec answer **"how here?"** for every domain and every surface it claims?
+- **Expression system (14)** — layout, grid, photography, illustration, iconography, motion, product
+  UI, data visualization, environmental, social, campaign logic. The grammar that lets new work be
+  generated, not copied.
+- **Examples & applications (12)** — realistic executions across web, app, social, email, ads, decks,
+  signage, merch, packaging, partner contexts, **and right/wrong comparisons.** Each example must say
+  *what it teaches*, not just what it looks like (an evidence-linked record, not a screenshot).
+- **The range test:** does the system identify its ranges — quiet/loud, functional/expressive,
+  premium/playful, institutional/conversational — *where the deck shows them*? A brand with one
+  expression is a template; a brand with named ranges and a stable identity across them is a system.
 
-- **Mechanized smell (`INCOMPLETE`):** every rubric domain — **mark · voice · color · type · expression
-  · governance** — is covered by at least one rule or token, and `surfaces[]` is non-empty. The bin
-  warns on a domain with no rule/token, or a spec with no surfaces. (Tokens map to domains: `color`→
-  color, `type`→type, `space`/`radius`/`motion`/`elevation`→expression.)
-- **Judgment on top:** are the surfaces the ones the brand actually lives on (homepage, product UI,
-  campaign, social, packaging, signage, deck, email, OOH, partner lockup)? Are **failure modes**
-  captured (do/don't, misuse, contrast failures, logo-placement errors, off-voice copy)? A spec that
-  only documents the happy path cannot critique real work.
+## A5 · Governance & usability `[review]`
 
-## B5 · Retrievable in context `[review]` — judgment
+Rubric weights: **Governance 8 · Usability 6.** The least glamorous, most operationally decisive.
 
-The deepest operability question, from the corpus's **agent-readiness QA**: can the agent **retrieve
-the right subset** for a given designer intent and surface, and does every rule **know where it applies
-and where it should not**?
+- **Governance & assets (8)** — versioning, owners, approvals, asset library, naming, template
+  locations, partner/co-branding rules, legal requirements, change process. Without owners and a change
+  process, the spec rots the day it ships.
+- **Document usability (6)** — clear navigation, modular structure, searchable specs, quick-start
+  rules, examples *near* rules, and enough judgment guidance to avoid brittle policing. The corpus's
+  non-goal: *do not turn brand design into a rigid style-policing checklist.* Usability is what lets a
+  non-designer use the system; it is the bridge to the inside-out axis.
 
-The spec passes B5 when it can answer all six agent-readiness questions:
+## Scoring the outside-in axis
 
-1. What does this brand believe? *(idea)*
-2. How does the mark express the idea? *(meaning chain)*
-3. How should this brand write? *(voice behavior)*
-4. Which color/type/layout rules are hard constraints? *(severity)*
-5. What does a good example look like on this surface? *(evidence-linked examples)*
-6. What would be off-brand, and why? *(failure modes + the mechanism named)*
+A1 and A2 are gates — a `GENERIC_IDEA` or a broken chain caps the axis low regardless of how polished
+the primitives are. A3–A5 are the 100-point rubric, normalized to the 1–5 review scale. The axis is
+**≥4 with zero gate failures** to ship.
 
-A rule without a **context** (where it applies / where it does not) cannot be retrieved correctly — it
-will fire on the wrong surface. *Rules know where they apply* is the corpus's "Contextual" quality bar.
-
-One mechanizable B5 smell (advisory): **`DANGLING_REF`** — an example's `rules_demonstrated[]` names a
-rule `id` that is **not in the card**. The link an agent would follow to retrieve the demonstrated rule
-is broken; the example over-claims a rule that does not exist.
-
-## Scoring the outside-in axis — and the discipline
-
-Run `brand-spec-check.py lint <card.brand.json>` first. B1·B2·B3 gate failures **cascade and block**
-B4·B5; a green gate means the spec is well-formed, traced, accessible, and complete *enough to
-operate*. The axis is **≥4 with zero gate failures** to ship.
-
-- **A clean run is a pre-filter, not an oracle.** It proves the *common, mechanizable* shapes are
-  clean; it does not prove the evidence is *real* (a fabricated slide id passes a presence check) or
-  that the brand idea is good. Confirm provenance and meaning out of band.
-- **An unrun gate is no evidence, not a pass.** If you have not run the bin, you have not graded B —
-  do not certify "it's well-formed / traced / accessible" from reading.
-- **The defect this axis catches outright is *right-meaning-won't-operate*** — the sharp idea trapped
-  in prose. The defect it *cannot* catch is *operable-but-hollow*; that one is on axis A, behind the
-  gate's one mechanizable smell (`GENERIC_IDEA`) and the adversarial idea-refutation.
+**The adversarial check (the dangerous quadrant).** Because "operable but hollow" hides behind a green
+operability gate, send the idea + meaning chain to a **skeptic in a fresh context** and have it try to
+*refute*: could a competitor copy-paste this idea unchanged? Does each meaning-chain link actually
+force its primitive, or is it a label glued next to it? Is the voice a behavior or a list of adjectives?
+Default to "hollow" when uncertain. Only an idea that survives refutation scores high on A.

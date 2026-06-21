@@ -2,7 +2,7 @@
 
 The card rolls the corpus's fine-grained `brand_domain` enum up to **six rubric-aligned domains**. The
 B4 completeness gate requires each to be covered by at least one rule or token (`INCOMPLETE` warns on a
-gap). This file is the per-domain depth — the inside-out "capture" requirement, the rubric's "what good
+gap). This file is the per-domain depth — the outside-in "capture" requirement, the rubric's "what good
 means," and the **failure mode** each domain hides. Load it when grading A3/A4 or when a domain is
 flagged thin.
 
@@ -51,7 +51,7 @@ For each domain: the meaning question (axis A), the operability check (axis B), 
 ## expression *(corpus: layout · photography · illustration · motion · product · marketing · social · packaging · environmental · co_branding · data_visualization)* — rubric 14
 
 The largest rubric weight and the widest rollup — the **grammar** that lets new work be generated, not
-copied. This is where the inside-out "expression grammar" and the outside-in "range of expression" meet.
+copied. This is where the outside-in "expression grammar" and the inside-out "range of expression" meet.
 
 - **Meaning (A):** layout/grid logic, photography/illustration direction, iconography, motion
   principles, product-UI logic, data-viz rules, environmental and campaign logic — each *derived from

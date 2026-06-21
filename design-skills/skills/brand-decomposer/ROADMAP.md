@@ -51,7 +51,7 @@ the `*.brand.json` card, the six-domain depth, and CRITIQUE mode). Everything be
 
 ## CRITIQUE mode
 
-- [ ] **A surface-checklist generator** — the corpus's outside-in requirement: from a validated card +
+- [ ] **A surface-checklist generator** — the corpus's inside-out requirement: from a validated card +
       a named surface (landing page, product UI, email, campaign, packaging, partner lockup), emit the
       surface-specific checklist of the rules that apply *there* (filtered by rule `context`/domain), so
       CRITIQUE can run against a focused subset rather than the whole spec.
