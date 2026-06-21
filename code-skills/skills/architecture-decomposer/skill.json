@@ -1,6 +1,6 @@
 {
   "name": "architecture-decomposer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "status": "beta",
   "target": "both",
   "description": "Decompose, design, and grade a software architecture (system, service, or module graph) on two crossing axes — STRUCTURE (context/boundaries → modules → responsibilities → interfaces → fitness) and INTEGRITY (graph well-formed → acyclic → layered → coupling bounded → deployable) — scored separately, with INTEGRITY routed to a self-tested dependency checker (cycles via Tarjan, layer violations, coupling, orphans) and the wrong-boundaries failure routed to a fresh-context structural probe + stress scenarios. Backed by a gated rubric and a contract-card protocol. NOT for a unit of code (code-decomposer), a UI component (component-decomposer), a UI layout (layout-decomposer), or a proof / deductive argument (proof-decomposer).",

@@ -79,6 +79,13 @@ Load `references/decomposition-method.md` for the full method. The skeleton:
 that axis). `A3–A5 · B4–B5` are **`[review]`s** (1–5). A sound architecture is **≥4 on every review
 with zero gate failures**, reported as two separate axis scores plus the defect quadrant.
 
+Reason on **two planes in parallel** (`references/architecture-knowledge.md`): **OUTSIDE-IN** — the
+goals and ranked *-ilities* the architecture serves (A1 context, A5 fitness; *everything is a
+trade-off*) — and **INSIDE-OUT** — the technical canon that holds it up (DDD bounded contexts,
+hexagonal/CLEAN, SOLID, connascence, Conway). INTEGRITY is the **fitness-function** layer that
+mechanically verifies the INSIDE-OUT structure (`dependency-check.py`). A green structure serving the
+wrong OUTSIDE-IN goals is "an elegant solution to the wrong problem."
+
 ## The doctrine — gate where you can, adversarially verify where you can't
 
 The non-obvious core, and the reason it earns a skill:
@@ -132,6 +139,6 @@ blended score is reported.
 | File | Load when |
 |---|---|
 | `references/decomposition-method.md` | **always, first** — the two-axis method (Structure × Integrity), the leveled walk with gates, the quadrant, the gate-vs-adversarial-verify doctrine, and the DESIGN / DECOMPOSE / GRADE workflows |
-| `references/architecture-knowledge.md` | **the Structure axis** — context/boundaries, ownership-first decomposition, types-are-the-architecture, responsibilities/interfaces/fitness, the seven domains (system · data · frontend · platform · SSR · MCP · A2UI), and the **adversarial structural probe** |
+| `references/architecture-knowledge.md` | **the Structure axis + the two-plane canon** — the OUTSIDE-IN (goals/-ilities) × INSIDE-OUT (foundations) model and its 2×2; context/boundaries, ownership-first decomposition, types-are-the-architecture, responsibilities/interfaces/fitness; the **named canon** distinguished engineers cite (DDD bounded contexts · hexagonal/ports-and-adapters · CLEAN/Onion · SOLID · connascence · Conway + inverse-Conway · fitness functions · SoC/Parnas · ADRs/C4) mapped to method levels; the seven domains; the **adversarial structural probe** |
 | `references/dependency-policy.md` | **the Integrity axis** — the dependency ladder, the **contract-card protocol** (nodes + ordered layers + edges), how to read each flag (CYCLE/LAYER_VIOLATION/HIGH_COUPLING/ORPHAN), the stress catalogue for fitness, and the handoff seams; mechanized by `bin/dependency-check.py` |
 | `bin/dependency-check.py` | **mechanizes B1–B3 (+ B4 advisory)** — reads a contract card, flags CYCLE (Tarjan SCC), LAYER_VIOLATION (depends-up), HIGH_COUPLING (fan-in/out over threshold), ORPHAN; gate flags FAIL, advisory flags inform. `<card.json>` · `[--json]` machine-readable report (shared schema) · `template` · `selftest` |

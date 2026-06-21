@@ -3,6 +3,26 @@
 Versioned independently of the `code-skills` plugin; the gate (`bin/check-skills.py`) must pass for
 any release.
 
+## 0.2.0 — beta
+
+Enriched `references/architecture-knowledge.md` with the **two-plane reasoning model** and the **named
+canon** distinguished engineers cite — the template for the repo-wide OUTSIDE-IN/INSIDE-OUT alignment
+(see `HOWTO.md`).
+
+- **Two planes, reasoned in parallel.** **OUTSIDE-IN** — the goals and ranked **architecture
+  characteristics** (*-ilities*) the system serves, with the *everything-is-a-trade-off* framing (lives
+  in A1 context / A5 fitness) — × **INSIDE-OUT** — the technical foundations that hold it up (A1–A4),
+  mechanically verified by INTEGRITY. The two compose into a 2×2 (plane × intent/mechanism) where the
+  mechanizable cells route to `bin/` — `dependency-check.py` named as the **fitness function** it is.
+- **The named canon, each mapped to a method level** — coupling/cohesion, **connascence** (the coupling
+  metric `dependency-check.py` approximates), Separation of Concerns + **Information Hiding** (Parnas),
+  **SOLID** (SRP→A3, ISP→A4, DIP→dependency direction), **Dependency Inversion** & the dependency rule,
+  **DDD bounded contexts** (= A1 vocabulary boundaries), **Hexagonal / Ports & Adapters** and
+  **CLEAN / Onion** (A4 + the inward dependency rule), **Conway's Law + inverse Conway**, **evolutionary
+  architecture & fitness functions**, and **ADRs / C4** for decision capture and leveled views. The
+  skill now *operationalizes* the standard vocabulary instead of paraphrasing it.
+- SKILL.md surfaces the two-plane model in the method section and the references table.
+
 ## 0.1.0 — draft
 
 Initial release. Decompose / design / grade a software architecture on the **STRUCTURE × INTEGRITY**

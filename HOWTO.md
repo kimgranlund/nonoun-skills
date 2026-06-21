@@ -26,6 +26,33 @@ directions**, crossing at one seam. Before writing anything, name them:
   work"*; B passes / A fails = *"works, but wrong / won't compose / unsafe"*. They need **opposite
   fixes**, which is why you **score the two axes separately and never average them**.
 
+### The two planes & the OUTSIDE-IN / INSIDE-OUT convention
+
+Good planning and review hold **two perspectives in parallel** — reason on both, every time:
+
+- **OUTSIDE-IN — the goals.** From the outside in: *what are we trying to do, and how do we know it's
+  good?* Principles, metrics / KPIs, the *-ilities*, the rubric. PRD-shaped, a bit subjective.
+  *"What is good, here?"*
+- **INSIDE-OUT — the foundations.** From the core out: the technical structure that honors the system's
+  physics and constraints — separation of concerns, dependency inversion, CLEAN / hexagonal / Onion,
+  domain-driven design, functional patterns. *"What structure holds, here?"*
+  (`architecture-decomposer`'s `references/architecture-knowledge.md` is the worked canon.)
+
+These planes are **orthogonal** to the intent/mechanism axes and compose into a 2×2 — each plane has a
+judgment half and a mechanizable half, and the mechanizable cells route to `bin/` (*computation → code*):
+
+| | **intent** (LLM judgment) | **mechanism** (routed to `bin/`) |
+|---|---|---|
+| **OUTSIDE-IN** (goals) | principles · the *-ilities* · the rubric | KPI / SLO / acceptance checks |
+| **INSIDE-OUT** (foundations) | SoC · DI · CLEAN · DDD · FP | acyclicity · coupling · layering (fitness functions) |
+
+**Polarity — fix it once, never invert it.** When a skill names its axes *directionally*, **OUTSIDE-IN
+is the intent axis (A · whole → part)** and **INSIDE-OUT is the mechanism axis (B · part → whole)**.
+`layout-` and `brand-decomposer` name their axes this way and follow this polarity; the others keep
+their domain axis names (`STRUCTURE × INTEGRITY`, `SPEC × EXECUTION`, `MODEL × VALIDITY`,
+`SEMANTICS × EXECUTION`) and apply the two planes as the **reasoning lens** — the OUTSIDE-IN goals are
+what the intent axis grades against, the INSIDE-OUT structure is what the mechanism axis verifies.
+
 Then lay out **5 levels per axis** (A1–A5, B1–B5). The first two of each axis are usually **gates**
 (`[gate]`); the rest are **reviews** (`[review]`, 1–5). Gates **cascade** — a failed gate blocks the
 reviews below it on that axis (you can't grade the legibility of something that won't render). A
