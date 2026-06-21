@@ -98,7 +98,11 @@ deterministic backstop.
   set), and required fields. `references/brand-spec-schema.md` is now its prose companion. Print it with
   `bin/brand-spec-check.py schema`; validate an arbitrary card against it with `type-decomposer`'s
   `instance-check.py` (the skill that owns instance-validation — not reimplemented here, which would
-  degrade the gate's domain-meaningful findings into generic `SCHEMA_INVALID`).
+  degrade the gate's domain-meaningful findings into generic `SCHEMA_INVALID`). **The integration is
+  verified, not just asserted:** wiring the schema + the three fixture cards into instance-check's
+  `{schema, legal[], illegal[]}` spec validates `docusign.green` and `empower.hollow` and rejects
+  `acme.red` (`severity:"loud"`, `truth:"guess"`) — so the schema, the bin, and instance-check agree on
+  well-formedness. `references/brand-spec-schema.md` carries the reproducible command.
 - **Drift guard** — the selftest's `_schema_coherence()` asserts the schema's enums match the bin's
   constants and that the GREEN fixture satisfies the schema's required-field contract, so the artifact
   and the executable gate can't silently diverge. Proven non-trivial by a corrupt-the-enum negative

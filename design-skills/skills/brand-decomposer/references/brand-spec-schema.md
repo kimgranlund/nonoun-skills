@@ -12,7 +12,18 @@ strategy (axis A) and the typed, evidence-linked primitives (axis B) — in one 
 > *declarative* B1 contract (structure, types, enums, required fields); the *semantic* gates (UNTRACED
 > provenance, LOW_CONFIDENCE, COLLAPSED_TRUTH, CONTRAST_FAIL, GENERIC_IDEA, INCOMPLETE) are not
 > expressible in JSON Schema and live in the bin with domain-meaningful finding kinds. To validate an
-> arbitrary card against the schema, pipe it through `type-decomposer`'s `instance-check.py`.
+> arbitrary card against the schema, pipe it through `type-decomposer`'s `instance-check.py` — wire the
+> schema plus your card(s) into its `{schema, legal[], illegal[]}` spec and run it:
+>
+> ```sh
+> # spec = {"schema": <brand-spec.schema.json>, "legal": [<good cards>], "illegal": [<bad cards>]}
+> python3 …/type-decomposer/bin/instance-check.py spec.json
+> # instance-check: OK — 2 legal validate, 1 illegal rejected (illegal states unrepresentable)
+> ```
+>
+> *Verified:* the `docusign.green` and `empower.hollow` cards validate against the schema, and
+> `acme.red` (with `severity:"loud"`, `truth:"guess"`) is rejected — so the schema, the bin, and
+> instance-check agree on what is well-formed.
 
 ## The card
 
