@@ -1,0 +1,34 @@
+{
+  "skill": "goals-decomposer",
+  "_note": "goals-decomposer's checked-in routing corpus. LEXICAL-OVERLAP legibility aid, NOT a verdict — routing-eval.py measures token overlap between a phrase and the description only. Positives span the invocation families (imperative 'grade/decompose this PRD/charter', diagnostic 'are these goals measurable / ranked / governable', symptom 'no metric / all P0 / works-well acceptance / outputs-not-outcomes / surrogate metric', the CROSS-CHECK family 'goals vs the architecture', plus 2-3 paraphrases). Negatives are drawn ADVERSARIALLY from the CONFUSABLE neighbours: product-forge (judges the product BET by expert taste — this skill grades the charter's GOVERNABILITY, not the bet's merit), architecture-decomposer (the INSIDE-OUT structure that MEETS the goals), and the other code decomposers (code/type/query). Each negative belongs to a NAMED peer. Re-derive when the neighbourhood changes.",
+  "siblings_in_repo": ["architecture-decomposer", "code-decomposer", "type-decomposer", "query-decomposer"],
+  "global_peers": ["product-council", "product-methodology", "product-evaluate", "two-plane-orchestrator"],
+  "positives": [
+    "grade this PRD for governability",
+    "are these project goals measurable or just fluff",
+    "is this charter a strict priority order or is everything P0",
+    "decompose these goals into a falsifiable charter",
+    "this goal has no metric or threshold — is it a real goal",
+    "rank the architecture characteristics (the -ilities) for this system",
+    "does this KPI actually capture the outcome or is it a surrogate (Goodhart)",
+    "the acceptance criteria say 'works well and feels snappy' — make them checkable",
+    "is there a diagnosis behind these goals or just a wish list",
+    "cross-check these ranked goals against the proposed architecture",
+    "write success criteria for this project so we can tell when it's done",
+    "this PRD is all outputs (ship X, build Y), not outcomes",
+    "grade the OUTSIDE-IN goals doc on aim and measurability",
+    "are these non-goals explicit or is the scope unbounded"
+  ],
+  "negatives": [
+    "is this product bet a good idea, what would Marty C. say",
+    "run the product council on this strategy and roadmap",
+    "design the system architecture and module boundaries",
+    "grade this dependency graph for cycles, layering, and coupling",
+    "decompose and grade this function against its contract",
+    "make illegal states unrepresentable in this data model",
+    "grade this SQL query's grain and execution plan",
+    "is this brand-guidelines spec operable and traced",
+    "review this code for the green-but-wrong quadrant",
+    "design the bounded contexts and ownership for these services"
+  ]
+}

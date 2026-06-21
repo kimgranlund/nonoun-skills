@@ -4,6 +4,34 @@ Notable changes to the **nonoun-skills marketplace** — plugins, the gate, and 
 Each skill also keeps its own `CHANGELOG.md`; this file tracks the repo as a whole. Entries are
 grouped by date; the first tagged release is **v0.2.0** (2026-06-17).
 
+## 2026-06-21 — the two-plane model + goals-decomposer (code-skills → 0.6.0)
+
+A repo-wide alignment to a single reasoning model — **reason on two planes in parallel** — plus the new
+OUTSIDE-IN skill that makes the pair symmetric. Marketplace now **11 plugins / 39 skills**; the gate runs
+**29 bin selftests**.
+
+- **The two-plane convention (canonical, repo-wide).** `HOWTO.md` §1 now fixes one polarity —
+  **OUTSIDE-IN = the intent axis** (goals: principles · KPIs · the *-ilities* · the rubric),
+  **INSIDE-OUT = the mechanism axis** (foundations: SoC · DI · CLEAN · DDD · FP) — orthogonal to
+  intent/mechanism, composing into a 2×2 whose mechanizable cells route to `bin/`. README + CLAUDE.md
+  document it. `brand-decomposer` was **normalized** to this polarity (relabel only, with a corpus
+  terminology note); `layout-decomposer` was already canonical; `code-/type-/query-decomposer` got the
+  two-plane reasoning lens.
+- **`architecture-decomposer` 0.1.0 → 0.2.0 (the INSIDE-OUT template).** `architecture-knowledge.md` now
+  *operationalizes* the named canon distinguished engineers cite — DDD bounded contexts, hexagonal/
+  ports-and-adapters, CLEAN/Onion, SOLID, connascence, Conway + inverse-Conway, fitness functions
+  (`dependency-check.py` named as one), SoC/Parnas, ADRs/C4 — each mapped to a method level, with the 2×2.
+- **Staged isolation (the pollution guarantee).** `HOWTO.md` §1 documents how to reason on both planes
+  without one polluting the other: goals-first-alone → structure-with-goals-read-only → fresh-context
+  cross-check. The enforcing `nonoun-plugins` **two-plane orchestrator** is designed in
+  `nonoun-plugins/docs/designs/two-plane-orchestrator.md`.
+- **New skill — `goals-decomposer` (draft, 0.1.0), the OUTSIDE-IN peer.** Grades a goals/charter/PRD doc
+  on **AIM × MEASURABILITY** — the right ranked goals AND falsifiable, with no fluff. `bin/charter-check.py`
+  mechanizes measurability (NO_DIAGNOSIS · UNRANKED · FLUFF · UNMEASURABLE_KPI · VACUOUS_ACCEPTANCE +
+  advisories); the *precise-but-wrong* quadrant (Goodhart) is adversarially probed. Rumelt's kernel,
+  outcomes-over-outputs, the architecture-characteristics ranking; fenced against `product-forge` (the
+  *bet* by taste) and `architecture-decomposer` (the *structure*). Sixth decomposer in `code-skills`.
+
 ## 2026-06-20 — new skill: brand-decomposer (design-skills → 0.7.0)
 
 - **brand-decomposer (draft, 0.1.0)** — the fourth crossing-axis decomposer in `design-skills`, and the

@@ -8,7 +8,7 @@ For the human-facing overview see [README.md](README.md); to author a new skill 
 
 `nonoun-skills` is a **marketplace + home for general-purpose Claude Code skills** — domain-agnostic authoring aids kept separate from product plugins (which live in `nonoun-plugins`) so they don't bloat a plugin's standing context. Skills ship as **skill-bundle plugins**: a plugin that bundles *only* skills — no commands, agents, or MCP.
 
-There is no application to run. The deliverable is the skill content itself; the repo's job is to keep it valid, self-contained, and installable. It currently holds **11 plugins / 37 skills**, and the spine through most of them is one technique: the **decomposer**.
+There is no application to run. The deliverable is the skill content itself; the repo's job is to keep it valid, self-contained, and installable. It currently holds **11 plugins / 39 skills**, and the spine through most of them is one technique: the **decomposer**.
 
 ## Layout & the chain
 
@@ -30,7 +30,7 @@ Most skills here are **decomposers**. A decomposer grades an artifact on **two i
 - an **intent axis** (whole → part) — *"is it the right thing?"* — where an LLM is strong.
 - a **mechanism axis** (part → whole) — *"does it actually work / hold / render, here?"* — where an LLM fails silently, so it is **routed to a deterministic, self-tested `bin/` gate** (*computation routes to code, never inference*).
 
-The two **cross at one seam**, their defects are **opposite** (so the axes are **scored separately, never averaged** — the quadrant), the rubric is **gated** (gate checks cascade and block the finer reviews), and where the dangerous axis can't be deterministically gated the method **adversarially verifies** it in a fresh context. Every decomposer runs three modes: **DECOMPOSE** / **CREATE-DESIGN** / **GRADE**. The 11 axis pairs (OUTSIDE-IN×INSIDE-OUT, SPEC×EXECUTION, MODEL×VALIDITY, …) are in the README table; the authoring recipe is in HOWTO.md.
+The two **cross at one seam**, their defects are **opposite** (so the axes are **scored separately, never averaged** — the quadrant), the rubric is **gated** (gate checks cascade and block the finer reviews), and where the dangerous axis can't be deterministically gated the method **adversarially verifies** it in a fresh context. Every decomposer runs three modes: **DECOMPOSE** / **CREATE-DESIGN** / **GRADE**. The axis pairs (OUTSIDE-IN×INSIDE-OUT, SPEC×EXECUTION, MODEL×VALIDITY, STRUCTURE×INTEGRITY, AIM×MEASURABILITY, …) are in the README table; the authoring recipe is in HOWTO.md.
 
 **Canonical polarity + two planes (repo-wide, see HOWTO.md §1).** When a skill names its axes directionally, **OUTSIDE-IN = the intent axis** (whole→part, the goals / "what's good") and **INSIDE-OUT = the mechanism axis** (part→whole, the technical foundations) — never inverted (`layout-` and `brand-decomposer` follow this; `brand` carries a terminology note because its source corpus uses the words for reasoning-directions, the opposite polarity). Plan and review on **two planes in parallel**: OUTSIDE-IN (goals · -ilities · rubric) × INSIDE-OUT (SoC · DI · CLEAN · DDD · FP); they are orthogonal to intent/mechanism and form a 2×2 whose mechanizable cells route to `bin/`. The worked INSIDE-OUT canon (DDD bounded contexts, hexagonal/ports-and-adapters, CLEAN/Onion, Conway + inverse-Conway, connascence, fitness functions, SOLID, SoC/Parnas, ADRs/C4) lives in `architecture-decomposer`'s `references/architecture-knowledge.md`.
 
@@ -64,7 +64,7 @@ Core principle: **skills are self-contained and computation routes to code, neve
 
 ```sh
 # The one gate — validate every skill, run all bin selftests, dogfood the render-check.
-# A fresh clone proves itself with this alone (no external tooling). Currently: 37 skills, 26 selftests.
+# A fresh clone proves itself with this alone (no external tooling). Currently: 39 skills, 29 selftests.
 python3 bin/check-skills.py
 
 # Any single bin tool exposes its self-test:

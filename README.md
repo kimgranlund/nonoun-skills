@@ -2,7 +2,7 @@
 
 A home + marketplace for **general-purpose Claude Code skills** — domain-agnostic authoring aids that aren't tied to any one plugin's job. Versioned, validated, and installable, kept separate from the product plugins (which live in [`nonoun-plugins`](https://github.com/kimgranlund/nonoun-plugins)) so the skills don't bloat a plugin's standing context or stretch its scope.
 
-Skills ship as cohesive **skill-bundle plugins** — a plugin that bundles only skills (no commands, agents, or MCP). The repo holds **11 plugins / 38 skills**, and the spine running through most of them is one technique: the **decomposer**.
+Skills ship as cohesive **skill-bundle plugins** — a plugin that bundles only skills (no commands, agents, or MCP). The repo holds **11 plugins / 39 skills**, and the spine running through most of them is one technique: the **decomposer**.
 
 → Building a skill? See **[HOWTO.md](HOWTO.md)**. Repo history: **[CHANGELOG.md](CHANGELOG.md)**. What's next: **[ROADMAP.md](ROADMAP.md)**.
 
@@ -30,6 +30,7 @@ The same shape, specialized per domain — the axis pair is the skill's fingerpr
 | **query-decomposer** | code | SEMANTICS × EXECUTION | `sql-lint.py` · `query-harness.py` (EXPLAIN/dry-run) |
 | **type-decomposer** | code | MODEL × VALIDITY | `instance-check.py` (legal/illegal instance sets) · `model-smells.py` |
 | **architecture-decomposer** | code | STRUCTURE × INTEGRITY | `dependency-check.py` (acyclicity / layering / coupling) |
+| **goals-decomposer** | code | AIM × MEASURABILITY | `charter-check.py` (diagnosis · ranked · fluff · unmeasurable-KPI) |
 | **extraction-decomposer** | data | FIDELITY × VALIDITY | `groundedness-check.py` · `schema-check.py` |
 | **routing-decomposer** | meta | INSTRUCTION × ROUTING | `routing-eval.py` (precision/recall) · `description-lint.py` |
 | **proof-decomposer** | reasoning | ARGUMENT × VERIFICATION | `proof-structure-check.py` (DAG) · `numeric-spotcheck.py` |
@@ -42,7 +43,7 @@ The non-decomposer skills follow two other vintages: deep **reference** skills t
 | Plugin | Domain | Skills |
 | --- | --- | --- |
 | **design-skills** | UI / visual | decomposers `layout-` · `mermaid-` · `component-` · `brand-decomposer` · reference `color-science` · `typography-lettering` · `ref-polyfills` · verifiers `color-` · `focus-` · `i18n-` · `perf-` · `safety-verifier` |
-| **code-skills** | engineering | `code-` · `regex-` · `query-` · `type-` · `architecture-decomposer` (decomposers) · `figma-plugins` (domain build) |
+| **code-skills** | engineering | `code-` · `regex-` · `query-` · `type-` · `architecture-` · `goals-decomposer` (decomposers) · `figma-plugins` (domain build) |
 | **data-skills** | structured data | `extraction-decomposer` |
 | **meta-skills** | skills about skills | `routing-decomposer` |
 | **reasoning-skills** | deductive argument | `proof-decomposer` |
@@ -56,7 +57,7 @@ The non-decomposer skills follow two other vintages: deep **reference** skills t
 What each carries:
 
 - **design-skills** — `layout-decomposer` (read/grade/design a UI, with a four-archetype ASCII-wireframe library) · `mermaid-decomposer` (advanced Mermaid on a verbatim 11-type syntax catalog + a mechanized render-check) · `component-decomposer` (a zero-dependency web component *and* how components compose — nest/wire — up to the module, with a deterministic geometry engine — every glyph centered in a square cell, so edge padding = (height − glyph)/2 — plus a composition-card linter; hands the app shell up to layout-decomposer) · `brand-decomposer` (a brand-guidelines spec graded as an *operating system* — INSIDE-OUT meaning × OUTSIDE-IN operability — with a 100-pt rubric, an evidence/confidence/three-truths trust model, a stdlib operability gate (schema/provenance/WCAG-contrast/completeness), and a CRITIQUE mode that grounds work-critique in a validated spec) · `color-science` (perceptual color + a TypeScript color library + 54 interactive demos) · `typography-lettering` (type anatomy → world scripts → the modern CSS text surface) · `ref-polyfills` (CSS/JS feature support, polyfills, the Baseline landscape) · the **verifiers** `color-`/`focus-`/`i18n-`/`perf-`/`safety-verifier` (gate a UI surface on contrast, focus order, i18n, perf budgets, and safety — each a card-based `bin/` check).
-- **code-skills** — `code-decomposer` (a unit of code: right + provably runs, with an execution harness and a test-vacuity linter that attacks the "green but wrong" quadrant) · `regex-decomposer` (a pattern that means the right language and won't ReDoS) · `query-decomposer` (a SQL query at the right grain that actually plans) · `type-decomposer` (make illegal states unrepresentable, proven by legal/illegal instance sets) · `architecture-decomposer` (a system on STRUCTURE × INTEGRITY, with an acyclicity/layering/coupling checker) · `figma-plugins` (build/test Figma plugins across the sandbox↔iframe message bridge).
+- **code-skills** — `code-decomposer` (a unit of code: right + provably runs, with an execution harness and a test-vacuity linter that attacks the "green but wrong" quadrant) · `regex-decomposer` (a pattern that means the right language and won't ReDoS) · `query-decomposer` (a SQL query at the right grain that actually plans) · `type-decomposer` (make illegal states unrepresentable, proven by legal/illegal instance sets) · `architecture-decomposer` (a system on STRUCTURE × INTEGRITY, with an acyclicity/layering/coupling checker + the named INSIDE-OUT canon) · `goals-decomposer` (a goals/charter/PRD doc on AIM × MEASURABILITY — the OUTSIDE-IN peer: ranked, falsifiable, no fluff, with a charter-measurability linter and the Goodhart probe) · `figma-plugins` (build/test Figma plugins across the sandbox↔iframe message bridge).
 - **data-skills** — `extraction-decomposer` (is a structured extraction both schema-valid *and* true to its source — the instructive inversion where the cheap gate isn't the dangerous axis).
 - **meta-skills** — `routing-decomposer` (does a skill's frontmatter description fire on the right requests and hold against the wrong ones — graded by a mechanized routing eval).
 - **reasoning-skills** — `proof-decomposer` (are the steps valid *and* do they prove the stated claim — a proof-structure DAG check catches circular reasoning + a numeric counterexample search).
