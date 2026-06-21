@@ -1,0 +1,51 @@
+{
+  "title": "Checkout service",
+  "diagnosis": "Cart abandonment spikes at peak because checkout p99 latency degrades under load and a single failure takes the whole flow down.",
+  "characteristics": [
+    {
+      "name": "scalability",
+      "rank": 1,
+      "outcome": "checkout stays responsive under peak traffic",
+      "metric": "p99 checkout latency",
+      "threshold": "< 300ms",
+      "window": "at 10x baseline load",
+      "rationale": "abandonment tracks latency above 300ms (diagnosis)"
+    },
+    {
+      "name": "resilience",
+      "rank": 2,
+      "outcome": "a downstream failure degrades, not collapses",
+      "metric": "successful-checkout rate during a payment-provider outage",
+      "threshold": "> 95%",
+      "window": "during a single-provider outage",
+      "rationale": "single failure took the flow down"
+    },
+    {
+      "name": "evolvability",
+      "rank": 3,
+      "outcome": "a pricing change ships without touching checkout",
+      "metric": "modules touched by a pricing-rule change",
+      "threshold": "<= 1",
+      "window": "per change",
+      "rationale": "pricing churn must not destabilize the hot path"
+    }
+  ],
+  "principles": [
+    "fail open to a queue, never to an error",
+    "no synchronous calls on the hot path"
+  ],
+  "non_goals": [
+    "not multi-region in v1",
+    "not a rewrite of the catalog service"
+  ],
+  "acceptance": [
+    {
+      "criterion": "p99 checkout latency stays under 300ms at 10x load",
+      "metric": "p99",
+      "threshold": "300ms"
+    },
+    {
+      "criterion": "checkout succeeds for >95% of carts during a simulated provider outage"
+    }
+  ]
+}

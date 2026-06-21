@@ -1,0 +1,25 @@
+{
+  "title": "Platform v2",
+  "characteristics": [
+    {
+      "name": "fast",
+      "rank": 1,
+      "outcome": "make it fast"
+    },
+    {
+      "name": "reliable",
+      "rank": 1,
+      "outcome": "ship the new reliability layer",
+      "metric": "uptime"
+    }
+  ],
+  "principles": [
+    "be modern"
+  ],
+  "non_goals": [],
+  "acceptance": [
+    {
+      "criterion": "the platform works well and feels snappy"
+    }
+  ]
+}

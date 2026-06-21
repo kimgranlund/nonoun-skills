@@ -53,6 +53,28 @@ their domain axis names (`STRUCTURE × INTEGRITY`, `SPEC × EXECUTION`, `MODEL �
 `SEMANTICS × EXECUTION`) and apply the two planes as the **reasoning lens** — the OUTSIDE-IN goals are
 what the intent axis grades against, the INSIDE-OUT structure is what the mechanism axis verifies.
 
+**Reason on the two planes without polluting one with the other — staged isolation.** Holding both
+planes in *one* context is how the analysis corrupts itself: an elegant INSIDE-OUT structure bends your
+read of whether it serves the goals, and over-anchoring on the goals narrows the technical exploration
+before it starts. The planes are also **dependent** (the structure exists to serve the goals), so pure
+*blind* isolation is wrong too — it yields "an elegant solution to the wrong problem." The fix is
+**staged** isolation, mirroring the generation-verification split:
+
+1. **Goals first, alone.** Settle the OUTSIDE-IN goals/rubric with no structure in context — nothing to
+   anchor on, so the goals can't be quietly bent to fit a structure that doesn't exist yet.
+2. **Structure next, goals read-only.** Reason on the INSIDE-OUT structure *given the goals as a fixed
+   contract* — honor them, don't relitigate them; if a goal is infeasible or two goals contradict, raise
+   it as an explicit **tension**, never a silent rewrite.
+3. **Cross-check in a third, fresh context.** Ask the one question neither author can ask itself: *does
+   this structure actually serve the ranked goals?* — the 2×2's SHIPPABLE cell. This is the same
+   *fresh-context adversarial verify* the decomposer already uses for its dangerous quadrant, now
+   guarding the **seam** between the planes.
+
+A skill *documents* this discipline; only an orchestrator *enforces* it (separate contexts are an
+orchestration property, not a document property). The `nonoun-plugins` two-plane orchestrator
+(`docs/designs/two-plane-orchestrator.md`) is where the enforcement, the two durable docs, and their
+maintenance-over-time live; a single agent reasoning solo should still walk these three stages in order.
+
 Then lay out **5 levels per axis** (A1–A5, B1–B5). The first two of each axis are usually **gates**
 (`[gate]`); the rest are **reviews** (`[review]`, 1–5). Gates **cascade** — a failed gate blocks the
 reviews below it on that axis (you can't grade the legibility of something that won't render). A
