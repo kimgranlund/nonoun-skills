@@ -15,6 +15,8 @@ Most skills here are **decomposers**. A decomposer grades an artifact on **two i
 
 They **cross at one seam** (the artifact that is both the claim and the mechanism), the defects on the two axes are **opposite** (a clean intent can't hide a broken mechanism, and vice versa), and the rubric is **gated**: gate-level checks cascade and block the finer reviews. Where the dangerous axis can't be deterministically gated, the method **adversarially verifies** it in a fresh context. Every decomposer runs the same three modes: **DECOMPOSE** (read & grade), **CREATE/DESIGN** (author), **GRADE** (score against the rubric).
 
+Two cross-cutting conventions (see **[HOWTO.md](HOWTO.md)**): **(1) Polarity** — when a skill names its axes directionally, **OUTSIDE-IN is the intent axis** (whole → part) and **INSIDE-OUT is the mechanism axis** (part → whole), never inverted (`layout-` and `brand-decomposer` follow this). **(2) Two planes** — plan and review on two perspectives at once: **OUTSIDE-IN** (the goals — principles, KPIs, the *-ilities*, the rubric) × **INSIDE-OUT** (the technical foundations — separation of concerns, dependency inversion, CLEAN, DDD, functional patterns). The planes are orthogonal to intent/mechanism and form a 2×2 whose mechanizable cells route to `bin/`; `architecture-decomposer`'s `architecture-knowledge.md` is the worked INSIDE-OUT canon (DDD · hexagonal · CLEAN · Conway · connascence · fitness functions · SOLID).
+
 The same shape, specialized per domain — the axis pair is the skill's fingerprint:
 
 | Skill | Plugin | Intent axis × mechanism axis | Mechanized gate (`bin/`) |

@@ -73,6 +73,13 @@ Load `references/decomposition-method.md` for the full method. The skeleton:
 that axis). `A3–A5 · B4–B5` are **`[review]`s** (1–5). A shippable unit is **≥4 on every review with
 zero gate failures**, reported as two separate axis scores plus the defect quadrant.
 
+Reason on **two planes in parallel** (`HOWTO.md`): **OUTSIDE-IN** — the goals the unit serves (its
+contract, the cases that define *done*, the rubric) — and **INSIDE-OUT** — the technical foundations
+that hold it up (separation of concerns, a pure core behind an I/O shell, dependency inversion, a small
+surface). SPEC grades against the OUTSIDE-IN goals; EXECUTION verifies the INSIDE-OUT structure runs.
+The named canon (SOLID, DI, CLEAN, FP) lives in `architecture-decomposer`'s
+`references/architecture-knowledge.md`.
+
 ## The doctrine — gate where you can, adversarially verify where you can't
 
 The non-obvious core, and the reason it earns a skill:

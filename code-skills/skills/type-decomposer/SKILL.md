@@ -76,6 +76,13 @@ Load `references/decomposition-method.md` for the full method. The skeleton:
 `A3–A5 · B4–B5` are **`[review]`s** (1–5). A shippable model is **≥4 on every review with zero gate
 failures**, reported as two separate axis scores plus the defect quadrant.
 
+Reason on **two planes in parallel** (`HOWTO.md`): **OUTSIDE-IN** — the domain intent and the invariants
+the model must honor (*what's a legal state, and why?*) — and **INSIDE-OUT** — the algebraic foundations
+that enforce it (sums vs products, *make illegal states unrepresentable*, DDD value objects,
+parse-don't-validate). MODEL grades the OUTSIDE-IN intent; VALIDITY proves the INSIDE-OUT structure
+holds. The named canon (DDD, the type-driven canon) lives in `architecture-decomposer`'s
+`references/architecture-knowledge.md`.
+
 ## The doctrine — the state space is the contract
 
 The reason this earns a skill: a type's real meaning is the **set of values it admits**, not its

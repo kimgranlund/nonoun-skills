@@ -81,6 +81,12 @@ that axis). `A3–A5 · B4–B5` are **`[review]`s** (1–5). A shippable query 
 zero gate failures**, reported as two separate axis scores plus the defect quadrant. `B1/B2/B3` route
 to the real engine via `bin/query-harness.py` — never certified by reading.
 
+Reason on **two planes in parallel** (`HOWTO.md`): **OUTSIDE-IN** — the business question and the grain
+that answers it (*what's good?*) — and **INSIDE-OUT** — the relational foundations (set semantics,
+joins/keys, normalization, the planner's cost model). SEMANTICS grades the OUTSIDE-IN question;
+EXECUTION verifies the INSIDE-OUT plan runs. The named canon lives in `architecture-decomposer`'s
+`references/architecture-knowledge.md`.
+
 ## The doctrine — grain is the contract; prove it, don't read it
 
 The non-obvious core, and the reason it earns a skill:

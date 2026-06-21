@@ -58,6 +58,11 @@ Load `references/decomposition-method.md` for the full method. The skeleton:
 `A1 · A2 · B1 · B2` are **`[gate]`s** (binary; one failure cascades and BLOCKS). `A3–A5 · B3–B5` are **`[review]`s**
 (1–5). A shippable layout is **≥4 on every review with zero gate failures**, reported as two separate axis scores.
 
+This is the repo-canonical polarity (`HOWTO.md`): **OUTSIDE-IN** = the intent axis (the space the eye
+parses, whole → part) and **INSIDE-OUT** = the structure axis (the behavior the hand performs, part →
+whole). For a UI the two planes manifest as *spatial* × *functional* rather than the goals × technical
+of a codebase, but the polarity is the same — OUTSIDE-IN is always "is it the right thing?".
+
 ## The archetype library (ASCII wireframes)
 
 Four shells cover most software UIs. Each reference carries a primary wireframe, the **named-pattern vocabulary**,
